@@ -10,13 +10,14 @@ build:
 	$(CARGO_OLD) build --release
 	$(CARGO_NEW) build
 	$(CARGO_NEW) build --release
+	$(CARGO_NEW) build --release --target wasm32v1-none --no-default-features
 
 
 .PHONY: test
 test:
-	$(CARGO_NEW) test
-	$(CARGO_NEW) test --release
 	$(CARGO_OLD) test --release
+	$(CARGO_NEW) test # Debug test
+	$(CARGO_NEW) test --release
 
 .PHONY: bench
 bench:
@@ -34,3 +35,14 @@ fmt:
 .PHONY: lint
 lint:
 	cd $(CONTEST_DIR) && $(CARGO_NEW) clippy --all-targets
+
+.PHONY: coverage
+coverage:
+	command -v grcov >/dev/null 2>&1 || cargo install grcov
+	rustup component add llvm-tools-preview
+	rm -rf target/coverage
+	mkdir -p target/coverage
+	CARGO_INCREMENTAL=0 RUSTFLAGS=-Cinstrument-coverage LLVM_PROFILE_FILE=cargo-test-%p-%m.profraw cargo test
+	grcov . --binary-path ./target/debug/deps/ -s . -t cobertura,html --branch --ignore-not-existing --ignore '../*' --ignore '/*' -o target/coverage
+	rm -f cargo-test*\.profraw
+	@printf "\nCoverage is in:\nfile://$(PWD)/target/coverage/html/index.html\n"
