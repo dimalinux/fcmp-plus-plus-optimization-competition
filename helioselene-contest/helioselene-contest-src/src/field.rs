@@ -4,7 +4,6 @@ use core::{
 };
 
 use crypto_bigint::{
-    impl_modulus,
     modular::constant_mod::{Residue, ResidueParams},
     Encoding, Integer, NonZero, U256, U512,
 };
@@ -17,7 +16,44 @@ use crate::backend::u8_from_bool;
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
 
-impl_modulus!(HelioseleneQ, U256, MODULUS_STR);
+//impl_modulus!(HelioseleneQ, U256, MODULUS_STR);
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct HelioseleneQ {}
+
+impl<const DLIMBS: usize> ResidueParams<{ <U256>::LIMBS }> for HelioseleneQ
+where
+    U256: crypto_bigint::ConcatMixed<MixedOutput = crypto_bigint::Uint<DLIMBS>>,
+{
+    const LIMBS: usize = <U256>::LIMBS;
+    const MODULUS: U256 = {
+        let res = <U256>::from_be_hex(MODULUS_STR);
+
+        if res.as_limbs()[0].0 & 1 == 0 {
+            panic!("modulus must be odd");
+        }
+
+        res
+    };
+    const MOD_NEG_INV: crypto_bigint::Limb = crypto_bigint::Limb(
+        crypto_bigint::Word::MIN.wrapping_sub(
+            Self::MODULUS
+                .inv_mod2k_vartime(crypto_bigint::Word::BITS as usize)
+                .as_limbs()[0]
+                .0,
+        ),
+    );
+    const R: U256 = crypto_bigint::Uint::MAX
+        .const_rem(&Self::MODULUS)
+        .0
+        .wrapping_add(&crypto_bigint::Uint::ONE);
+    const R2: U256 = crypto_bigint::Uint::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
+    const R3: U256 = crypto_bigint::modular::montgomery_reduction(
+        &Self::R2.square_wide(),
+        &Self::MODULUS,
+        Self::MOD_NEG_INV,
+    );
+}
+
 type ResidueType = Residue<HelioseleneQ, { HelioseleneQ::LIMBS }>;
 
 /// The field novel to Helios/Selene.
@@ -27,7 +63,7 @@ pub struct HelioseleneField(pub(crate) ResidueType);
 
 impl DefaultIsZeroes for HelioseleneField {}
 
-pub(crate) const MODULUS: U256 = U256::from_be_hex(MODULUS_STR);
+const MODULUS: U256 = U256::from_be_hex(MODULUS_STR);
 
 const WIDE_MODULUS: U512 = U512::from_be_hex(concat!(
     "0000000000000000000000000000000000000000000000000000000000000000",
