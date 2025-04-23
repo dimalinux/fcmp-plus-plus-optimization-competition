@@ -1,8 +1,7 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideWord, Word, Wrapping, Zero};
+use crate::{Concat, ConcatMixed, Limb, Uint, WideWord, Word, Wrapping};
 use core::ops::{Mul, MulAssign};
-use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
@@ -161,15 +160,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<&Uint<HLIMBS>> for Uint<LIMBS> {
-    type Output = Self;
-
-    fn checked_mul(&self, rhs: &Uint<HLIMBS>) -> CtOption<Self> {
-        let (lo, hi) = self.mul_wide(rhs);
-        CtOption::new(lo, hi.is_zero())
-    }
-}
-
 impl<const LIMBS: usize, const HLIMBS: usize> Mul<Wrapping<Uint<HLIMBS>>>
     for Wrapping<Uint<LIMBS>>
 {
@@ -226,56 +216,6 @@ impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<&Wrapping<Uint<HLIMBS>>>
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Checked<Uint<HLIMBS>>> for Checked<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn mul(self, rhs: Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Checked<Uint<HLIMBS>>> for Checked<Uint<LIMBS>> {
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: &Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Checked<Uint<HLIMBS>>> for &Checked<Uint<LIMBS>> {
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Checked<Uint<HLIMBS>>>
-    for &Checked<Uint<LIMBS>>
-{
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: &Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<Checked<Uint<HLIMBS>>>
-    for Checked<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: Checked<Uint<HLIMBS>>) {
-        *self = *self * other;
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<&Checked<Uint<HLIMBS>>>
-    for Checked<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: &Checked<Uint<HLIMBS>>) {
-        *self = *self * other;
-    }
-}
-
 impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for Uint<LIMBS>
 where
     Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
@@ -322,7 +262,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Zero, U128, U192, U256, U64};
+    use crate::{Zero, U128, U256, U64};
 
     #[test]
     fn mul_wide_zero_and_one() {
@@ -334,12 +274,12 @@ mod tests {
 
     #[test]
     fn mul_wide_lo_only() {
-        let primes: &[u32] = &[3, 5, 17, 257, 65537];
+        let primes: &[u64] = &[3, 5, 17, 257, 65537];
 
         for &a_int in primes {
             for &b_int in primes {
-                let (lo, hi) = U64::from_u32(a_int).mul_wide(&U64::from_u32(b_int));
-                let expected = U64::from_u64(a_int as u64 * b_int as u64);
+                let (lo, hi) = U64::from_u64(a_int).mul_wide(&U64::from_u64(b_int));
+                let expected = U64::from_u64(a_int * b_int);
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));
             }
@@ -360,28 +300,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn mul_concat_mixed() {
-        let a = U64::from_u64(0x0011223344556677);
-        let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
-        assert_eq!(a * b, U192::from(&a).saturating_mul(&b));
-        assert_eq!(b * a, U192::from(&b).saturating_mul(&a));
-    }
-
-    #[test]
-    fn checked_mul_ok() {
-        let n = U64::from_u32(0xffff_ffff);
-        assert_eq!(
-            n.checked_mul(&n).unwrap(),
-            U64::from_u64(0xffff_fffe_0000_0001)
-        );
-    }
-
-    #[test]
-    fn checked_mul_overflow() {
-        let n = U64::from_u64(0xffff_ffff_ffff_ffff);
-        assert!(bool::from(n.checked_mul(&n).is_none()));
-    }
 
     #[test]
     fn saturating_mul_no_overflow() {

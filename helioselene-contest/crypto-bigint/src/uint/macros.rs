@@ -11,20 +11,8 @@ macro_rules! impl_uint_aliases {
                 type Repr = [u8; $bits / 8];
 
                 #[inline]
-                fn from_be_bytes(bytes: Self::Repr) -> Self {
-                    Self::from_be_slice(&bytes)
-                }
-
-                #[inline]
                 fn from_le_bytes(bytes: Self::Repr) -> Self {
                     Self::from_le_slice(&bytes)
-                }
-
-                #[inline]
-                fn to_be_bytes(&self) -> Self::Repr {
-                    let mut result = [0u8; $bits / 8];
-                    self.write_be_bytes(&mut result);
-                    result
                 }
 
                 #[inline]

@@ -24,7 +24,6 @@ impl Limb {
 
     /// Create a [`Limb`] from a `u64` integer (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
-    #[cfg(target_pointer_width = "64")]
     pub const fn from_u64(n: u64) -> Self {
         Limb(n)
     }
@@ -51,7 +50,6 @@ impl From<u32> for Limb {
     }
 }
 
-#[cfg(target_pointer_width = "64")]
 impl From<u64> for Limb {
     #[inline]
     fn from(n: u64) -> Limb {

@@ -34,18 +34,11 @@ mod sub_mod;
 /// Implements modular arithmetic for constant moduli.
 pub mod modular;
 
-#[cfg(feature = "generic-array")]
 mod array;
-
-#[cfg(feature = "rand_core")]
-mod rand;
 
 use crate::{Bounded, Encoding, Integer, Limb, Word, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
-
-#[cfg(feature = "serde")]
-use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[cfg(feature = "zeroize")]
 use zeroize::DefaultIsZeroes;
@@ -265,35 +258,6 @@ impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
     }
 }
 
-#[cfg(feature = "serde")]
-impl<'de, const LIMBS: usize> Deserialize<'de> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Encoding,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let mut buffer = Self::ZERO.to_le_bytes();
-        serdect::array::deserialize_hex_or_bin(buffer.as_mut(), deserializer)?;
-
-        Ok(Self::from_le_bytes(buffer))
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<const LIMBS: usize> Serialize for Uint<LIMBS>
-where
-    Uint<LIMBS>: Encoding,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serdect::array::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
-    }
-}
-
 #[cfg(feature = "zeroize")]
 impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 
@@ -301,44 +265,8 @@ impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 impl_uint_aliases! {
     (U64, 64, "64-bit"),
     (U128, 128, "128-bit"),
-    (U192, 192, "192-bit"),
     (U256, 256, "256-bit"),
-    (U320, 320, "320-bit"),
-    (U384, 384, "384-bit"),
-    (U448, 448, "448-bit"),
-    (U512, 512, "512-bit"),
-    (U576, 576, "576-bit"),
-    (U640, 640, "640-bit"),
-    (U704, 704, "704-bit"),
-    (U768, 768, "768-bit"),
-    (U832, 832, "832-bit"),
-    (U896, 896, "896-bit"),
-    (U960, 960, "960-bit"),
-    (U1024, 1024, "1024-bit"),
-    (U1280, 1280, "1280-bit"),
-    (U1536, 1536, "1536-bit"),
-    (U1792, 1792, "1792-bit"),
-    (U2048, 2048, "2048-bit"),
-    (U3072, 3072, "3072-bit"),
-    (U3584, 3584, "3584-bit"),
-    (U4096, 4096, "4096-bit"),
-    (U4224, 4224, "4224-bit"),
-    (U4352, 4352, "4352-bit"),
-    (U6144, 6144, "6144-bit"),
-    (U8192, 8192, "8192-bit"),
-    (U16384, 16384, "16384-bit"),
-    (U32768, 32768, "32768-bit")
-}
-
-#[cfg(target_pointer_width = "32")]
-impl_uint_aliases! {
-    (U224, 224, "224-bit"), // For NIST P-224
-    (U544, 544, "544-bit")  // For NIST P-521
-}
-
-#[cfg(target_pointer_width = "32")]
-impl_uint_concat_split_even! {
-    U64,
+    (U512, 512, "512-bit")
 }
 
 // Implement concat and split for double-width Uint sizes: these should be
@@ -346,24 +274,7 @@ impl_uint_concat_split_even! {
 impl_uint_concat_split_even! {
     U128,
     U256,
-    U384,
     U512,
-    U640,
-    U768,
-    U896,
-    U1024,
-    U1280,
-    U1536,
-    U1792,
-    U2048,
-    U3072,
-    U3584,
-    U4096,
-    U4224,
-    U4352,
-    U6144,
-    U8192,
-    U16384,
 }
 
 // Implement mixed concat and split for combinations not implemented by
@@ -372,38 +283,18 @@ impl_uint_concat_split_even! {
 // (U256, [1, 3]) will allow splitting U256 into (U64, U192) as well as
 // (U192, U64), while the (U128, U128) combination is already covered.
 impl_uint_concat_split_mixed! {
-    (U192, [1, 2]),
     (U256, [1, 3]),
-    (U320, [1, 2, 3, 4]),
-    (U384, [1, 2, 4, 5]),
-    (U448, [1, 2, 3, 4, 5, 6]),
     (U512, [1, 2, 3, 5, 6, 7]),
-    (U576, [1, 2, 3, 4, 5, 6, 7, 8]),
-    (U640, [1, 2, 3, 4, 6, 7, 8, 9]),
-    (U704, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
-    (U768, [1, 2, 3, 4, 5, 7, 8, 9, 10, 11]),
-    (U832, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
-    (U896, [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13]),
-    (U960, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]),
-    (U1024, [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]),
 }
-
-#[cfg(feature = "extra-sizes")]
-mod extra_sizes;
-#[cfg(feature = "extra-sizes")]
-pub use extra_sizes::*;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::{Encoding, U128};
+    use crate::U128;
     use subtle::ConditionallySelectable;
 
     #[cfg(feature = "alloc")]
     use alloc::format;
-
-    #[cfg(feature = "serde")]
-    use crate::U64;
 
     #[cfg(feature = "alloc")]
     #[test]
@@ -440,22 +331,6 @@ mod tests {
     }
 
     #[test]
-    fn from_bytes() {
-        let a = U128::from_be_hex("AAAAAAAABBBBBBBB0CCCCCCCDDDDDDDD");
-
-        let be_bytes = a.to_be_bytes();
-        let le_bytes = a.to_le_bytes();
-        for i in 0..16 {
-            assert_eq!(le_bytes[i], be_bytes[15 - i]);
-        }
-
-        let a_from_be = U128::from_be_bytes(be_bytes);
-        let a_from_le = U128::from_le_bytes(le_bytes);
-        assert_eq!(a_from_be, a_from_le);
-        assert_eq!(a_from_be, a);
-    }
-
-    #[test]
     fn conditional_select() {
         let a = U128::from_be_hex("00002222444466668888AAAACCCCEEEE");
         let b = U128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
@@ -465,27 +340,5 @@ mod tests {
 
         let select_1 = U128::conditional_select(&a, &b, 1.into());
         assert_eq!(b, select_1);
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serde() {
-        const TEST: U64 = U64::from_u64(0x0011223344556677);
-
-        let serialized = bincode::serialize(&TEST).unwrap();
-        let deserialized: U64 = bincode::deserialize(&serialized).unwrap();
-
-        assert_eq!(TEST, deserialized);
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serde_owned() {
-        const TEST: U64 = U64::from_u64(0x0011223344556677);
-
-        let serialized = bincode::serialize(&TEST).unwrap();
-        let deserialized: U64 = bincode::deserialize_from(serialized.as_slice()).unwrap();
-
-        assert_eq!(TEST, deserialized);
     }
 }

@@ -6,16 +6,6 @@ use crate::{Limb, Uint, Zero};
 
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
 
-#[cfg(feature = "rand_core")]
-use crate::{rand_core::CryptoRngCore, NonZero, Random, RandomMod};
-
-#[cfg(feature = "serde")]
-use {
-    crate::Encoding,
-    serdect::serde::de::Error,
-    serdect::serde::{Deserialize, Deserializer, Serialize, Serializer},
-};
-
 /// Additions between residues with a constant modulus
 mod const_add;
 /// Multiplicative inverses of residues with a constant modulus
@@ -198,57 +188,9 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Zero for Residue<MOD, LIMBS>
     const ZERO: Self = Self::ZERO;
 }
 
-#[cfg(feature = "rand_core")]
-impl<MOD, const LIMBS: usize> Random for Residue<MOD, LIMBS>
-where
-    MOD: ResidueParams<LIMBS>,
-{
-    #[inline]
-    fn random(rng: &mut impl CryptoRngCore) -> Self {
-        Self::new(&Uint::random_mod(rng, &NonZero::from_uint(MOD::MODULUS)))
-    }
-}
-
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Retrieve for Residue<MOD, LIMBS> {
     type Output = Uint<LIMBS>;
     fn retrieve(&self) -> Self::Output {
         self.retrieve()
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de, MOD, const LIMBS: usize> Deserialize<'de> for Residue<MOD, LIMBS>
-where
-    MOD: ResidueParams<LIMBS>,
-    Uint<LIMBS>: Encoding,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Uint::<LIMBS>::deserialize(deserializer).and_then(|montgomery_form| {
-            if Uint::ct_lt(&montgomery_form, &MOD::MODULUS).into() {
-                Ok(Self {
-                    montgomery_form,
-                    phantom: PhantomData,
-                })
-            } else {
-                Err(D::Error::custom("montgomery form must be reduced"))
-            }
-        })
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<MOD, const LIMBS: usize> Serialize for Residue<MOD, LIMBS>
-where
-    MOD: ResidueParams<LIMBS>,
-    Uint<LIMBS>: Encoding,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.montgomery_form.serialize(serializer)
     }
 }

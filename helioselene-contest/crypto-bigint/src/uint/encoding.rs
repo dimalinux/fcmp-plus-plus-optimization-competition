@@ -1,11 +1,4 @@
 //! Const-friendly decoding operations for [`Uint`]
-
-#[cfg(all(feature = "der", feature = "generic-array"))]
-mod der;
-
-#[cfg(feature = "rlp")]
-mod rlp;
-
 use super::Uint;
 use crate::{Encoding, Limb, Word};
 
@@ -122,23 +115,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint::new(res)
     }
 
-    /// Serialize this [`Uint`] as big-endian, writing it into the provided
-    /// byte slice.
-    #[inline]
-    pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), Limb::BYTES * LIMBS);
-
-        for (src, dst) in self
-            .limbs
-            .iter()
-            .rev()
-            .cloned()
-            .zip(out.chunks_exact_mut(Limb::BYTES))
-        {
-            dst.copy_from_slice(&src.to_be_bytes());
-        }
-    }
-
     /// Serialize this [`Uint`] as little-endian, writing it into the provided
     /// byte slice.
     #[inline]
@@ -186,107 +162,4 @@ const fn decode_hex_byte(bytes: [u8; 2]) -> (u8, u16) {
     let err = byte >> 8;
     let result = byte as u8;
     (result, err)
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::Limb;
-    use hex_literal::hex;
-
-    #[cfg(feature = "alloc")]
-    use {crate::U128, alloc::format};
-
-    #[cfg(target_pointer_width = "32")]
-    use crate::U64 as UintEx;
-
-    #[cfg(target_pointer_width = "64")]
-    use crate::U128 as UintEx;
-
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_be_slice() {
-        let bytes = hex!("0011223344556677");
-        let n = UintEx::from_be_slice(&bytes);
-        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_be_slice() {
-        let bytes = hex!("00112233445566778899aabbccddeeff");
-        let n = UintEx::from_be_slice(&bytes);
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_le_slice() {
-        let bytes = hex!("7766554433221100");
-        let n = UintEx::from_le_slice(&bytes);
-        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_le_slice() {
-        let bytes = hex!("ffeeddccbbaa99887766554433221100");
-        let n = UintEx::from_le_slice(&bytes);
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_be_hex() {
-        let n = UintEx::from_be_hex("0011223344556677");
-        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_be_hex() {
-        let n = UintEx::from_be_hex("00112233445566778899aabbccddeeff");
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_le_hex() {
-        let n = UintEx::from_le_hex("7766554433221100");
-        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_le_hex() {
-        let n = UintEx::from_le_hex("ffeeddccbbaa99887766554433221100");
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-    }
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    fn hex_upper() {
-        let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
-        let n = U128::from_be_hex(hex);
-        assert_eq!(hex, format!("{:X}", n));
-    }
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    fn hex_lower() {
-        let hex = "aaaaaaaabbbbbbbbccccccccdddddddd";
-        let n = U128::from_be_hex(hex);
-        assert_eq!(hex, format!("{:x}", n));
-    }
 }

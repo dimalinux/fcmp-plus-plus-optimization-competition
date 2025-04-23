@@ -157,7 +157,7 @@ mod tests {
         let mut t = U256::from(1u8);
         assert_eq!(t << 1, U256::from(2u8));
         t = U256::from(3u8);
-        assert_eq!(t << 8, U256::from(0x300u16));
+        assert_eq!(t << 8, U256::from(0x300u64));
     }
 
     #[test]

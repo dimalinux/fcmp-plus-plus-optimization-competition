@@ -48,23 +48,6 @@ impl Limb {
         Self(x ^ y).ct_is_nonzero().not()
     }
 
-    /// Returns the truthy value if `lhs < rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> CtChoice {
-        let x = lhs.0;
-        let y = rhs.0;
-        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Limb::BITS - 1);
-        CtChoice::from_lsb(bit)
-    }
-
-    /// Returns the truthy value if `lhs <= rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn ct_le(lhs: Self, rhs: Self) -> CtChoice {
-        let x = lhs.0;
-        let y = rhs.0;
-        let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Limb::BITS - 1);
-        CtChoice::from_lsb(bit)
-    }
 }
 
 impl ConstantTimeEq for Limb {

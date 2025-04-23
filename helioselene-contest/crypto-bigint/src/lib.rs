@@ -62,9 +62,6 @@
 //! The [`Uint`] type itself does not implement the standard arithmetic traits
 //! such as [`Add`], [`Sub`], [`Mul`], and [`Div`].
 //!
-//! To use these traits you must first pick a wrapper type which determines
-//! overflow behavior: [`Wrapping`] or [`Checked`].
-//!
 //! #### Wrapping arithmetic
 //!
 //! ```
@@ -77,18 +74,6 @@
 //! // `MAX` + 1 wraps back around to zero
 //! assert_eq!(c.0, U256::ZERO);
 //! ```
-//!
-//! #### Checked arithmetic
-//!
-//! ```
-//! use crypto_bigint::{U256, Checked};
-//!
-//! let a = Checked::new(U256::ONE);
-//! let b = Checked::new(U256::from(2u8));
-//! let c = a + b;
-//! assert_eq!(c.0.unwrap(), U256::from(3u8))
-//! ```
-//!
 //! ### Modular arithmetic
 //!
 //! This library has initial support for modular arithmetic in the form of the
@@ -159,11 +144,8 @@ extern crate alloc;
 #[macro_use]
 mod macros;
 
-#[cfg(feature = "generic-array")]
-mod array;
 #[cfg(feature = "alloc")]
 mod boxed;
-mod checked;
 mod ct_choice;
 mod limb;
 mod non_zero;
@@ -172,7 +154,6 @@ mod uint;
 mod wrapping;
 
 pub use crate::{
-    checked::Checked,
     ct_choice::CtChoice,
     limb::{Limb, WideWord, Word},
     non_zero::NonZero,
@@ -186,25 +167,10 @@ pub use subtle;
 #[cfg(feature = "alloc")]
 pub use crate::boxed::uint::BoxedUint;
 
-#[cfg(feature = "generic-array")]
-pub use {
-    crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
-    generic_array::{self, typenum::consts},
-};
-
-#[cfg(feature = "rand_core")]
-pub use rand_core;
-
-#[cfg(feature = "rlp")]
-pub use rlp;
-
 #[cfg(feature = "zeroize")]
 pub use zeroize;
 
 /// Import prelude for this crate: includes important traits.
 pub mod prelude {
     pub use crate::traits::*;
-
-    #[cfg(feature = "generic-array")]
-    pub use crate::array::{ArrayDecoding, ArrayEncoding};
 }

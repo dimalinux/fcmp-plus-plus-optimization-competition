@@ -33,7 +33,7 @@ pub(crate) const fn concat_mixed<const L: usize, const H: usize, const O: usize>
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConcatMixed, U128, U192, U64};
+    use crate::{U128, U64};
 
     #[test]
     fn concat() {
@@ -42,20 +42,6 @@ mod tests {
         assert_eq!(
             hi.concat(&lo),
             U128::from_be_hex("00112233445566778899aabbccddeeff")
-        );
-    }
-
-    #[test]
-    fn concat_mixed() {
-        let a = U64::from_u64(0x0011223344556677);
-        let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
-        assert_eq!(
-            a.concat_mixed(&b),
-            U192::from_be_hex("00112233445566778899aabbccddeeff8899aabbccddeeff")
-        );
-        assert_eq!(
-            b.concat_mixed(&a),
-            U192::from_be_hex("8899aabbccddeeff8899aabbccddeeff0011223344556677")
         );
     }
 

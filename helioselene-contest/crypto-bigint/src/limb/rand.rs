@@ -6,12 +6,6 @@ use rand_core::CryptoRngCore;
 use subtle::ConstantTimeLess;
 
 impl Random for Limb {
-    #[cfg(target_pointer_width = "32")]
-    fn random(rng: &mut impl CryptoRngCore) -> Self {
-        Self(rng.next_u32())
-    }
-
-    #[cfg(target_pointer_width = "64")]
     fn random(rng: &mut impl CryptoRngCore) -> Self {
         Self(rng.next_u64())
     }
