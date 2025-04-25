@@ -87,36 +87,3 @@ impl<const LIMBS: usize> AddAssign<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIM
         *self = *self + other;
     }
 }
-
-
-
-#[cfg(test)]
-mod tests {
-    use crate::{Limb, U128};
-
-    #[test]
-    fn adc_no_carry() {
-        let (res, carry) = U128::ZERO.adc(&U128::ONE, Limb::ZERO);
-        assert_eq!(res, U128::ONE);
-        assert_eq!(carry, Limb::ZERO);
-    }
-
-    #[test]
-    fn adc_with_carry() {
-        let (res, carry) = U128::MAX.adc(&U128::ONE, Limb::ZERO);
-        assert_eq!(res, U128::ZERO);
-        assert_eq!(carry, Limb::ONE);
-    }
-
-    #[test]
-    fn wrapping_add_no_carry() {
-        assert_eq!(U128::ZERO.wrapping_add(&U128::ONE), U128::ONE);
-    }
-
-    #[test]
-    fn wrapping_add_with_carry() {
-        assert_eq!(U128::MAX.wrapping_add(&U128::ONE), U128::ZERO);
-    }
-
-
-}

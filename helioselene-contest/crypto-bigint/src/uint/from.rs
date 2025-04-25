@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::{ConcatMixed, Limb, Uint, WideWord, Word, U128, U64};
+use crate::{ConcatMixed, Limb, Uint, WideWord, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
@@ -48,22 +48,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             "number of limbs must be greater than zero"
         );
 
-        let lo = U64::from_u64((n & 0xffff_ffff_ffff_ffff) as u64);
-        let hi = U64::from_u64((n >> 64) as u64);
+        let lo = n as u64;
+        let hi = (n >> 64) as u64;
 
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        let mut i = 0;
-        while i < lo.limbs.len() {
-            limbs[i] = lo.limbs[i];
-            i += 1;
-        }
-
-        let mut j = 0;
-        while j < hi.limbs.len() {
-            limbs[i + j] = hi.limbs[j];
-            j += 1;
-        }
+        limbs[0].0 = lo;
+        limbs[1].0 = hi;
 
         Self { limbs }
     }
@@ -128,24 +119,6 @@ impl<const LIMBS: usize> From<u128> for Uint<LIMBS> {
     }
 }
 
-impl From<U64> for u64 {
-    fn from(n: U64) -> u64 {
-        n.limbs[0].into()
-    }
-}
-
-impl From<U128> for u128 {
-    fn from(n: U128) -> u128 {
-        let mut i = U128::LIMBS - 1;
-        let mut res = n.limbs[i].0 as u128;
-        while i > 0 {
-            i -= 1;
-            res = (res << Limb::BITS) | (n.limbs[i].0 as u128);
-        }
-        res
-    }
-}
-
 impl<const LIMBS: usize> From<[Word; LIMBS]> for Uint<LIMBS> {
     fn from(arr: [Word; LIMBS]) -> Self {
         Self::from_words(arr)
@@ -203,44 +176,5 @@ impl<const L: usize, const H: usize, const LIMBS: usize> From<Uint<LIMBS>> for (
 impl<const LIMBS: usize, const LIMBS2: usize> From<&Uint<LIMBS>> for Uint<LIMBS2> {
     fn from(num: &Uint<LIMBS>) -> Uint<LIMBS2> {
         num.resize()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{Limb, Word, U128};
-    use crate::U128 as UintEx;
-
-    #[test]
-    fn from_u8() {
-        let n = UintEx::from(42u8);
-        assert_eq!(n.as_limbs(), &[Limb(42), Limb(0)]);
-    }
-
-    #[test]
-    fn from_u16() {
-        let n = UintEx::from(42u16);
-        assert_eq!(n.as_limbs(), &[Limb(42), Limb(0)]);
-    }
-
-    #[test]
-    fn from_u64() {
-        let n = UintEx::from(42u64);
-        assert_eq!(n.as_limbs(), &[Limb(42), Limb(0)]);
-    }
-
-    #[test]
-    fn from_u128() {
-        let n = U128::from(42u128);
-        assert_eq!(&n.as_limbs()[..2], &[Limb(42), Limb(0)]);
-        assert_eq!(u128::from(n), 42u128);
-    }
-
-    #[test]
-    fn array_round_trip() {
-        let arr1 = [1, 2];
-        let n = UintEx::from(arr1);
-        let arr2: [Word; 2] = n.into();
-        assert_eq!(arr1, arr2);
     }
 }

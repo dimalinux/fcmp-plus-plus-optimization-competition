@@ -2,15 +2,11 @@
 
 #![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
 
-#[macro_use]
-mod macros;
-
 mod add;
 mod add_mod;
 mod bit_and;
 mod bit_not;
 mod bit_or;
-mod bit_xor;
 mod bits;
 mod cmp;
 mod concat;
@@ -27,16 +23,13 @@ mod resize;
 mod shl;
 mod shr;
 mod split;
-mod sqrt;
 mod sub;
 mod sub_mod;
 
 /// Implements modular arithmetic for constant moduli.
 pub mod modular;
 
-mod array;
-
-use crate::{Bounded, Encoding, Integer, Limb, Word, Zero};
+use crate::{traits, Bounded, Encoding, Integer, Limb, Word, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -261,84 +254,108 @@ impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
 #[cfg(feature = "zeroize")]
 impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 
-// TODO(tarcieri): use `generic_const_exprs` when stable to make generic around bits.
-impl_uint_aliases! {
-    (U64, 64, "64-bit"),
-    (U128, 128, "128-bit"),
-    (U256, 256, "256-bit"),
-    (U512, 512, "512-bit")
+#[doc = "256-bit"]
+#[doc = "unsigned big integer."]
+pub type U256 = Uint<{ 256 / Limb::BITS }>;
+impl Encoding for U256 {
+    type Repr = [u8; 256 / 8];
+
+    #[inline]
+    fn from_le_bytes(bytes: Self::Repr) -> Self {
+        Self::from_le_slice(&bytes)
+    }
+
+    #[inline]
+    fn to_le_bytes(&self) -> Self::Repr {
+        let mut result = [0u8; 256 / 8];
+        self.write_le_bytes(&mut result);
+        result
+    }
+}
+
+#[doc = "512-bit"]
+#[doc = "unsigned big integer."]
+pub type U512 = Uint<{ 512 / Limb::BITS }>;
+impl Encoding for U512 {
+    type Repr = [u8; 512 / 8];
+
+    #[inline]
+    fn from_le_bytes(bytes: Self::Repr) -> Self {
+        Self::from_le_slice(&bytes)
+    }
+
+    #[inline]
+    fn to_le_bytes(&self) -> Self::Repr {
+        let mut result = [0u8; 512 / 8];
+        self.write_le_bytes(&mut result);
+        result
+    }
 }
 
 // Implement concat and split for double-width Uint sizes: these should be
 // multiples of 128 bits.
-impl_uint_concat_split_even! {
-    U128,
-    U256,
-    U512,
+impl traits::ConcatMixed<Uint<{ <U256>::LIMBS / 2 }>> for Uint<{ <U256>::LIMBS / 2 }>
+{
+    type MixedOutput = U256;
+
+    fn concat_mixed(&self, lo: &Uint<{ <U256>::LIMBS / 2 }>) -> Self::MixedOutput {
+        concat::concat_mixed(lo, self)
+    }
+}
+impl Uint<{ <U256>::LIMBS / 2 }> {
+    ///   Concatenate the two values, with  `self`  as most significant and  `rhs`
+    ///   as the least significant.
+    pub const fn concat(&self, lo: &Uint<{ <U256>::LIMBS / 2 }>) -> U256 {
+        concat::concat_mixed(lo, self)
+    }
+}
+impl traits::SplitMixed<Uint<{ <U256>::LIMBS / 2 }>, Uint<{ <U256>::LIMBS / 2 }>> for U256
+{
+    fn split_mixed(&self) -> (Uint<{ <U256>::LIMBS / 2 }>, Uint<{ <U256>::LIMBS / 2 }>) {
+        split::split_mixed(self)
+    }
+}
+impl traits::Split for U256
+{
+    type Output = Uint<{ <U256>::LIMBS / 2 }>;
+}
+impl U256 {
+    ///   Split this number in half, returning its high and low components
+    ///   respectively.
+    pub const fn split(&self) -> (Uint<{ <U256>::LIMBS / 2 }>, Uint<{ <U256>::LIMBS / 2 }>) {
+        split::split_mixed(self)
+    }
 }
 
-// Implement mixed concat and split for combinations not implemented by
-// impl_uint_concat_split_even. The numbers represent the size of each
-// component Uint in multiple of 64 bits. For example,
-// (U256, [1, 3]) will allow splitting U256 into (U64, U192) as well as
-// (U192, U64), while the (U128, U128) combination is already covered.
-impl_uint_concat_split_mixed! {
-    (U256, [1, 3]),
-    (U512, [1, 2, 3, 5, 6, 7]),
+impl traits::ConcatMixed<Uint<{ <U512>::LIMBS / 2 }>> for Uint<{ <U512>::LIMBS / 2 }>
+{
+    type MixedOutput = U512;
+
+    fn concat_mixed(&self, lo: &Uint<{ <U512>::LIMBS / 2 }>) -> Self::MixedOutput {
+        concat::concat_mixed(lo, self)
+    }
 }
-
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
-mod tests {
-    use crate::U128;
-    use subtle::ConditionallySelectable;
-
-    #[cfg(feature = "alloc")]
-    use alloc::format;
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    fn debug() {
-        let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
-        let n = U128::from_be_hex(hex);
-
-        assert_eq!(
-            format!("{:?}", n),
-            "Uint(0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD)"
-        );
+impl Uint<{ <U512>::LIMBS / 2 }> {
+    ///   Concatenate the two values, with  `self`  as most significant and  `rhs`
+    ///   as the least significant.
+    pub const fn concat(&self, lo: &Uint<{ <U512>::LIMBS / 2 }>) -> U512 {
+        concat::concat_mixed(lo, self)
     }
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    fn display() {
-        let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
-        let n = U128::from_be_hex(hex);
-
-        use alloc::string::ToString;
-        assert_eq!(hex, n.to_string());
-
-        let hex = "AAAAAAAABBBBBBBB0000000000000000";
-        let n = U128::from_be_hex(hex);
-        assert_eq!(hex, n.to_string());
-
-        let hex = "AAAAAAAABBBBBBBB00000000DDDDDDDD";
-        let n = U128::from_be_hex(hex);
-        assert_eq!(hex, n.to_string());
-
-        let hex = "AAAAAAAABBBBBBBB0CCCCCCCDDDDDDDD";
-        let n = U128::from_be_hex(hex);
-        assert_eq!(hex, n.to_string());
+}
+impl traits::SplitMixed<Uint<{ <U512>::LIMBS / 2 }>, Uint<{ <U512>::LIMBS / 2 }>> for U512
+{
+    fn split_mixed(&self) -> (Uint<{ <U512>::LIMBS / 2 }>, Uint<{ <U512>::LIMBS / 2 }>) {
+        split::split_mixed(self)
     }
-
-    #[test]
-    fn conditional_select() {
-        let a = U128::from_be_hex("00002222444466668888AAAACCCCEEEE");
-        let b = U128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-
-        let select_0 = U128::conditional_select(&a, &b, 0.into());
-        assert_eq!(a, select_0);
-
-        let select_1 = U128::conditional_select(&a, &b, 1.into());
-        assert_eq!(b, select_1);
+}
+impl traits::Split for U512
+{
+    type Output = Uint<{ <U512>::LIMBS / 2 }>;
+}
+impl U512 {
+    ///   Split this number in half, returning its high and low components
+    ///   respectively.
+    pub const fn split(&self) -> (Uint<{ <U512>::LIMBS / 2 }>, Uint<{ <U512>::LIMBS / 2 }>) {
+        split::split_mixed(self)
     }
 }

@@ -110,30 +110,3 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.inv_odd_mod_bounded(modulus, Uint::<LIMBS>::BITS, Uint::<LIMBS>::BITS)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::U64;
-
-
-    #[test]
-    fn test_invert_small() {
-        let a = U64::from(3u64);
-        let m = U64::from(13u64);
-
-        let (res, is_some) = a.inv_odd_mod(&m);
-
-        assert!(is_some.is_true_vartime());
-        assert_eq!(U64::from(9u64), res);
-    }
-
-    #[test]
-    fn test_no_inverse_small() {
-        let a = U64::from(14u64);
-        let m = U64::from(49u64);
-
-        let (_res, is_some) = a.inv_odd_mod(&m);
-
-        assert!(!is_some.is_true_vartime());
-    }
-}

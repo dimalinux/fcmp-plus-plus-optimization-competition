@@ -30,27 +30,3 @@ pub(crate) const fn concat_mixed<const L: usize, const H: usize, const O: usize>
 
     Uint { limbs }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::{U128, U64};
-
-    #[test]
-    fn concat() {
-        let hi = U64::from_u64(0x0011223344556677);
-        let lo = U64::from_u64(0x8899aabbccddeeff);
-        assert_eq!(
-            hi.concat(&lo),
-            U128::from_be_hex("00112233445566778899aabbccddeeff")
-        );
-    }
-
-    #[test]
-    fn convert() {
-        let res: U128 = U64::ONE.mul_wide(&U64::ONE).into();
-        assert_eq!(res, U128::ONE);
-
-        let res: U128 = U64::ONE.square_wide().into();
-        assert_eq!(res, U128::ONE);
-    }
-}
