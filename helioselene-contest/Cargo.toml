@@ -36,3 +36,6 @@ std = [
   "helioselene-contest-src/std",
 ]
 default = ["std"]
+
+[profile.bench]
+debug = true

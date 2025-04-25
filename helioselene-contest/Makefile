@@ -46,3 +46,9 @@ coverage:
 	grcov . --binary-path ./target/debug/deps/ -s . -t cobertura,html --branch --ignore-not-existing --ignore '../*' --ignore '/*' -o target/coverage
 	rm -f cargo-test*\.profraw
 	@printf "\nCoverage is in:\nfile://$(PWD)/target/coverage/html/index.html\n"
+
+.PHONY: profile
+profile:
+	cargo install flamegraph
+	cargo flamegraph --release --bench helioselene
+	rm perf.data
