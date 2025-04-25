@@ -1,12 +1,8 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{CtChoice, Encoding, Integer, Limb, Uint, Zero};
-use core::{
-    fmt,
-    num::{NonZeroU128, NonZeroU64, NonZeroU8},
-    ops::Deref,
-};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+use core::ops::Deref;
+use subtle::CtOption;
 
 /// Wrapper type for non-zero integers.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
@@ -69,24 +65,6 @@ where
     }
 }
 
-impl<T> ConditionallySelectable for NonZero<T>
-where
-    T: ConditionallySelectable + Zero,
-{
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(T::conditional_select(&a.0, &b.0, choice))
-    }
-}
-
-impl<T> ConstantTimeEq for NonZero<T>
-where
-    T: Zero,
-{
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.0.ct_eq(&other.0)
-    }
-}
-
 impl<T> Deref for NonZero<T>
 where
     T: Zero,
@@ -95,128 +73,5 @@ where
 
     fn deref(&self) -> &T {
         &self.0
-    }
-}
-
-impl<T> fmt::Display for NonZero<T>
-where
-    T: fmt::Display + Zero,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
-    }
-}
-
-impl<T> fmt::Binary for NonZero<T>
-where
-    T: fmt::Binary + Zero,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Binary::fmt(&self.0, f)
-    }
-}
-
-impl<T> fmt::Octal for NonZero<T>
-where
-    T: fmt::Octal + Zero,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Octal::fmt(&self.0, f)
-    }
-}
-
-impl<T> fmt::LowerHex for NonZero<T>
-where
-    T: fmt::LowerHex + Zero,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::LowerHex::fmt(&self.0, f)
-    }
-}
-
-impl<T> fmt::UpperHex for NonZero<T>
-where
-    T: fmt::UpperHex + Zero,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::UpperHex::fmt(&self.0, f)
-    }
-}
-
-impl NonZero<Limb> {
-    /// Create a [`NonZero<Limb>`] from a [`NonZeroU8`] (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
-    pub const fn from_u8(n: NonZeroU8) -> Self {
-        Self(Limb::from_u8(n.get()))
-    }
-
-    /// Create a [`NonZero<Limb>`] from a [`NonZeroU64`] (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
-    pub const fn from_u64(n: NonZeroU64) -> Self {
-        Self(Limb::from_u64(n.get()))
-    }
-}
-
-impl From<NonZeroU8> for NonZero<Limb> {
-    fn from(integer: NonZeroU8) -> Self {
-        Self::from_u8(integer)
-    }
-}
-
-impl From<NonZeroU64> for NonZero<Limb> {
-    fn from(integer: NonZeroU64) -> Self {
-        Self::from_u64(integer)
-    }
-}
-
-impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
-    /// Create a [`NonZero<Uint>`] from a [`Uint`] (const-friendly)
-    pub const fn from_uint(n: Uint<LIMBS>) -> Self {
-        let mut i = 0;
-        let mut found_non_zero = false;
-        while i < LIMBS {
-            if n.as_limbs()[i].0 != 0 {
-                found_non_zero = true;
-            }
-            i += 1;
-        }
-        assert!(found_non_zero, "found zero");
-        Self(n)
-    }
-
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU8`] (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
-    pub const fn from_u8(n: NonZeroU8) -> Self {
-        Self(Uint::from_u8(n.get()))
-    }
-
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU64`] (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
-    pub const fn from_u64(n: NonZeroU64) -> Self {
-        Self(Uint::from_u64(n.get()))
-    }
-
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU128`] (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<NonZeroU128>` when stable
-    pub const fn from_u128(n: NonZeroU128) -> Self {
-        Self(Uint::from_u128(n.get()))
-    }
-}
-
-impl<const LIMBS: usize> From<NonZeroU8> for NonZero<Uint<LIMBS>> {
-    fn from(integer: NonZeroU8) -> Self {
-        Self::from_u8(integer)
-    }
-}
-
-impl<const LIMBS: usize> From<NonZeroU64> for NonZero<Uint<LIMBS>> {
-    fn from(integer: NonZeroU64) -> Self {
-        Self::from_u64(integer)
-    }
-}
-
-impl<const LIMBS: usize> From<NonZeroU128> for NonZero<Uint<LIMBS>> {
-    fn from(integer: NonZeroU128) -> Self {
-        Self::from_u128(integer)
     }
 }

@@ -1,6 +1,6 @@
 //! [`Uint`] subtraction modulus operations.
 
-use crate::{Limb, SubMod, Uint};
+use crate::{Limb, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self - rhs mod p`.
@@ -32,29 +32,5 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mask = Uint::from_words([borrow; LIMBS]);
 
         out.wrapping_add(&p.bitand(&mask))
-    }
-
-    /// Computes `self - rhs mod p` for the special modulus
-    /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
-    ///
-    /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
-    pub const fn sub_mod_special(&self, rhs: &Self, c: Limb) -> Self {
-        let (out, borrow) = self.sbb(rhs, Limb::ZERO);
-
-        // If underflow occurred, then we need to subtract `c` to account for
-        // the underflow. This cannot underflow due to the assumption
-        // `self - rhs >= -p`.
-        let l = borrow.0 & c.0;
-        out.wrapping_sub(&Uint::from_word(l))
-    }
-}
-
-impl<const LIMBS: usize> SubMod for Uint<LIMBS> {
-    type Output = Self;
-
-    fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
-        debug_assert!(self < p);
-        debug_assert!(rhs < p);
-        self.sub_mod(rhs, p)
     }
 }

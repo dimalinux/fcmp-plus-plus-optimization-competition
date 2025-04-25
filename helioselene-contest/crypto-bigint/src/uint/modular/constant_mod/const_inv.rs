@@ -1,8 +1,6 @@
 use core::marker::PhantomData;
 
-use subtle::CtOption;
-
-use crate::{modular::inv::inv_montgomery_form, traits::Invert, CtChoice, NonZero};
+use crate::{modular::inv::inv_montgomery_form, CtChoice};
 
 use super::{Residue, ResidueParams};
 
@@ -25,22 +23,5 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         };
 
         (value, is_some)
-    }
-}
-
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for Residue<MOD, LIMBS> {
-    type Output = CtOption<Self>;
-    fn invert(&self) -> Self::Output {
-        let (value, is_some) = self.invert();
-        CtOption::new(value, is_some.into())
-    }
-}
-
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for NonZero<Residue<MOD, LIMBS>> {
-    type Output = Self;
-    fn invert(&self) -> Self::Output {
-        // Always succeeds for a non-zero argument
-        let (value, _is_some) = self.as_ref().invert();
-        NonZero::new(value).unwrap()
     }
 }

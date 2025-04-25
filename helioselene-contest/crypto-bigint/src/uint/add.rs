@@ -1,7 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::{CtChoice, Limb, Uint, Wrapping};
-use core::ops::{Add, AddAssign};
+use crate::{CtChoice, Limb, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `a + b + carry`, returning the result along with the new carry.
@@ -41,49 +40,5 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let actual_rhs = Uint::ct_select(&Uint::ZERO, rhs, choice);
         let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
         (sum, CtChoice::from_lsb(carry.0))
-    }
-}
-
-impl<const LIMBS: usize> Add for Wrapping<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Add<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Add<Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Add<&Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> AddAssign for Wrapping<Uint<LIMBS>> {
-    fn add_assign(&mut self, other: Self) {
-        *self = *self + other;
-    }
-}
-
-impl<const LIMBS: usize> AddAssign<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn add_assign(&mut self, other: &Self) {
-        *self = *self + other;
     }
 }

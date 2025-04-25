@@ -3,7 +3,6 @@
 
 mod add;
 mod bit_and;
-mod bit_not;
 mod bit_or;
 mod bits;
 mod cmp;
@@ -12,7 +11,7 @@ mod from;
 mod mul;
 mod sub;
 
-use crate::{Bounded, Zero};
+use crate::{Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -48,12 +47,6 @@ impl Limb {
     /// Size of the inner integer in bytes.
     pub const BYTES: usize = 8;
 }
-
-impl Bounded for Limb {
-    const BITS: usize = Self::BITS;
-    const BYTES: usize = Self::BYTES;
-}
-
 impl ConditionallySelectable for Limb {
     #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
@@ -92,17 +85,4 @@ impl fmt::UpperHex for Limb {
     }
 }
 
-#[cfg(feature = "zeroize")]
 impl zeroize::DefaultIsZeroes for Limb {}
-
-#[cfg(test)]
-mod tests {
-    #[cfg(feature = "alloc")]
-    use {super::Limb, alloc::format};
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    fn debug() {
-        assert_eq!(format!("{:?}", Limb(42)), "Limb(0x000000000000002A)");
-    }
-}

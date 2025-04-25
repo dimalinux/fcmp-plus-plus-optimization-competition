@@ -1,14 +1,4 @@
-use core::ops::Neg;
-
-use crate::{CtChoice, Limb, Uint, WideWord, Word, Wrapping};
-
-impl<const LIMBS: usize> Neg for Wrapping<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        Self(self.0.wrapping_neg())
-    }
-}
+use crate::{CtChoice, Limb, Uint, WideWord, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Negates based on `choice` by wrapping the integer.

@@ -1,7 +1,7 @@
 //! [`Uint`] addition operations.
 
-use crate::{Concat, ConcatMixed, Limb, Uint, WideWord, Word, Wrapping};
-use core::ops::{Mul, MulAssign};
+use crate::{Concat, ConcatMixed, Limb, Uint, WideWord, Word};
+use core::ops::Mul;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
@@ -157,62 +157,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         (lo, hi)
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Wrapping<Uint<HLIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Self;
-
-    fn mul(self, rhs: Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Wrapping<Uint<HLIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Self;
-
-    fn mul(self, rhs: &Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Wrapping<Uint<HLIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn mul(self, rhs: Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Wrapping<Uint<HLIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn mul(self, rhs: &Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<Wrapping<Uint<HLIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: Wrapping<Uint<HLIMBS>>) {
-        *self = *self * other;
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<&Wrapping<Uint<HLIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: &Wrapping<Uint<HLIMBS>>) {
-        *self = *self * other;
     }
 }
 

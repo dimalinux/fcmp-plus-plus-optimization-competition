@@ -4,7 +4,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{Limb, Uint, Zero};
 
-use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
+use super::{reduction::montgomery_reduction, Retrieve};
 
 /// Additions between residues with a constant modulus
 mod const_add;
@@ -58,7 +58,6 @@ where
     phantom: PhantomData<MOD>,
 }
 
-#[cfg(feature = "zeroize")]
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> zeroize::DefaultIsZeroes
     for Residue<MOD, LIMBS>
 {
@@ -142,18 +141,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Extract the value from the `Residue` in Montgomery form.
     pub const fn to_montgomery(&self) -> Uint<LIMBS> {
         self.montgomery_form
-    }
-
-    /// Performs the modular division by 2, that is for given `x` returns `y`
-    /// such that `y * 2 = x mod p`. This means:
-    /// - if `x` is even, returns `x / 2`,
-    /// - if `x` is odd, returns `(x + p) / 2`
-    ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
-    pub fn div_by_2(&self) -> Self {
-        Self {
-            montgomery_form: div_by_2(&self.montgomery_form, &MOD::MODULUS),
-            phantom: PhantomData,
-        }
     }
 }
 

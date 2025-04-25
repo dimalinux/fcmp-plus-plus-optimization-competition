@@ -77,40 +77,6 @@ pub trait AddMod<Rhs = Self> {
     fn add_mod(&self, rhs: &Rhs, p: &Self) -> Self::Output;
 }
 
-/// Compute `self - rhs mod p`.
-pub trait SubMod<Rhs = Self> {
-    /// Output type.
-    type Output;
-
-    /// Compute `self - rhs mod p`.
-    ///
-    /// Assumes `self` and `rhs` are `< p`.
-    fn sub_mod(&self, rhs: &Rhs, p: &Self) -> Self::Output;
-}
-
-/// Compute `-self mod p`.
-pub trait NegMod {
-    /// Output type.
-    type Output;
-
-    /// Compute `-self mod p`.
-    #[must_use]
-    fn neg_mod(&self, p: &Self) -> Self::Output;
-}
-
-/// Compute `self * rhs mod p`.
-///
-/// Requires `p_inv = -(p^{-1} mod 2^{BITS}) mod 2^{BITS}` to be provided for efficiency.
-pub trait MulMod<Rhs = Self> {
-    /// Output type.
-    type Output;
-
-    /// Compute `self * rhs mod p`.
-    ///
-    /// Requires `p_inv = -(p^{-1} mod 2^{BITS}) mod 2^{BITS}` to be provided for efficiency.
-    fn mul_mod(&self, rhs: &Rhs, p: &Self, p_inv: Limb) -> Self::Output;
-}
-
 /// Concatenate two numbers into a "wide" double-width value, using the `lo`
 /// value as the least significant value.
 pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
@@ -133,36 +99,6 @@ pub trait ConcatMixed<Lo: ?Sized = Self> {
     /// Concatenate the two values, with `self` as most significant and `lo`
     /// as the least significant.
     fn concat_mixed(&self, lo: &Lo) -> Self::MixedOutput;
-}
-
-/// Split a number in half, returning the most significant half followed by
-/// the least significant.
-pub trait Split: SplitMixed<Self::Output, Self::Output> {
-    /// Split output: high/low components of the value.
-    type Output;
-
-    /// Split this number in half, returning its high and low components
-    /// respectively.
-    fn split(&self) -> (Self::Output, Self::Output) {
-        self.split_mixed()
-    }
-}
-
-/// Split a number into parts, returning the most significant part followed by
-/// the least significant.
-pub trait SplitMixed<Hi, Lo> {
-    /// Split this number into parts, returning its high and low components
-    /// respectively.
-    fn split_mixed(&self) -> (Hi, Lo);
-}
-
-/// Integers whose representation takes a bounded amount of space.
-pub trait Bounded {
-    /// Size of this integer in bits.
-    const BITS: usize;
-
-    /// Size of this integer in bytes.
-    const BYTES: usize;
 }
 
 /// Encoding support.
@@ -192,68 +128,4 @@ where
 pub trait Pow<Exponent> {
     /// Raises to the `exponent` power.
     fn pow(&self, exponent: &Exponent) -> Self;
-}
-
-impl<T: PowBoundedExp<Exponent>, Exponent: Bounded> Pow<Exponent> for T {
-    fn pow(&self, exponent: &Exponent) -> Self {
-        self.pow_bounded_exp(exponent, Exponent::BITS)
-    }
-}
-
-/// Constant-time exponentiation with exponent of a bounded bit size.
-pub trait PowBoundedExp<Exponent> {
-    /// Raises to the `exponent` power,
-    /// with `exponent_bits` representing the number of (least significant) bits
-    /// to take into account for the exponent.
-    ///
-    /// NOTE: `exponent_bits` may be leaked in the time pattern.
-    fn pow_bounded_exp(&self, exponent: &Exponent, exponent_bits: usize) -> Self;
-}
-
-/// Performs modular multi-exponentiation using Montgomery's ladder.
-///
-/// See: Straus, E. G. Problems and solutions: Addition chains of vectors. American Mathematical Monthly 71 (1964), 806–808.
-pub trait MultiExponentiate<Exponent, BasesAndExponents>: Pow<Exponent> + Sized
-where
-    BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
-{
-    /// Calculates `x1 ^ k1 * ... * xn ^ kn`.
-    fn multi_exponentiate(bases_and_exponents: &BasesAndExponents) -> Self;
-}
-
-impl<T, Exponent, BasesAndExponents> MultiExponentiate<Exponent, BasesAndExponents> for T
-where
-    T: MultiExponentiateBoundedExp<Exponent, BasesAndExponents>,
-    Exponent: Bounded,
-    BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
-{
-    fn multi_exponentiate(bases_and_exponents: &BasesAndExponents) -> Self {
-        Self::multi_exponentiate_bounded_exp(bases_and_exponents, Exponent::BITS)
-    }
-}
-
-/// Performs modular multi-exponentiation using Montgomery's ladder.
-/// `exponent_bits` represents the number of bits to take into account for the exponent.
-///
-/// See: Straus, E. G. Problems and solutions: Addition chains of vectors. American Mathematical Monthly 71 (1964), 806–808.
-///
-/// NOTE: this value is leaked in the time pattern.
-pub trait MultiExponentiateBoundedExp<Exponent, BasesAndExponents>: Pow<Exponent> + Sized
-where
-    BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
-{
-    /// Calculates `x1 ^ k1 * ... * xn ^ kn`.
-    fn multi_exponentiate_bounded_exp(
-        bases_and_exponents: &BasesAndExponents,
-        exponent_bits: usize,
-    ) -> Self;
-}
-
-/// Constant-time inversion.
-pub trait Invert: Sized {
-    /// Output of the inversion.
-    type Output;
-
-    /// Computes the inverse.
-    fn invert(&self) -> Self::Output;
 }

@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::{ConcatMixed, Limb, Uint, WideWord, Word};
+use crate::{Limb, Uint, WideWord, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
@@ -116,65 +116,5 @@ impl<const LIMBS: usize> From<u128> for Uint<LIMBS> {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS >= (128 / Limb::BITS), "not enough limbs");
         Self::from_u128(n)
-    }
-}
-
-impl<const LIMBS: usize> From<[Word; LIMBS]> for Uint<LIMBS> {
-    fn from(arr: [Word; LIMBS]) -> Self {
-        Self::from_words(arr)
-    }
-}
-
-impl<const LIMBS: usize> From<Uint<LIMBS>> for [Word; LIMBS] {
-    fn from(n: Uint<LIMBS>) -> [Word; LIMBS] {
-        *n.as_ref()
-    }
-}
-
-impl<const LIMBS: usize> From<[Limb; LIMBS]> for Uint<LIMBS> {
-    fn from(limbs: [Limb; LIMBS]) -> Self {
-        Self { limbs }
-    }
-}
-
-impl<const LIMBS: usize> From<Uint<LIMBS>> for [Limb; LIMBS] {
-    fn from(n: Uint<LIMBS>) -> [Limb; LIMBS] {
-        n.limbs
-    }
-}
-
-impl<const LIMBS: usize> From<Limb> for Uint<LIMBS> {
-    fn from(limb: Limb) -> Self {
-        limb.0.into()
-    }
-}
-
-impl<const L: usize, const H: usize, const LIMBS: usize> From<(Uint<L>, Uint<H>)> for Uint<LIMBS>
-where
-    Uint<H>: ConcatMixed<Uint<L>, MixedOutput = Uint<LIMBS>>,
-{
-    fn from(nums: (Uint<L>, Uint<H>)) -> Uint<LIMBS> {
-        nums.1.concat_mixed(&nums.0)
-    }
-}
-
-impl<const L: usize, const H: usize, const LIMBS: usize> From<&(Uint<L>, Uint<H>)> for Uint<LIMBS>
-where
-    Uint<H>: ConcatMixed<Uint<L>, MixedOutput = Uint<LIMBS>>,
-{
-    fn from(nums: &(Uint<L>, Uint<H>)) -> Uint<LIMBS> {
-        nums.1.concat_mixed(&nums.0)
-    }
-}
-
-impl<const L: usize, const H: usize, const LIMBS: usize> From<Uint<LIMBS>> for (Uint<L>, Uint<H>) {
-    fn from(num: Uint<LIMBS>) -> (Uint<L>, Uint<H>) {
-        crate::uint::split::split_mixed(&num)
-    }
-}
-
-impl<const LIMBS: usize, const LIMBS2: usize> From<&Uint<LIMBS>> for Uint<LIMBS2> {
-    fn from(num: &Uint<LIMBS>) -> Uint<LIMBS2> {
-        num.resize()
     }
 }

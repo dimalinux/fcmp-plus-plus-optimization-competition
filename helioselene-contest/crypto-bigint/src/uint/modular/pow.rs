@@ -2,9 +2,6 @@ use crate::{Limb, Uint, Word};
 
 use super::mul::{mul_montgomery_form, square_montgomery_form};
 
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-
 const WINDOW: usize = 4;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
@@ -56,39 +53,6 @@ pub const fn multi_exponentiate_montgomery_form_array<
 
     multi_exponentiate_montgomery_form_internal(
         &powers_and_exponents,
-        exponent_bits,
-        modulus,
-        r,
-        mod_neg_inv,
-    )
-}
-
-/// Performs modular multi-exponentiation using Montgomery's ladder.
-/// `exponent_bits` represents the number of bits to take into account for the exponent.
-///
-/// See: Straus, E. G. Problems and solutions: Addition chains of vectors. American Mathematical Monthly 71 (1964), 806–808.
-///
-/// NOTE: this value is leaked in the time pattern.
-#[cfg(feature = "alloc")]
-pub fn multi_exponentiate_montgomery_form_slice<const LIMBS: usize, const RHS_LIMBS: usize>(
-    bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>)],
-    exponent_bits: usize,
-    modulus: &Uint<LIMBS>,
-    r: &Uint<LIMBS>,
-    mod_neg_inv: Limb,
-) -> Uint<LIMBS> {
-    if exponent_bits == 0 {
-        return *r; // 1 in Montgomery form
-    }
-
-    let powers_and_exponents: Vec<([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)> =
-        bases_and_exponents
-            .iter()
-            .map(|(base, exponent)| (compute_powers(base, modulus, r, mod_neg_inv), *exponent))
-            .collect();
-
-    multi_exponentiate_montgomery_form_internal(
-        powers_and_exponents.as_slice(),
         exponent_bits,
         modulus,
         r,

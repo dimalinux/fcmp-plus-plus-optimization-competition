@@ -29,12 +29,6 @@ impl CtChoice {
         Self(value.wrapping_neg())
     }
 
-    /// Returns the truthy value if `x < y`, and the falsy value otherwise.
-    pub(crate) const fn from_usize_lt(x: usize, y: usize) -> Self {
-        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (usize::BITS - 1);
-        Self::from_lsb(bit as Word)
-    }
-
     pub(crate) const fn not(&self) -> Self {
         Self(!self.0)
     }
@@ -61,12 +55,6 @@ impl CtChoice {
 impl From<CtChoice> for Choice {
     fn from(choice: CtChoice) -> Self {
         Choice::from(choice.to_u8())
-    }
-}
-
-impl From<CtChoice> for bool {
-    fn from(choice: CtChoice) -> Self {
-        choice.is_true_vartime()
     }
 }
 

@@ -2,11 +2,8 @@ mod reduction;
 
 /// Implements `Residue`s, supporting modular arithmetic with a constant modulus.
 pub mod constant_mod;
-/// Implements `DynResidue`s, supporting modular arithmetic with a modulus set at runtime.
-pub mod runtime_mod;
 
 mod add;
-mod div_by_2;
 mod inv;
 mod mul;
 mod pow;

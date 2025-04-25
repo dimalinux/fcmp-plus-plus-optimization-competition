@@ -1,8 +1,7 @@
 //! [`Uint`] bitwise right shift operations.
 
 use super::Uint;
-use crate::{limb::HI_BIT, CtChoice, Limb, Word};
-use core::ops::{Shr, ShrAssign};
+use crate::{limb::HI_BIT, CtChoice, Limb};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
@@ -97,67 +96,4 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         (lower, new_upper)
     }
-
-    /// Computes `self << n`.
-    /// Returns zero if `n >= Self::BITS`.
-    pub const fn shr(&self, shift: usize) -> Self {
-        let overflow = CtChoice::from_usize_lt(shift, Self::BITS).not();
-        let shift = shift % Self::BITS;
-        let mut result = *self;
-        let mut i = 0;
-        while i < Self::LOG2_BITS {
-            let bit = CtChoice::from_lsb((shift as Word >> i) & 1);
-            result = Uint::ct_select(&result, &result.shr_vartime(1 << i), bit);
-            i += 1;
-        }
-
-        Uint::ct_select(&result, &Self::ZERO, overflow)
-    }
-}
-
-impl<const LIMBS: usize> Shr<usize> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
-    ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
-    /// to `self`.
-    fn shr(self, rhs: usize) -> Uint<LIMBS> {
-        Uint::<LIMBS>::shr(&self, rhs)
-    }
-}
-
-impl<const LIMBS: usize> Shr<usize> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
-    ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
-    /// to `self`.
-    fn shr(self, rhs: usize) -> Uint<LIMBS> {
-        self.shr(rhs)
-    }
-}
-
-impl<const LIMBS: usize> ShrAssign<usize> for Uint<LIMBS> {
-    fn shr_assign(&mut self, rhs: usize) {
-        *self = self.shr(rhs);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::U256;
-
-    const N: U256 =
-        U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
-
-    const N_2: U256 =
-        U256::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0");
-
-    #[test]
-    fn shr1() {
-        assert_eq!(N >> 1, N_2);
-    }
-
 }

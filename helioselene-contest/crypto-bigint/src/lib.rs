@@ -28,8 +28,8 @@
 //!
 //! To obtain appropriately sized integers regardless of what a given CPU's
 //! word size happens to be, a number of portable type aliases are provided for
-//! integer sizes commonly used in cryptography, for example:
-//! [`U128`], [`U384`], [`U256`], [`U2048`], [`U3072`], [`U4096`].
+//! integer sizes commonly used in cryptography, for example,
+//! [`U256`], [`U512`]
 //!
 //! ### `const fn` usage
 //!
@@ -62,18 +62,6 @@
 //! The [`Uint`] type itself does not implement the standard arithmetic traits
 //! such as [`Add`], [`Sub`], [`Mul`], and [`Div`].
 //!
-//! #### Wrapping arithmetic
-//!
-//! ```
-//! use crypto_bigint::{U256, Wrapping};
-//!
-//! let a = Wrapping(U256::MAX);
-//! let b = Wrapping(U256::ONE);
-//! let c = a + b;
-//!
-//! // `MAX` + 1 wraps back around to zero
-//! assert_eq!(c.0, U256::ZERO);
-//! ```
 //! ### Modular arithmetic
 //!
 //! This library has initial support for modular arithmetic in the form of the
@@ -100,35 +88,6 @@
 //! That includes modular exponentiation and multiplicative inverses.
 //! These features are described in the [`modular`] module.
 //!
-//! ### Random number generation
-//!
-//! When the `rand_core` or `rand` features of this crate are enabled, it's
-//! possible to generate random numbers using any CSRNG by using the
-//! [`Random`] trait:
-//!
-//! ```
-//! # #[cfg(feature = "rand")]
-//! # {
-//! use crypto_bigint::{Random, U256, rand_core::OsRng};
-//!
-//! let n = U256::random(&mut OsRng);
-//! # }
-//! ```
-//!
-//! #### Modular random number generation
-//!
-//! The [`RandomMod`] trait supports generating random numbers with a uniform
-//! distribution around a given [`NonZero`] modulus.
-//!
-//! ```
-//! # #[cfg(feature = "rand")]
-//! # {
-//! use crypto_bigint::{NonZero, RandomMod, U256, rand_core::OsRng};
-//!
-//! let modulus = NonZero::new(U256::from(3u8)).unwrap();
-//! let n = U256::random_mod(&mut OsRng, &modulus);
-//! # }
-//! ```
 //!
 //! [`Add`]: core::ops::Add
 //! [`Div`]: core::ops::Div
@@ -136,38 +95,20 @@
 //! [`Rem`]: core::ops::Rem
 //! [`Sub`]: core::ops::Sub
 
-#[cfg(feature = "alloc")]
-#[allow(unused_imports)]
-#[macro_use]
-extern crate alloc;
-
-#[macro_use]
-mod macros;
-
-#[cfg(feature = "alloc")]
-mod boxed;
 mod ct_choice;
 mod limb;
 mod non_zero;
 mod traits;
 mod uint;
-mod wrapping;
 
 pub use crate::{
     ct_choice::CtChoice,
     limb::{Limb, WideWord, Word},
     non_zero::NonZero,
     traits::*,
-    uint::div_limb::Reciprocal,
     uint::*,
-    wrapping::Wrapping,
 };
 pub use subtle;
-
-#[cfg(feature = "alloc")]
-pub use crate::boxed::uint::BoxedUint;
-
-#[cfg(feature = "zeroize")]
 pub use zeroize;
 
 /// Import prelude for this crate: includes important traits.

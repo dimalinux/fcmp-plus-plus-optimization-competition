@@ -11,29 +11,22 @@ mod bits;
 mod cmp;
 mod concat;
 mod div;
-pub(crate) mod div_limb;
 mod encoding;
 mod from;
 mod inv_mod;
 mod mul;
-mod mul_mod;
 mod neg;
-mod neg_mod;
-mod resize;
 mod shl;
 mod shr;
-mod split;
 mod sub;
 mod sub_mod;
 
 /// Implements modular arithmetic for constant moduli.
 pub mod modular;
 
-use crate::{traits, Bounded, Encoding, Integer, Limb, Word, Zero};
+use crate::{traits, Encoding, Integer, Limb, Word, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
-
-#[cfg(feature = "zeroize")]
 use zeroize::DefaultIsZeroes;
 
 /// Stack-allocated big unsigned integer.
@@ -75,10 +68,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Total size of the represented integer in bits.
     pub const BITS: usize = LIMBS * Limb::BITS;
-
-    /// Bit size of `BITS`.
-    // Note: assumes the type of `BITS` is `usize`. Any way to assert that?
-    pub(crate) const LOG2_BITS: usize = (usize::BITS - Self::BITS.leading_zeros()) as usize;
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;
@@ -216,11 +205,6 @@ impl<const LIMBS: usize> Zero for Uint<LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
-impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
-    const BITS: usize = Self::BITS;
-    const BYTES: usize = Self::BYTES;
-}
-
 impl<const LIMBS: usize> fmt::Debug for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Uint(0x{self:X})")
@@ -251,7 +235,6 @@ impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
     }
 }
 
-#[cfg(feature = "zeroize")]
 impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 
 #[doc = "256-bit"]
@@ -309,23 +292,6 @@ impl Uint<{ <U256>::LIMBS / 2 }> {
         concat::concat_mixed(lo, self)
     }
 }
-impl traits::SplitMixed<Uint<{ <U256>::LIMBS / 2 }>, Uint<{ <U256>::LIMBS / 2 }>> for U256
-{
-    fn split_mixed(&self) -> (Uint<{ <U256>::LIMBS / 2 }>, Uint<{ <U256>::LIMBS / 2 }>) {
-        split::split_mixed(self)
-    }
-}
-impl traits::Split for U256
-{
-    type Output = Uint<{ <U256>::LIMBS / 2 }>;
-}
-impl U256 {
-    ///   Split this number in half, returning its high and low components
-    ///   respectively.
-    pub const fn split(&self) -> (Uint<{ <U256>::LIMBS / 2 }>, Uint<{ <U256>::LIMBS / 2 }>) {
-        split::split_mixed(self)
-    }
-}
 
 impl traits::ConcatMixed<Uint<{ <U512>::LIMBS / 2 }>> for Uint<{ <U512>::LIMBS / 2 }>
 {
@@ -342,20 +308,21 @@ impl Uint<{ <U512>::LIMBS / 2 }> {
         concat::concat_mixed(lo, self)
     }
 }
-impl traits::SplitMixed<Uint<{ <U512>::LIMBS / 2 }>, Uint<{ <U512>::LIMBS / 2 }>> for U512
-{
-    fn split_mixed(&self) -> (Uint<{ <U512>::LIMBS / 2 }>, Uint<{ <U512>::LIMBS / 2 }>) {
-        split::split_mixed(self)
-    }
-}
-impl traits::Split for U512
-{
-    type Output = Uint<{ <U512>::LIMBS / 2 }>;
-}
+
 impl U512 {
-    ///   Split this number in half, returning its high and low components
-    ///   respectively.
-    pub const fn split(&self) -> (Uint<{ <U512>::LIMBS / 2 }>, Uint<{ <U512>::LIMBS / 2 }>) {
-        split::split_mixed(self)
+    /// Creates a `U512` from a tuple of two `U256` values.
+    ///
+    /// # Parameters
+    /// - `nums`: A tuple `(low, high)` where:
+    ///   - `low` is the least significant `U256`.
+    ///   - `high` is the most significant `U256`.
+    ///
+    /// # Returns
+    /// A `U512` value constructed by combining the `low` and `high` parts.
+    pub fn from(nums: (U256, U256)) -> Self {
+        let mut to = Self::ZERO;
+        to.limbs[..<U256>::LIMBS].copy_from_slice(nums.0.as_limbs());
+        to.limbs[<U256>::LIMBS..].copy_from_slice(nums.1.as_limbs());
+        to
     }
 }
