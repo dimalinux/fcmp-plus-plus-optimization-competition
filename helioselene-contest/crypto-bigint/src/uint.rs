@@ -4,10 +4,7 @@
 
 mod add;
 mod add_mod;
-mod bit_and;
-mod bit_not;
-mod bit_or;
-mod bits;
+mod bit_ops;
 mod cmp;
 mod concat;
 mod div;
@@ -16,8 +13,6 @@ mod from;
 mod inv_mod;
 mod mul;
 mod neg;
-mod shl;
-mod shr;
 mod sub;
 mod sub_mod;
 
@@ -158,13 +153,13 @@ impl<const LIMBS: usize> AsMut<[Word; LIMBS]> for Uint<LIMBS> {
 
 impl<const LIMBS: usize> AsRef<[Limb]> for Uint<LIMBS> {
     fn as_ref(&self) -> &[Limb] {
-        self.as_limbs()
+        &self.limbs
     }
 }
 
 impl<const LIMBS: usize> AsMut<[Limb]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.as_limbs_mut()
+        &mut self.limbs
     }
 }
 
@@ -220,7 +215,7 @@ impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
 impl<const LIMBS: usize> fmt::LowerHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for limb in self.limbs.iter().rev() {
-            fmt::LowerHex::fmt(limb, f)?;
+            write!(f, "{:0width$x}", limb.0, width = Self::BYTES * 2)?;
         }
         Ok(())
     }
@@ -229,7 +224,7 @@ impl<const LIMBS: usize> fmt::LowerHex for Uint<LIMBS> {
 impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for limb in self.limbs.iter().rev() {
-            fmt::UpperHex::fmt(limb, f)?;
+            write!(f, "{:0width$X}", limb.0, width = Self::BYTES * 2)?;
         }
         Ok(())
     }
@@ -321,8 +316,8 @@ impl U512 {
     /// A `U512` value constructed by combining the `low` and `high` parts.
     pub fn from(nums: (U256, U256)) -> Self {
         let mut to = Self::ZERO;
-        to.limbs[..<U256>::LIMBS].copy_from_slice(nums.0.as_limbs());
-        to.limbs[<U256>::LIMBS..].copy_from_slice(nums.1.as_limbs());
+        to.limbs[..<U256>::LIMBS].copy_from_slice(&nums.0.limbs);
+        to.limbs[<U256>::LIMBS..].copy_from_slice(&nums.1.limbs);
         to
     }
 }
