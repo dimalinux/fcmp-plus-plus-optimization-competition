@@ -18,9 +18,6 @@ dlmalloc = { version = "0.2.8", features = ["global"] }
 [dev-dependencies]
 ff-group-tests = { git = "https://github.com/kayabaNerve/fcmp-plus-plus" }
 
-[patch.crates-io]
-crypto-bigint = { path = "crypto-bigint" }
-
 [[bench]]
 name = "helioselene"
 harness = false

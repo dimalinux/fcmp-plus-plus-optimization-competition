@@ -3,8 +3,6 @@ use core::{
     ops::{Add, AddAssign, DerefMut, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crypto_bigint::{modular::constant_mod::Residue, U256};
-use dalek_ff_group::FieldElement as Field25519;
 use group::{
     ff::{Field, PrimeField, PrimeFieldBits},
     prime::PrimeGroup,
@@ -14,7 +12,12 @@ use rand_core::RngCore;
 use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
 
-use crate::{backend::u8_from_bool, field::HelioseleneField};
+use crate::{
+    backend::u8_from_bool,
+    bigint::{Residue, U256},
+    dalek_ff_group::Field25519,
+    field::HelioseleneField,
+};
 
 pub(crate) const G_X: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
     "0000000000000000000000000000000000000000000000000000000000000003",
@@ -353,22 +356,6 @@ impl GroupEncoding for HeliosPoint {
     }
 }
 impl PrimeGroup for HeliosPoint {}
-impl ec_divisors::DivisorCurve for HeliosPoint {
-    type FieldElement = Field25519;
-
-    fn a() -> Self::FieldElement {
-        -Field25519::from(3u64)
-    }
-
-    fn b() -> Self::FieldElement {
-        B
-    }
-
-    fn to_xy(point: Self) -> Option<(Self::FieldElement, Self::FieldElement)> {
-        let z: Self::FieldElement = Option::from(point.z.invert())?;
-        Some((point.x * z, point.y * z))
-    }
-}
 
 #[cfg(test)]
 mod tests {

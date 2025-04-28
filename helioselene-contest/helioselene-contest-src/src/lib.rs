@@ -1,19 +1,19 @@
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
-#![doc = include_str!("../README.md")]
 #![no_std]
 
-pub use group;
+//pub use group;
 
 #[macro_use]
 mod backend;
 
-pub use dalek_ff_group::FieldElement as Field25519;
-
 mod field;
 pub use field::HelioseleneField;
 
+mod bigint;
+mod dalek_ff_group;
 mod helios;
 mod point;
 mod selene;
 
+pub use dalek_ff_group::Field25519;
+pub use group;
 pub use point::{HeliosPoint, SelenePoint};
