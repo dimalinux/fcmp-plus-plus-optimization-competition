@@ -7,11 +7,10 @@ macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct $name {}
-        impl<const DLIMBS: usize> $crate::bigint::ResidueParams<{ <$uint_type>::LIMBS }> for $name
+        impl<const DLIMBS: usize> $crate::bigint::ResidueParams for $name
         where
             $uint_type: $crate::bigint::ConcatMixed<MixedOutput = $crate::bigint::Uint<DLIMBS>>,
         {
-            const LIMBS: usize = <$uint_type>::LIMBS;
             const MODULUS: $uint_type = {
                 let res = <$uint_type>::from_be_hex($value);
 
@@ -51,6 +50,6 @@ macro_rules! impl_modulus {
 /// The modulus _must_ be odd, or this will panic.
 macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
-        $crate::bigint::Residue::<$modulus, { $modulus::LIMBS }>::new(&$variable)
+        $crate::bigint::Residue::<$modulus>::new(&$variable)
     };
 }

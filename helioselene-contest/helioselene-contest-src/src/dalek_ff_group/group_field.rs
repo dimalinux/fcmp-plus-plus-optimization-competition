@@ -48,11 +48,10 @@ const WIDE_MODULUS: U512 = U256::ZERO.concat(&MODULUS);
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[repr(C)]
 pub struct FieldModulus {}
-impl<const DLIMBS: usize> ResidueParams<{ <U256>::LIMBS }> for FieldModulus
+impl<const DLIMBS: usize> ResidueParams for FieldModulus
 where
     U256: ConcatMixed<MixedOutput = Uint<DLIMBS>>,
 {
-    const LIMBS: usize = <U256>::LIMBS;
     const MODULUS: U256 = {
         let res =
             <U256>::from_be_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
@@ -79,7 +78,7 @@ where
     const R3: U256 =
         montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
 }
-type ResidueType = Residue<FieldModulus, { FieldModulus::LIMBS }>;
+type ResidueType = Residue<FieldModulus>;
 
 /// A constant-time implementation of the Ed25519 field.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]

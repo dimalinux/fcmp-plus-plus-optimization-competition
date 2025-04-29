@@ -22,11 +22,10 @@ const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct HelioseleneQ {}
 
-impl<const DLIMBS: usize> ResidueParams<{ <U256>::LIMBS }> for HelioseleneQ
+impl<const DLIMBS: usize> ResidueParams for HelioseleneQ
 where
     U256: ConcatMixed<MixedOutput = Uint<DLIMBS>>,
 {
-    const LIMBS: usize = <U256>::LIMBS;
     const MODULUS: U256 = {
         let res = <U256>::from_be_hex(MODULUS_STR);
 
@@ -53,7 +52,7 @@ where
         montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
 }
 
-type ResidueType = Residue<HelioseleneQ, { HelioseleneQ::LIMBS }>;
+type ResidueType = Residue<HelioseleneQ>;
 
 /// The field novel to Helios/Selene.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]

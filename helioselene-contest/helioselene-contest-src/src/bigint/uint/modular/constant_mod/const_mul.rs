@@ -6,7 +6,7 @@ use core::{
 use super::{Residue, ResidueParams};
 use crate::bigint::uint::modular::mul::{mul_montgomery_form, square_montgomery_form};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> Residue<MOD> {
     /// Multiplies by `rhs`.
     pub const fn mul(&self, rhs: &Self) -> Self {
         Self {
@@ -33,55 +33,47 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<&Residue<MOD, LIMBS>>
-    for &Residue<MOD, LIMBS>
-{
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Mul<&Residue<MOD>> for &Residue<MOD> {
+    type Output = Residue<MOD>;
 
-    fn mul(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn mul(self, rhs: &Residue<MOD>) -> Residue<MOD> {
         self.mul(rhs)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<Residue<MOD, LIMBS>>
-    for &Residue<MOD, LIMBS>
-{
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Mul<Residue<MOD>> for &Residue<MOD> {
+    type Output = Residue<MOD>;
 
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn mul(self, rhs: Residue<MOD>) -> Residue<MOD> {
         self * &rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<&Residue<MOD, LIMBS>>
-    for Residue<MOD, LIMBS>
-{
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Mul<&Residue<MOD>> for Residue<MOD> {
+    type Output = Residue<MOD>;
 
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn mul(self, rhs: &Residue<MOD>) -> Residue<MOD> {
         &self * rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<Residue<MOD, LIMBS>>
-    for Residue<MOD, LIMBS>
-{
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Mul<Residue<MOD>> for Residue<MOD> {
+    type Output = Residue<MOD>;
 
-    fn mul(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn mul(self, rhs: Residue<MOD>) -> Residue<MOD> {
         &self * &rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign<&Self> for Residue<MOD, LIMBS> {
-    fn mul_assign(&mut self, rhs: &Residue<MOD, LIMBS>) {
+impl<MOD: ResidueParams> MulAssign<&Self> for Residue<MOD> {
+    fn mul_assign(&mut self, rhs: &Residue<MOD>) {
         *self = *self * rhs;
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign<Self> for Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> MulAssign<Self> for Residue<MOD> {
     fn mul_assign(&mut self, rhs: Self) {
         *self *= &rhs;
     }

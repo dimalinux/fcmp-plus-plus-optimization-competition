@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use super::{Residue, ResidueParams};
 use crate::bigint::{ct_choice::CtChoice, uint::modular::inv::inv_montgomery_form};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> Residue<MOD> {
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,

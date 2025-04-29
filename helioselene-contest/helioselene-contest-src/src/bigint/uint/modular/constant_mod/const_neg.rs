@@ -2,14 +2,14 @@ use core::ops::Neg;
 
 use super::{Residue, ResidueParams};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> Residue<MOD> {
     /// Negates the number.
     pub const fn neg(&self) -> Self {
         Self::ZERO.sub(self)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Neg for Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> Neg for Residue<MOD> {
     type Output = Self;
 
     fn neg(self) -> Self {
@@ -17,20 +17,17 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Neg for Residue<MOD, LIMBS> 
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Neg for &Residue<MOD, LIMBS> {
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Neg for &Residue<MOD> {
+    type Output = Residue<MOD>;
 
-    fn neg(self) -> Residue<MOD, LIMBS> {
+    fn neg(self) -> Residue<MOD> {
         Residue::neg(self)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        bigint::{uint::modular::constant_mod::ResidueParams, U256},
-        const_residue, impl_modulus,
-    };
+    use crate::{bigint::U256, const_residue, impl_modulus};
 
     impl_modulus!(
         Modulus,

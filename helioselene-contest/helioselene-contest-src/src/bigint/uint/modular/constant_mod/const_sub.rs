@@ -3,7 +3,7 @@ use core::ops::{Sub, SubAssign};
 use super::{Residue, ResidueParams};
 use crate::bigint::uint::modular::sub::sub_montgomery_form;
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> Residue<MOD> {
     /// Subtracts `rhs`.
     pub const fn sub(&self, rhs: &Self) -> Self {
         Self {
@@ -17,55 +17,47 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Sub<&Residue<MOD, LIMBS>>
-    for &Residue<MOD, LIMBS>
-{
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Sub<&Residue<MOD>> for &Residue<MOD> {
+    type Output = Residue<MOD>;
 
-    fn sub(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn sub(self, rhs: &Residue<MOD>) -> Residue<MOD> {
         self.sub(rhs)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Sub<Residue<MOD, LIMBS>>
-    for &Residue<MOD, LIMBS>
-{
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Sub<Residue<MOD>> for &Residue<MOD> {
+    type Output = Residue<MOD>;
 
     #[allow(clippy::op_ref)]
-    fn sub(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn sub(self, rhs: Residue<MOD>) -> Residue<MOD> {
         self - &rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Sub<&Residue<MOD, LIMBS>>
-    for Residue<MOD, LIMBS>
-{
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Sub<&Residue<MOD>> for Residue<MOD> {
+    type Output = Residue<MOD>;
 
     #[allow(clippy::op_ref)]
-    fn sub(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn sub(self, rhs: &Residue<MOD>) -> Residue<MOD> {
         &self - rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Sub<Residue<MOD, LIMBS>>
-    for Residue<MOD, LIMBS>
-{
-    type Output = Residue<MOD, LIMBS>;
+impl<MOD: ResidueParams> Sub<Residue<MOD>> for Residue<MOD> {
+    type Output = Residue<MOD>;
 
-    fn sub(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn sub(self, rhs: Residue<MOD>) -> Residue<MOD> {
         &self - &rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> SubAssign<&Self> for Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> SubAssign<&Self> for Residue<MOD> {
     fn sub_assign(&mut self, rhs: &Self) {
         *self = *self - rhs;
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> SubAssign<Self> for Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> SubAssign<Self> for Residue<MOD> {
     fn sub_assign(&mut self, rhs: Self) {
         *self -= &rhs;
     }

@@ -1,12 +1,9 @@
 use super::{Residue, ResidueParams};
 use crate::bigint::uint::{modular::pow::pow_montgomery_form, Uint};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams> Residue<MOD> {
     /// Raises to the `exponent` power.
-    pub const fn pow<const RHS_LIMBS: usize>(
-        &self,
-        exponent: &Uint<RHS_LIMBS>,
-    ) -> Residue<MOD, LIMBS> {
+    pub const fn pow<const RHS_LIMBS: usize>(&self, exponent: &Uint<RHS_LIMBS>) -> Residue<MOD> {
         self.pow_bounded_exp(exponent, Uint::<RHS_LIMBS>::BITS)
     }
 
@@ -19,7 +16,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         &self,
         exponent: &Uint<RHS_LIMBS>,
         exponent_bits: usize,
-    ) -> Residue<MOD, LIMBS> {
+    ) -> Residue<MOD> {
         Self {
             montgomery_form: pow_montgomery_form(
                 &self.montgomery_form,
@@ -36,10 +33,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        bigint::{uint::modular::constant_mod::ResidueParams, U256},
-        const_residue, impl_modulus,
-    };
+    use crate::{bigint::U256, const_residue, impl_modulus};
 
     impl_modulus!(
         Modulus,
