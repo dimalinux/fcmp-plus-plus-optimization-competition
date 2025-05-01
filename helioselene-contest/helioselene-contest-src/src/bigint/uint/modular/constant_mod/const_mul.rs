@@ -37,25 +37,23 @@ impl<MOD: ResidueParams> Mul<&Residue<MOD>> for &Residue<MOD> {
     type Output = Residue<MOD>;
 
     fn mul(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        self.mul(rhs)
+        Residue::mul(self, rhs)
     }
 }
 
 impl<MOD: ResidueParams> Mul<Residue<MOD>> for &Residue<MOD> {
     type Output = Residue<MOD>;
 
-    #[allow(clippy::op_ref)]
     fn mul(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        self * &rhs
+        Residue::mul(self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> Mul<&Residue<MOD>> for Residue<MOD> {
     type Output = Residue<MOD>;
 
-    #[allow(clippy::op_ref)]
     fn mul(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        &self * rhs
+        Residue::mul(&self, rhs)
     }
 }
 
@@ -63,18 +61,18 @@ impl<MOD: ResidueParams> Mul<Residue<MOD>> for Residue<MOD> {
     type Output = Residue<MOD>;
 
     fn mul(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        &self * &rhs
+        Residue::mul(&self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> MulAssign<&Self> for Residue<MOD> {
     fn mul_assign(&mut self, rhs: &Residue<MOD>) {
-        *self = *self * rhs;
+        *self = Residue::mul(self, rhs);
     }
 }
 
 impl<MOD: ResidueParams> MulAssign<Self> for Residue<MOD> {
     fn mul_assign(&mut self, rhs: Self) {
-        *self *= &rhs;
+        *self = Residue::mul(self, &rhs);
     }
 }

@@ -108,84 +108,72 @@ impl Add<Field25519> for Field25519 {
     type Output = Field25519;
 
     fn add(self, other: Field25519) -> Self::Output {
-        Self((|x: ResidueType, y: ResidueType| x.add(&y))(
-            self.0, other.0,
-        ))
+        Self(ResidueType::add(&self.0, &other.0))
     }
 }
 impl AddAssign<Field25519> for Field25519 {
     fn add_assign(&mut self, other: Field25519) {
-        self.0 = (|x: ResidueType, y: ResidueType| x.add(&y))(self.0, other.0);
+        self.0 = ResidueType::add(&self.0, &other.0);
     }
 }
 impl<'a> Add<&'a Field25519> for Field25519 {
     type Output = Field25519;
 
     fn add(self, other: &'a Field25519) -> Self::Output {
-        Self((|x: ResidueType, y: ResidueType| x.add(&y))(
-            self.0, other.0,
-        ))
+        Self(ResidueType::add(&self.0, &other.0))
     }
 }
 impl<'a> AddAssign<&'a Field25519> for Field25519 {
     fn add_assign(&mut self, other: &'a Field25519) {
-        self.0 = (|x: ResidueType, y: ResidueType| x.add(&y))(self.0, other.0);
+        self.0 = ResidueType::add(&self.0, &other.0);
     }
 }
 impl Sub<Field25519> for Field25519 {
     type Output = Field25519;
 
     fn sub(self, other: Field25519) -> Self::Output {
-        Self((|x: ResidueType, y: ResidueType| x.sub(&y))(
-            self.0, other.0,
-        ))
+        Self(ResidueType::sub(&self.0, &other.0))
     }
 }
 impl SubAssign<Field25519> for Field25519 {
     fn sub_assign(&mut self, other: Field25519) {
-        self.0 = (|x: ResidueType, y: ResidueType| x.sub(&y))(self.0, other.0);
+        self.0 = ResidueType::sub(&self.0, &other.0);
     }
 }
 impl<'a> Sub<&'a Field25519> for Field25519 {
     type Output = Field25519;
 
     fn sub(self, other: &'a Field25519) -> Self::Output {
-        Self((|x: ResidueType, y: ResidueType| x.sub(&y))(
-            self.0, other.0,
-        ))
+        Self(ResidueType::sub(&self.0, &other.0))
     }
 }
 impl<'a> SubAssign<&'a Field25519> for Field25519 {
     fn sub_assign(&mut self, other: &'a Field25519) {
-        self.0 = (|x: ResidueType, y: ResidueType| x.sub(&y))(self.0, other.0);
+        self.0 = ResidueType::sub(&self.0, &other.0);
     }
 }
 impl Mul<Field25519> for Field25519 {
     type Output = Field25519;
 
     fn mul(self, other: Field25519) -> Self::Output {
-        Self((|x: ResidueType, y: ResidueType| x.mul(&y))(
-            self.0, other.0,
-        ))
+        Self(ResidueType::mul(&self.0, &other.0))
     }
 }
 impl MulAssign<Field25519> for Field25519 {
     fn mul_assign(&mut self, other: Field25519) {
-        self.0 = (|x: ResidueType, y: ResidueType| x.mul(&y))(self.0, other.0);
+        self.0 = ResidueType::mul(&self.0, &other.0);
     }
 }
 impl<'a> Mul<&'a Field25519> for Field25519 {
     type Output = Field25519;
 
     fn mul(self, other: &'a Field25519) -> Self::Output {
-        Self((|x: ResidueType, y: ResidueType| x.mul(&y))(
-            self.0, other.0,
-        ))
+        Self(ResidueType::mul(&self.0, &other.0))
     }
 }
 impl<'a> MulAssign<&'a Field25519> for Field25519 {
     fn mul_assign(&mut self, other: &'a Field25519) {
-        self.0 = (|x: ResidueType, y: ResidueType| x.mul(&y))(self.0, other.0);
+        self.0 = ResidueType::mul(&self.0, &other.0);
     }
 }
 
@@ -223,7 +211,7 @@ impl Neg for Field25519 {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self(self.0.neg())
+        Self(Residue::neg(&self.0))
     }
 }
 
@@ -231,7 +219,7 @@ impl Neg for &Field25519 {
     type Output = Field25519;
 
     fn neg(self) -> Self::Output {
-        (*self).neg()
+        Field25519(Residue::neg(&self.0))
     }
 }
 
@@ -246,15 +234,15 @@ impl Field for Field25519 {
     }
 
     fn square(&self) -> Self {
-        Field25519(self.0.square())
+        Field25519(ResidueType::square(&self.0))
     }
 
     fn double(&self) -> Self {
-        Field25519(self.0.add(&self.0))
+        Field25519(ResidueType::add(&self.0, &self.0))
     }
 
     fn invert(&self) -> CtOption<Self> {
-        let res = self.0.invert();
+        let res = ResidueType::invert(&self.0);
         CtOption::new(Self(res.0), res.1.into())
     }
 
@@ -393,11 +381,11 @@ impl Field25519 {
 
 impl Sum<Field25519> for Field25519 {
     fn sum<I: Iterator<Item = Field25519>>(iter: I) -> Field25519 {
-        let mut res = Field25519::ZERO;
+        let mut res = ResidueType::ZERO;
         for item in iter {
-            res += item;
+            res = ResidueType::add(&res, &item.0);
         }
-        res
+        Self(res)
     }
 }
 
@@ -409,11 +397,11 @@ impl<'a> Sum<&'a Field25519> for Field25519 {
 
 impl Product<Field25519> for Field25519 {
     fn product<I: Iterator<Item = Field25519>>(iter: I) -> Field25519 {
-        let mut res = Field25519::ONE;
+        let mut res = ResidueType::ONE;
         for item in iter {
-            res *= item;
+            res = ResidueType::mul(&res, &item.0);
         }
-        res
+        Self(res)
     }
 }
 

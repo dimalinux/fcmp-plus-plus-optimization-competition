@@ -30,6 +30,12 @@ pub(crate) const G_Y: HelioseleneField = HelioseleneField(Residue::new(&U256::fr
 pub(crate) const B: HelioseleneField = HelioseleneField(Residue::new(&U256::from_be_hex(
     "70127713695876c17f51bba595ffe279f3944bdf06ae900e68de0983cb5a4558",
 )));
+
+/// B3 constant is the same as B + B + B
+pub(crate) const B3: HelioseleneField = HelioseleneField(Residue::new(&U256::from_be_hex(
+    "5037653a3c0964447df532f0c1ffa76e5bbdf343a540d97a5d2c77a66fbf40ca",
+)));
+
 fn recover_y(x: HelioseleneField) -> CtOption<HelioseleneField> {
     ((x.square() * x) - x - x - x + B).sqrt()
 }
@@ -76,54 +82,51 @@ impl Add for SelenePoint {
 
     #[allow(non_snake_case)]
     fn add(self, other: Self) -> Self {
-        let b3 = B + B + B;
         let X1 = self.x;
         let Y1 = self.y;
         let Z1 = self.z;
         let X2 = other.x;
         let Y2 = other.y;
         let Z2 = other.z;
-        let a = -HelioseleneField::from(3u64);
-        let t0 = X1 * X2;
-        let t1 = Y1 * Y2;
-        let t2 = Z1 * Z2;
-        let t3 = X1 + Y1;
-        let t4 = X2 + Y2;
-        let t3 = t3 * t4;
-        let t4 = t0 + t1;
-        let t3 = t3 - t4;
-        let t4 = X1 + Z1;
-        let t5 = X2 + Z2;
-        let t4 = t4 * t5;
-        let t5 = t0 + t2;
-        let t4 = t4 - t5;
-        let t5 = Y1 + Z1;
-        let X3 = Y2 + Z2;
-        let t5 = t5 * X3;
-        let X3 = t1 + t2;
-        let t5 = t5 - X3;
-        let Z3 = a * t4;
-        let X3 = b3 * t2;
-        let Z3 = X3 + Z3;
-        let X3 = t1 - Z3;
-        let Z3 = t1 + Z3;
-        let Y3 = X3 * Z3;
-        let t1 = t0 + t0;
-        let t1 = t1 + t0;
-        let t2 = a * t2;
-        let t4 = b3 * t4;
-        let t1 = t1 + t2;
-        let t2 = t0 - t2;
-        let t2 = a * t2;
-        let t4 = t4 + t2;
-        let t0 = t1 * t4;
-        let Y3 = Y3 + t0;
-        let t0 = t5 * t4;
-        let X3 = t3 * X3;
-        let X3 = X3 - t0;
-        let t0 = t3 * t1;
-        let Z3 = t5 * Z3;
-        let Z3 = Z3 + t0;
+        let a = HelioseleneField::from(3u64).neg();
+        let t0 = X1.mul(&X2);
+        let t1 = Y1.mul(&Y2);
+        let t2 = Z1.mul(&Z2);
+        let t3 = X1.add(&Y1).mul(&X2.add(&Y2));
+        let t4 = t0.add(&t1);
+        let t3 = t3.sub(&t4);
+        let t4 = X1.add(&Z1);
+        let t5 = X2.add(&Z2);
+        let t4 = t4.mul(&t5);
+        let t5 = t0.add(&t2);
+        let t4 = t4.sub(&t5);
+        let t5 = Y1.add(&Z1);
+        let X3 = Y2.add(&Z2);
+        let t5 = t5.mul(&X3);
+        let X3 = t1.add(&t2);
+        let t5 = t5.sub(&X3);
+        let Z3 = a.mul(&t4);
+        let X3 = B3.mul(&t2);
+        let Z3 = X3.add(&Z3);
+        let X3 = t1.sub(&Z3);
+        let Z3 = t1.add(&Z3);
+        let Y3 = X3.mul(&Z3);
+        let t1 = t0.add(&t0);
+        let t1 = t1.add(&t0);
+        let t2 = a.mul(&t2);
+        let t4 = B3.mul(&t4);
+        let t1 = t1.add(&t2);
+        let t2 = t0.sub(&t2);
+        let t2 = a.mul(&t2);
+        let t4 = t4.add(&t2);
+        let t0 = t1.mul(&t4);
+        let Y3 = Y3.add(&t0);
+        let t0 = t5.mul(&t4);
+        let X3 = t3.mul(&X3);
+        let X3 = X3.sub(&t0);
+        let t0 = t3.mul(&t1);
+        let Z3 = t5.mul(&Z3);
+        let Z3 = Z3.add(&t0);
         SelenePoint {
             x: X3,
             y: Y3,
@@ -133,19 +136,19 @@ impl Add for SelenePoint {
 }
 impl AddAssign for SelenePoint {
     fn add_assign(&mut self, other: SelenePoint) {
-        *self = *self + other;
+        *self = SelenePoint::add(*self, other);
     }
 }
 impl Add<&SelenePoint> for SelenePoint {
     type Output = SelenePoint;
 
     fn add(self, other: &SelenePoint) -> SelenePoint {
-        self + *other
+        SelenePoint::add(self, *other)
     }
 }
 impl AddAssign<&SelenePoint> for SelenePoint {
     fn add_assign(&mut self, other: &SelenePoint) {
-        *self += *other;
+        *self = SelenePoint::add(*self, *other);
     }
 }
 impl Neg for SelenePoint {
@@ -154,7 +157,7 @@ impl Neg for SelenePoint {
     fn neg(self) -> Self {
         SelenePoint {
             x: self.x,
-            y: -self.y,
+            y: self.y.neg(),
             z: self.z,
         }
     }
@@ -162,26 +165,25 @@ impl Neg for SelenePoint {
 impl Sub for SelenePoint {
     type Output = SelenePoint;
 
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn sub(self, other: Self) -> Self {
-        self + other.neg()
+        SelenePoint::add(self, other.neg())
     }
 }
 impl SubAssign for SelenePoint {
     fn sub_assign(&mut self, other: SelenePoint) {
-        *self = *self - other;
+        *self = SelenePoint::add(*self, other.neg());
     }
 }
 impl Sub<&SelenePoint> for SelenePoint {
     type Output = SelenePoint;
 
     fn sub(self, other: &SelenePoint) -> SelenePoint {
-        self - *other
+        SelenePoint::add(self, other.neg())
     }
 }
 impl SubAssign<&SelenePoint> for SelenePoint {
     fn sub_assign(&mut self, other: &SelenePoint) {
-        *self -= *other;
+        *self = SelenePoint::add(*self, other.neg())
     }
 }
 impl Group for SelenePoint {
@@ -381,5 +383,10 @@ mod tests {
     #[test]
     fn zero_x_is_invalid() {
         assert!(Option::<HelioseleneField>::from(recover_y(HelioseleneField::ZERO)).is_none());
+    }
+
+    #[test]
+    fn b3_value() {
+        assert_eq!(B + B + B, B3);
     }
 }

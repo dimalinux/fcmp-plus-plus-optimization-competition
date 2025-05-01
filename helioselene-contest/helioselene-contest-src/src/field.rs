@@ -85,72 +85,72 @@ impl Add<HelioseleneField> for HelioseleneField {
     type Output = HelioseleneField;
 
     fn add(self, other: HelioseleneField) -> Self::Output {
-        Self(self.0.add(other.0))
+        Self(ResidueType::add(&self.0, &other.0))
     }
 }
 impl AddAssign<HelioseleneField> for HelioseleneField {
     fn add_assign(&mut self, other: HelioseleneField) {
-        self.0 = self.0.add(&other.0);
+        self.0 = ResidueType::add(&self.0, &other.0);
     }
 }
 impl<'a> Add<&'a HelioseleneField> for HelioseleneField {
     type Output = HelioseleneField;
 
     fn add(self, other: &'a HelioseleneField) -> Self::Output {
-        Self(self.0.add(&other.0))
+        Self(ResidueType::add(&self.0, &other.0))
     }
 }
 impl<'a> AddAssign<&'a HelioseleneField> for HelioseleneField {
     fn add_assign(&mut self, other: &'a HelioseleneField) {
-        self.0 = self.0.add(&other.0);
+        self.0 = ResidueType::add(&self.0, &other.0);
     }
 }
 impl Sub<HelioseleneField> for HelioseleneField {
     type Output = HelioseleneField;
 
     fn sub(self, other: HelioseleneField) -> Self::Output {
-        Self(self.0.sub(&other.0))
+        Self(ResidueType::sub(&self.0, &other.0))
     }
 }
 impl SubAssign<HelioseleneField> for HelioseleneField {
     fn sub_assign(&mut self, other: HelioseleneField) {
-        self.0 = self.0.sub(&other.0);
+        self.0 = ResidueType::sub(&self.0, &other.0);
     }
 }
 impl<'a> Sub<&'a HelioseleneField> for HelioseleneField {
     type Output = HelioseleneField;
 
     fn sub(self, other: &'a HelioseleneField) -> Self::Output {
-        Self(self.0.sub(&other.0))
+        Self(ResidueType::sub(&self.0, &other.0))
     }
 }
 impl<'a> SubAssign<&'a HelioseleneField> for HelioseleneField {
     fn sub_assign(&mut self, other: &'a HelioseleneField) {
-        self.0 = self.0.sub(&other.0);
+        self.0 = ResidueType::sub(&self.0, &other.0);
     }
 }
 impl Mul<HelioseleneField> for HelioseleneField {
     type Output = HelioseleneField;
 
     fn mul(self, other: HelioseleneField) -> Self::Output {
-        Self(self.0.mul(&other.0))
+        Self(ResidueType::mul(&self.0, &other.0))
     }
 }
 impl MulAssign<HelioseleneField> for HelioseleneField {
     fn mul_assign(&mut self, other: HelioseleneField) {
-        self.0 = self.0.mul(&other.0);
+        self.0 = ResidueType::mul(&self.0, &other.0);
     }
 }
 impl<'a> Mul<&'a HelioseleneField> for HelioseleneField {
     type Output = HelioseleneField;
 
     fn mul(self, other: &'a HelioseleneField) -> Self::Output {
-        Self(self.0.mul(&other.0))
+        Self(ResidueType::mul(&self.0, &other.0))
     }
 }
 impl<'a> MulAssign<&'a HelioseleneField> for HelioseleneField {
     fn mul_assign(&mut self, other: &'a HelioseleneField) {
-        self.0 = self.0.mul(&other.0);
+        self.0 = ResidueType::mul(&self.0, &other.0);
     }
 }
 impl From<u8> for HelioseleneField {
@@ -237,11 +237,11 @@ impl Field for HelioseleneField {
     }
 
     fn square(&self) -> Self {
-        Self(self.0.square())
+        Self(ResidueType::square(&self.0))
     }
 
     fn double(&self) -> Self {
-        *self + self
+        Self(ResidueType::add(&self.0, &self.0))
     }
 
     fn invert(&self) -> CtOption<Self> {
@@ -310,11 +310,11 @@ impl PrimeFieldBits for HelioseleneField {
 }
 impl Sum<HelioseleneField> for HelioseleneField {
     fn sum<I: Iterator<Item = HelioseleneField>>(iter: I) -> HelioseleneField {
-        let mut res = HelioseleneField::ZERO;
+        let mut res = ResidueType::ZERO;
         for item in iter {
-            res += item;
+            res = ResidueType::add(&res, &item.0);
         }
-        res
+        Self(res)
     }
 }
 impl<'a> Sum<&'a HelioseleneField> for HelioseleneField {
@@ -324,11 +324,11 @@ impl<'a> Sum<&'a HelioseleneField> for HelioseleneField {
 }
 impl Product<HelioseleneField> for HelioseleneField {
     fn product<I: Iterator<Item = HelioseleneField>>(iter: I) -> HelioseleneField {
-        let mut res = HelioseleneField::ONE;
+        let mut res = ResidueType::ONE;
         for item in iter {
-            res *= item;
+            res = ResidueType::mul(&res, &item.0);
         }
-        res
+        Self(res)
     }
 }
 impl<'a> Product<&'a HelioseleneField> for HelioseleneField {

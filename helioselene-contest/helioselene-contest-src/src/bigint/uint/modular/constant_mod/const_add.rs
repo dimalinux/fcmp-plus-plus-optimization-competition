@@ -21,25 +21,23 @@ impl<MOD: ResidueParams> Add<&Residue<MOD>> for &Residue<MOD> {
     type Output = Residue<MOD>;
 
     fn add(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        self.add(rhs)
+        Residue::add(self, rhs)
     }
 }
 
 impl<MOD: ResidueParams> Add<Residue<MOD>> for &Residue<MOD> {
     type Output = Residue<MOD>;
 
-    #[allow(clippy::op_ref)]
     fn add(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        self + &rhs
+        Residue::add(self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> Add<&Residue<MOD>> for Residue<MOD> {
     type Output = Residue<MOD>;
 
-    #[allow(clippy::op_ref)]
     fn add(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        &self + rhs
+        Residue::add(&self, rhs)
     }
 }
 
@@ -47,18 +45,18 @@ impl<MOD: ResidueParams> Add<Residue<MOD>> for Residue<MOD> {
     type Output = Residue<MOD>;
 
     fn add(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        &self + &rhs
+        Residue::add(&self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> AddAssign<&Self> for Residue<MOD> {
     fn add_assign(&mut self, rhs: &Self) {
-        *self = *self + rhs;
+        *self = Residue::add(self, rhs);
     }
 }
 
 impl<MOD: ResidueParams> AddAssign<Self> for Residue<MOD> {
     fn add_assign(&mut self, rhs: Self) {
-        *self += &rhs;
+        *self = Residue::add(self, &rhs);
     }
 }

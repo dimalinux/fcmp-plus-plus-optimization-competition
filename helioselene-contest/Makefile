@@ -3,7 +3,7 @@ CARGO_NEW := cargo +1.84.1
 CARGO_OLD := cargo +1.69.0
 
 .PHONY: all
-all: build fmt test bench cycles
+all: fmt build test cycles bench
 
 .PHONY:
 build:

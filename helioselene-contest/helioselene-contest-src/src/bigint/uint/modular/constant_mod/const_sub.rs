@@ -21,25 +21,23 @@ impl<MOD: ResidueParams> Sub<&Residue<MOD>> for &Residue<MOD> {
     type Output = Residue<MOD>;
 
     fn sub(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        self.sub(rhs)
+        Residue::sub(self, rhs)
     }
 }
 
 impl<MOD: ResidueParams> Sub<Residue<MOD>> for &Residue<MOD> {
     type Output = Residue<MOD>;
 
-    #[allow(clippy::op_ref)]
     fn sub(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        self - &rhs
+        Residue::sub(self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> Sub<&Residue<MOD>> for Residue<MOD> {
     type Output = Residue<MOD>;
 
-    #[allow(clippy::op_ref)]
     fn sub(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        &self - rhs
+        Residue::sub(&self, rhs)
     }
 }
 
@@ -47,18 +45,18 @@ impl<MOD: ResidueParams> Sub<Residue<MOD>> for Residue<MOD> {
     type Output = Residue<MOD>;
 
     fn sub(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        &self - &rhs
+        Residue::sub(&self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> SubAssign<&Self> for Residue<MOD> {
     fn sub_assign(&mut self, rhs: &Self) {
-        *self = *self - rhs;
+        *self = Residue::sub(self, rhs)
     }
 }
 
 impl<MOD: ResidueParams> SubAssign<Self> for Residue<MOD> {
     fn sub_assign(&mut self, rhs: Self) {
-        *self -= &rhs;
+        *self = Residue::sub(self, &rhs)
     }
 }

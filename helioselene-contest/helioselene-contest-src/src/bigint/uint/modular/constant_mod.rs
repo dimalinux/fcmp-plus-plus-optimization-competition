@@ -131,6 +131,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
     }
 
     /// Extract the value from the `Residue` in Montgomery form.
+    #[allow(clippy::wrong_self_convention)]
     pub const fn to_montgomery(&self) -> U256 {
         self.montgomery_form
     }

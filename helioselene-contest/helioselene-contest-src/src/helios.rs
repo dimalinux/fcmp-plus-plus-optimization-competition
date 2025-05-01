@@ -28,6 +28,11 @@ pub(crate) const G_Y: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
 const B: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
     "22e8c739b0ea70b8be94a76b3ebb7b3b043f6f384113bf3522b49ee1edd73ad4",
 )));
+
+const B3: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
+    "68ba55ad12bf522a3bbdf641bc3271b10cbe4da8c33b3d9f681ddca5c985b07c",
+)));
+
 fn recover_y(x: Field25519) -> CtOption<Field25519> {
     ((x.square() * x) - x - x - x + B).sqrt()
 }
@@ -74,54 +79,51 @@ impl Add for HeliosPoint {
 
     #[allow(non_snake_case)]
     fn add(self, other: Self) -> Self {
-        let b3 = B + B + B;
         let X1 = self.x;
         let Y1 = self.y;
         let Z1 = self.z;
         let X2 = other.x;
         let Y2 = other.y;
         let Z2 = other.z;
-        let a = -Field25519::from(3u64);
-        let t0 = X1 * X2;
-        let t1 = Y1 * Y2;
-        let t2 = Z1 * Z2;
-        let t3 = X1 + Y1;
-        let t4 = X2 + Y2;
-        let t3 = t3 * t4;
-        let t4 = t0 + t1;
-        let t3 = t3 - t4;
-        let t4 = X1 + Z1;
-        let t5 = X2 + Z2;
-        let t4 = t4 * t5;
-        let t5 = t0 + t2;
-        let t4 = t4 - t5;
-        let t5 = Y1 + Z1;
-        let X3 = Y2 + Z2;
-        let t5 = t5 * X3;
-        let X3 = t1 + t2;
-        let t5 = t5 - X3;
-        let Z3 = a * t4;
-        let X3 = b3 * t2;
-        let Z3 = X3 + Z3;
-        let X3 = t1 - Z3;
-        let Z3 = t1 + Z3;
-        let Y3 = X3 * Z3;
-        let t1 = t0 + t0;
-        let t1 = t1 + t0;
-        let t2 = a * t2;
-        let t4 = b3 * t4;
-        let t1 = t1 + t2;
-        let t2 = t0 - t2;
-        let t2 = a * t2;
-        let t4 = t4 + t2;
-        let t0 = t1 * t4;
-        let Y3 = Y3 + t0;
-        let t0 = t5 * t4;
-        let X3 = t3 * X3;
-        let X3 = X3 - t0;
-        let t0 = t3 * t1;
-        let Z3 = t5 * Z3;
-        let Z3 = Z3 + t0;
+        let a = Field25519::from(3u64).neg();
+        let t0 = X1.mul(&X2);
+        let t1 = Y1.mul(&Y2);
+        let t2 = Z1.mul(&Z2);
+        let t3 = X1.add(&Y1).mul(&X2.add(&Y2));
+        let t4 = t0.add(&t1);
+        let t3 = t3.sub(&t4);
+        let t4 = X1.add(&Z1);
+        let t5 = X2.add(&Z2);
+        let t4 = t4.mul(&t5);
+        let t5 = t0.add(&t2);
+        let t4 = t4.sub(&t5);
+        let t5 = Y1.add(&Z1);
+        let X3 = Y2.add(&Z2);
+        let t5 = t5.mul(&X3);
+        let X3 = t1.add(&t2);
+        let t5 = t5.sub(&X3);
+        let Z3 = a.mul(&t4);
+        let X3 = B3.mul(&t2);
+        let Z3 = X3.add(&Z3);
+        let X3 = t1.sub(&Z3);
+        let Z3 = t1.add(&Z3);
+        let Y3 = X3.mul(&Z3);
+        let t1 = t0.add(&t0);
+        let t1 = t1.add(&t0);
+        let t2 = a.mul(&t2);
+        let t4 = B3.mul(&t4);
+        let t1 = t1.add(&t2);
+        let t2 = t0.sub(&t2);
+        let t2 = a.mul(&t2);
+        let t4 = t4.add(&t2);
+        let t0 = t1.mul(&t4);
+        let Y3 = Y3.add(&t0);
+        let t0 = t5.mul(&t4);
+        let X3 = t3.mul(&X3);
+        let X3 = X3.sub(&t0);
+        let t0 = t3.mul(&t1);
+        let Z3 = t5.mul(&Z3);
+        let Z3 = Z3.add(&t0);
         HeliosPoint {
             x: X3,
             y: Y3,
@@ -131,19 +133,19 @@ impl Add for HeliosPoint {
 }
 impl AddAssign for HeliosPoint {
     fn add_assign(&mut self, other: HeliosPoint) {
-        *self = *self + other;
+        *self = HeliosPoint::add(*self, other);
     }
 }
 impl Add<&HeliosPoint> for HeliosPoint {
     type Output = HeliosPoint;
 
     fn add(self, other: &HeliosPoint) -> HeliosPoint {
-        self + *other
+        HeliosPoint::add(self, *other)
     }
 }
 impl AddAssign<&HeliosPoint> for HeliosPoint {
     fn add_assign(&mut self, other: &HeliosPoint) {
-        *self += *other;
+        *self = HeliosPoint::add(*self, *other);
     }
 }
 impl Neg for HeliosPoint {
@@ -152,7 +154,7 @@ impl Neg for HeliosPoint {
     fn neg(self) -> Self {
         HeliosPoint {
             x: self.x,
-            y: -self.y,
+            y: self.y.neg(),
             z: self.z,
         }
     }
@@ -160,26 +162,25 @@ impl Neg for HeliosPoint {
 impl Sub for HeliosPoint {
     type Output = HeliosPoint;
 
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn sub(self, other: Self) -> Self {
-        self + other.neg()
+        HeliosPoint::add(self, other.neg())
     }
 }
 impl SubAssign for HeliosPoint {
     fn sub_assign(&mut self, other: HeliosPoint) {
-        *self = *self - other;
+        *self = HeliosPoint::add(*self, other.neg());
     }
 }
 impl Sub<&HeliosPoint> for HeliosPoint {
     type Output = HeliosPoint;
 
     fn sub(self, other: &HeliosPoint) -> HeliosPoint {
-        self - *other
+        HeliosPoint::add(self, other.neg())
     }
 }
 impl SubAssign<&HeliosPoint> for HeliosPoint {
     fn sub_assign(&mut self, other: &HeliosPoint) {
-        *self -= *other;
+        *self = HeliosPoint::add(*self, other.neg());
     }
 }
 impl Group for HeliosPoint {
@@ -376,5 +377,10 @@ mod tests {
     #[test]
     fn zero_x_is_invalid() {
         assert!(Option::<Field25519>::from(recover_y(Field25519::ZERO)).is_none());
+    }
+
+    #[test]
+    fn b3_value() {
+        assert_eq!(B + B + B, B3);
     }
 }
