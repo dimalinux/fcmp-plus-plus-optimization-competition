@@ -59,7 +59,7 @@ where
     const R3: U256 =
         montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
 }
-type ResidueType = Residue<FieldModulus>;
+pub(crate) type ResidueType = Residue<FieldModulus>;
 
 /// A constant-time implementation of the Ed25519 field.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]

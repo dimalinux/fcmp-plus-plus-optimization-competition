@@ -16,7 +16,7 @@ use crate::{
     backend::u8_from_bool,
     bigint::{Residue, U256},
     dalek_ff_group::Field25519,
-    field::HelioseleneField,
+    field::{HelioseleneField, ResidueType},
 };
 
 pub(crate) const G_X: HelioseleneField = HelioseleneField(Residue::new(&U256::from_be_hex(
@@ -82,55 +82,55 @@ impl Add for SelenePoint {
 
     #[allow(non_snake_case)]
     fn add(self, other: Self) -> Self {
-        let X1 = self.x;
-        let Y1 = self.y;
-        let Z1 = self.z;
-        let X2 = other.x;
-        let Y2 = other.y;
-        let Z2 = other.z;
-        let a = HelioseleneField::from(3u64).neg();
-        let t0 = X1.mul(&X2);
-        let t1 = Y1.mul(&Y2);
-        let t2 = Z1.mul(&Z2);
-        let t3 = X1.add(&Y1).mul(&X2.add(&Y2));
-        let t4 = t0.add(&t1);
-        let t3 = t3.sub(&t4);
-        let t4 = X1.add(&Z1);
-        let t5 = X2.add(&Z2);
-        let t4 = t4.mul(&t5);
-        let t5 = t0.add(&t2);
-        let t4 = t4.sub(&t5);
-        let t5 = Y1.add(&Z1);
-        let X3 = Y2.add(&Z2);
-        let t5 = t5.mul(&X3);
-        let X3 = t1.add(&t2);
-        let t5 = t5.sub(&X3);
-        let Z3 = a.mul(&t4);
-        let X3 = B3.mul(&t2);
-        let Z3 = X3.add(&Z3);
-        let X3 = t1.sub(&Z3);
-        let Z3 = t1.add(&Z3);
-        let Y3 = X3.mul(&Z3);
-        let t1 = t0.add(&t0);
-        let t1 = t1.add(&t0);
-        let t2 = a.mul(&t2);
-        let t4 = B3.mul(&t4);
-        let t1 = t1.add(&t2);
-        let t2 = t0.sub(&t2);
-        let t2 = a.mul(&t2);
-        let t4 = t4.add(&t2);
-        let t0 = t1.mul(&t4);
-        let Y3 = Y3.add(&t0);
-        let t0 = t5.mul(&t4);
-        let X3 = t3.mul(&X3);
-        let X3 = X3.sub(&t0);
-        let t0 = t3.mul(&t1);
-        let Z3 = t5.mul(&Z3);
-        let Z3 = Z3.add(&t0);
+        let X1 = &self.x.0;
+        let Y1 = &self.y.0;
+        let Z1 = &self.z.0;
+        let X2 = &other.x.0;
+        let Y2 = &other.y.0;
+        let Z2 = &other.z.0;
+        const A: ResidueType = Residue::neg(&ResidueType::new(&U256::from_u64(3)));
+        let t0 = Residue::mul(X1, X2);
+        let t1 = Residue::mul(Y1, Y2);
+        let t2 = Residue::mul(Z1, Z2);
+        let t3 = Residue::mul(&Residue::add(X1, Y1), &Residue::add(X2, Y2));
+        let t4 = Residue::add(&t0, &t1);
+        let t3 = Residue::sub(&t3, &t4);
+        let t4 = Residue::add(X1, Z1);
+        let t5 = Residue::add(X2, Z2);
+        let t4 = Residue::mul(&t4, &t5);
+        let t5 = Residue::add(&t0, &t2);
+        let t4 = Residue::sub(&t4, &t5);
+        let t5 = Residue::add(Y1, Z1);
+        let X3 = Residue::add(Y2, Z2);
+        let t5 = Residue::mul(&t5, &X3);
+        let X3 = Residue::add(&t1, &t2);
+        let t5 = Residue::sub(&t5, &X3);
+        let Z3 = Residue::mul(&A, &t4);
+        let X3 = Residue::mul(&B3.0, &t2);
+        let Z3 = Residue::add(&X3, &Z3);
+        let X3 = Residue::sub(&t1, &Z3);
+        let Z3 = Residue::add(&t1, &Z3);
+        let Y3 = Residue::mul(&X3, &Z3);
+        let t1 = Residue::add(&t0, &t0);
+        let t1 = Residue::add(&t1, &t0);
+        let t2 = Residue::mul(&A, &t2);
+        let t4 = Residue::mul(&B3.0, &t4);
+        let t1 = Residue::add(&t1, &t2);
+        let t2 = Residue::sub(&t0, &t2);
+        let t2 = Residue::mul(&A, &t2);
+        let t4 = Residue::add(&t4, &t2);
+        let t0 = Residue::mul(&t1, &t4);
+        let Y3 = Residue::add(&Y3, &t0);
+        let t0 = Residue::mul(&t5, &t4);
+        let X3 = Residue::mul(&t3, &X3);
+        let X3 = Residue::sub(&X3, &t0);
+        let t0 = Residue::mul(&t3, &t1);
+        let Z3 = Residue::mul(&t5, &Z3);
+        let Z3 = Residue::add(&Z3, &t0);
         SelenePoint {
-            x: X3,
-            y: Y3,
-            z: Z3,
+            x: HelioseleneField(X3),
+            y: HelioseleneField(Y3),
+            z: HelioseleneField(Z3),
         }
     }
 }

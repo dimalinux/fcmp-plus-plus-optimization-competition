@@ -52,7 +52,7 @@ where
         montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
 }
 
-type ResidueType = Residue<HelioseleneQ>;
+pub(crate) type ResidueType = Residue<HelioseleneQ>;
 
 /// The field novel to Helios/Selene.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
