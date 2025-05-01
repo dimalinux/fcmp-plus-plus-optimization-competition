@@ -8,9 +8,10 @@ all: build fmt test bench cycles
 .PHONY:
 build:
 	$(CARGO_OLD) build --release
-	$(CARGO_NEW) build
+	$(CARGO_NEW) build --tests
 	$(CARGO_NEW) build --release
 	$(CARGO_NEW) build --release --target wasm32v1-none --no-default-features
+	cd helioselene-contest-src && $(CARGO_NEW) build --tests
 
 
 .PHONY: test
@@ -18,6 +19,7 @@ test:
 	$(CARGO_OLD) test --release
 	$(CARGO_NEW) test # Debug test
 	$(CARGO_NEW) test --release
+	cd helioselene-contest-src && $(CARGO_NEW) test
 
 .PHONY: bench
 bench:
@@ -47,8 +49,10 @@ coverage:
 	rm -f cargo-test*\.profraw
 	@printf "\nCoverage is in:\nfile://$(PWD)/target/coverage/html/index.html\n"
 
-.PHONY: profile
 profile:
+	RUSTFLAGS="-Cforce-frame-pointers=yes" cargo build --release --examples
+	perf record -g --call-graph dwarf target/release/examples/selene_add
+
+flamegraph:
 	cargo install flamegraph
-	cargo flamegraph --release --bench helioselene
-	rm perf.data
+	cargo flamegraph --release --examples selene_add
