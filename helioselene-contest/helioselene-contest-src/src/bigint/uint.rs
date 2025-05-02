@@ -6,7 +6,6 @@ mod add;
 mod add_mod;
 mod bit_ops;
 mod cmp;
-mod concat;
 mod div;
 mod encoding;
 mod from;
@@ -17,7 +16,7 @@ mod sub;
 mod sub_mod;
 
 /// Implements modular arithmetic for constant moduli.
-pub mod modular;
+pub(crate) mod modular;
 
 use core::fmt;
 
@@ -56,29 +55,29 @@ pub struct Uint<const LIMBS: usize> {
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Total size of the represented integer in bits.
-    pub const BITS: usize = LIMBS * Limb::BITS;
+    pub(crate) const BITS: usize = LIMBS * Limb::BITS;
     /// Total size of the represented integer in bytes.
-    pub const BYTES: usize = LIMBS * Limb::BYTES;
+    pub(crate) const BYTES: usize = LIMBS * Limb::BYTES;
     /// The number of limbs used on this platform.
-    pub const LIMBS: usize = LIMBS;
+    pub(crate) const LIMBS: usize = LIMBS;
     /// Maximum value this [`Uint`] can express.
-    pub const MAX: Self = Self {
+    pub(crate) const MAX: Self = Self {
         limbs: [Limb::MAX; LIMBS],
     };
     /// The value `1`.
-    pub const ONE: Self = Self::from_u8(1);
+    pub(crate) const ONE: Self = Self::from_u8(1);
     /// The value `0`.
-    pub const ZERO: Self = Self::from_u8(0);
+    pub(crate) const ZERO: Self = Self::from_u8(0);
 
     /// Const-friendly [`Uint`] constructor.
-    pub const fn new(limbs: [Limb; LIMBS]) -> Self {
+    pub(crate) const fn new(limbs: [Limb; LIMBS]) -> Self {
         Self { limbs }
     }
 
     /// Create a [`Uint`] from an array of [`Word`]s (i.e. word-sized unsigned
     /// integers).
     #[inline]
-    pub const fn from_words(arr: [Word; LIMBS]) -> Self {
+    pub(crate) const fn from_words(arr: [Word; LIMBS]) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
 
@@ -90,23 +89,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Self { limbs }
     }
 
-    /// Create an array of [`Word`]s (i.e. word-sized unsigned integers) from
-    /// a [`Uint`].
-    #[inline]
-    pub const fn to_words(self) -> [Word; LIMBS] {
-        let mut arr = [0; LIMBS];
-        let mut i = 0;
-
-        while i < LIMBS {
-            arr[i] = self.limbs[i].0;
-            i += 1;
-        }
-
-        arr
-    }
-
     /// Borrow the inner limbs as an array of [`Word`]s.
-    pub const fn as_words(&self) -> &[Word; LIMBS] {
+    pub(crate) const fn as_words(&self) -> &[Word; LIMBS] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
@@ -115,7 +99,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
-    pub fn as_words_mut(&mut self) -> &mut [Word; LIMBS] {
+    pub(crate) fn as_words_mut(&mut self) -> &mut [Word; LIMBS] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
@@ -124,18 +108,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Uint`].
-    pub const fn as_limbs(&self) -> &[Limb; LIMBS] {
+    pub(crate) const fn as_limbs(&self) -> &[Limb; LIMBS] {
         &self.limbs
-    }
-
-    /// Borrow the limbs of this [`Uint`] mutably.
-    pub fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
-        &mut self.limbs
-    }
-
-    /// Convert this [`Uint`] into its inner limbs.
-    pub const fn to_limbs(self) -> [Limb; LIMBS] {
-        self.limbs
     }
 }
 
@@ -234,7 +208,7 @@ impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 
 #[doc = "256-bit"]
 #[doc = "unsigned big integer."]
-pub type U256 = Uint<{ 256 / Limb::BITS }>;
+pub(crate) type U256 = Uint<{ 256 / Limb::BITS }>;
 impl Encoding for U256 {
     type Repr = [u8; 256 / 8];
 
@@ -253,7 +227,7 @@ impl Encoding for U256 {
 
 #[doc = "512-bit"]
 #[doc = "unsigned big integer."]
-pub type U512 = Uint<{ 512 / Limb::BITS }>;
+pub(crate) type U512 = Uint<{ 512 / Limb::BITS }>;
 impl Encoding for U512 {
     type Repr = [u8; 512 / 8];
 
@@ -270,22 +244,6 @@ impl Encoding for U512 {
     }
 }
 
-impl Uint<{ <U256>::LIMBS / 2 }> {
-    ///   Concatenate the two values, with  `self`  as most significant and  `rhs`
-    ///   as the least significant.
-    pub const fn concat(&self, lo: &Uint<{ <U256>::LIMBS / 2 }>) -> U256 {
-        concat::concat_mixed(lo, self)
-    }
-}
-
-impl Uint<{ <U512>::LIMBS / 2 }> {
-    ///   Concatenate the two values, with  `self`  as most significant and  `rhs`
-    ///   as the least significant.
-    pub const fn concat(&self, lo: &Uint<{ <U512>::LIMBS / 2 }>) -> U512 {
-        concat::concat_mixed(lo, self)
-    }
-}
-
 impl U512 {
     /// Creates a `U512` from a tuple of two `U256` values.
     ///
@@ -296,10 +254,16 @@ impl U512 {
     ///
     /// # Returns
     /// A `U512` value constructed by combining the `low` and `high` parts.
-    pub fn from(nums: (U256, U256)) -> Self {
-        let mut to = Self::ZERO;
-        to.limbs[..<U256>::LIMBS].copy_from_slice(&nums.0.limbs);
-        to.limbs[<U256>::LIMBS..].copy_from_slice(&nums.1.limbs);
+    pub(crate) const fn from_u256_lo_high(low: U256, high: U256) -> Self {
+        let mut to = U512::ZERO;
+        to.limbs[0] = low.limbs[0];
+        to.limbs[1] = low.limbs[1];
+        to.limbs[2] = low.limbs[2];
+        to.limbs[3] = low.limbs[3];
+        to.limbs[4] = high.limbs[0];
+        to.limbs[5] = high.limbs[1];
+        to.limbs[6] = high.limbs[2];
+        to.limbs[7] = high.limbs[3];
         to
     }
 }

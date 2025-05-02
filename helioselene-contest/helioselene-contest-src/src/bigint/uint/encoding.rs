@@ -6,32 +6,8 @@ use crate::bigint::{
 };
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Create a new [`Uint`] from the provided big endian bytes.
-    pub const fn from_be_slice(bytes: &[u8]) -> Self {
-        assert!(
-            bytes.len() == Limb::BYTES * LIMBS,
-            "bytes are not the expected size"
-        );
-
-        let mut res = [Limb::ZERO; LIMBS];
-        let mut buf = [0u8; Limb::BYTES];
-        let mut i = 0;
-
-        while i < LIMBS {
-            let mut j = 0;
-            while j < Limb::BYTES {
-                buf[j] = bytes[i * Limb::BYTES + j];
-                j += 1;
-            }
-            res[LIMBS - i - 1] = Limb(Word::from_be_bytes(buf));
-            i += 1;
-        }
-
-        Uint::new(res)
-    }
-
     /// Create a new [`Uint`] from the provided big endian hex string.
-    pub const fn from_be_hex(hex: &str) -> Self {
+    pub(crate) const fn from_be_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
         assert!(
@@ -63,7 +39,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Create a new [`Uint`] from the provided little endian bytes.
-    pub const fn from_le_slice(bytes: &[u8]) -> Self {
+    pub(crate) const fn from_le_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTES * LIMBS,
             "bytes are not the expected size"
@@ -82,38 +58,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             res[i] = Limb(Word::from_le_bytes(buf));
             i += 1;
         }
-
-        Uint::new(res)
-    }
-
-    /// Create a new [`Uint`] from the provided little endian hex string.
-    pub const fn from_le_hex(hex: &str) -> Self {
-        let bytes = hex.as_bytes();
-
-        assert!(
-            bytes.len() == Limb::BYTES * LIMBS * 2,
-            "bytes are not the expected size"
-        );
-
-        let mut res = [Limb::ZERO; LIMBS];
-        let mut buf = [0u8; Limb::BYTES];
-        let mut i = 0;
-        let mut err = 0;
-
-        while i < LIMBS {
-            let mut j = 0;
-            while j < Limb::BYTES {
-                let offset = (i * Limb::BYTES + j) * 2;
-                let (result, byte_err) = decode_hex_byte([bytes[offset], bytes[offset + 1]]);
-                err |= byte_err;
-                buf[j] = result;
-                j += 1;
-            }
-            res[i] = Limb(Word::from_le_bytes(buf));
-            i += 1;
-        }
-
-        assert!(err == 0, "invalid hex byte");
 
         Uint::new(res)
     }

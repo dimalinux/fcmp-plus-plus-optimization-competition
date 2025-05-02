@@ -5,7 +5,7 @@ use crate::bigint::uint::modular::add::add_montgomery_form;
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Adds `rhs`.
-    pub const fn add(&self, rhs: &Residue<MOD>) -> Self {
+    pub(crate) const fn add(&self, rhs: &Residue<MOD>) -> Self {
         Self {
             montgomery_form: add_montgomery_form(
                 &self.montgomery_form,

@@ -1,9 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::bigint::{
-    limb::WideWord,
-    uint::{Limb, Uint, Word},
-};
+use crate::bigint::uint::{Limb, Uint, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
@@ -68,16 +65,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n;
-        Self { limbs }
-    }
-
-    /// Create a [`Uint`] from a `WideWord` (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<WideWord>` when stable
-    pub const fn from_wide_word(n: WideWord) -> Self {
-        assert!(LIMBS >= 2, "number of limbs must be two or greater");
-        let mut limbs = [Limb::ZERO; LIMBS];
-        limbs[0].0 = n as Word;
-        limbs[1].0 = (n >> Limb::BITS) as Word;
         Self { limbs }
     }
 }

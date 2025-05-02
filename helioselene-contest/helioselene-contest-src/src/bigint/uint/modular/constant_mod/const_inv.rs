@@ -8,7 +8,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn invert(&self) -> (Self, CtChoice) {
+    pub(crate) const fn invert(&self) -> (Self, CtChoice) {
         let (montgomery_form, is_some) = inv_montgomery_form(
             &self.montgomery_form,
             &MOD::MODULUS,

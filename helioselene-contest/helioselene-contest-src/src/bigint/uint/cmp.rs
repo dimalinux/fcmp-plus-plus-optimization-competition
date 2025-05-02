@@ -101,25 +101,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let sgn = ((borrow.0 & 2) as i8) - 1;
         (diff.ct_is_nonzero().to_u8() as i8) * sgn
     }
-
-    /// Returns the Ordering between `self` and `rhs` in variable time.
-    pub const fn cmp_vartime(&self, rhs: &Self) -> Ordering {
-        let mut i = LIMBS - 1;
-        loop {
-            let (val, borrow) = self.limbs[i].sbb(rhs.limbs[i], Limb::ZERO);
-            if val.0 != 0 {
-                return if borrow.0 != 0 {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                };
-            }
-            if i == 0 {
-                return Ordering::Equal;
-            }
-            i -= 1;
-        }
-    }
 }
 
 impl<const LIMBS: usize> ConstantTimeEq for Uint<LIMBS> {

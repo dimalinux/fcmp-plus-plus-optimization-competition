@@ -1,11 +1,11 @@
-use crate::bigint::{montgomery_reduction, CtChoice, Limb, Uint};
+use crate::bigint::{montgomery_reduction, CtChoice, Limb, U256};
 
-pub const fn inv_montgomery_form<const LIMBS: usize>(
-    x: &Uint<LIMBS>,
-    modulus: &Uint<LIMBS>,
-    r3: &Uint<LIMBS>,
+pub(crate) const fn inv_montgomery_form(
+    x: &U256,
+    modulus: &U256,
+    r3: &U256,
     mod_neg_inv: Limb,
-) -> (Uint<LIMBS>, CtChoice) {
+) -> (U256, CtChoice) {
     let (inverse, is_some) = x.inv_odd_mod(modulus);
     (
         montgomery_reduction(&inverse.mul_wide(r3), modulus, mod_neg_inv),

@@ -10,10 +10,10 @@ use subtle::{
 use crate::bigint::{ct_choice::CtChoice, Encoding, Zero};
 
 /// Unsigned integer type that the [`Limb`] newtype wraps.
-pub type Word = u64;
+pub(crate) type Word = u64;
 
 /// Wide integer type: double the width of [`Word`].
-pub type WideWord = u128;
+pub(crate) type WideWord = u128;
 
 /// Highest bit in a [`Limb`].
 pub(crate) const HI_BIT: usize = Limb::BITS - 1;
@@ -24,19 +24,17 @@ pub(crate) const HI_BIT: usize = Limb::BITS - 1;
 #[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Default, Hash)]
 #[repr(transparent)]
-pub struct Limb(pub Word);
+pub(crate) struct Limb(pub Word);
 
 impl Limb {
     /// Size of the inner integer in bits.
-    pub const BITS: usize = 64;
+    pub(crate) const BITS: usize = 64;
     /// Size of the inner integer in bytes.
-    pub const BYTES: usize = 8;
+    pub(crate) const BYTES: usize = 8;
     /// Maximum value this [`Limb`] can express.
-    pub const MAX: Self = Limb(Word::MAX);
-    /// The value `1`.
-    pub const ONE: Self = Limb(1);
+    pub(crate) const MAX: Self = Limb(Word::MAX);
     /// The value `0`.
-    pub const ZERO: Self = Limb(0);
+    pub(crate) const ZERO: Self = Limb(0);
 }
 impl ConditionallySelectable for Limb {
     #[inline]
@@ -54,7 +52,7 @@ impl zeroize::DefaultIsZeroes for Limb {}
 impl Limb {
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[inline(always)]
-    pub const fn adc(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
+    pub(crate) const fn adc(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
         let a = self.0 as WideWord;
         let b = rhs.0 as WideWord;
         let carry = carry.0 as WideWord;
@@ -64,7 +62,7 @@ impl Limb {
 
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
-    pub const fn sbb(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
+    pub(crate) const fn sbb(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
         let a = self.0 as WideWord;
         let b = rhs.0 as WideWord;
         let borrow = (borrow.0 >> (Self::BITS - 1)) as WideWord;
@@ -74,7 +72,7 @@ impl Limb {
 
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
     #[inline(always)]
-    pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
+    pub(crate) const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
         let a = self.0 as WideWord;
         let b = b.0 as WideWord;
         let c = c.0 as WideWord;
@@ -85,42 +83,24 @@ impl Limb {
 
     /// Calculates `a & b`.
     #[inline(always)]
-    pub const fn bitand(self, rhs: Self) -> Self {
+    pub(crate) const fn bitand(self, rhs: Self) -> Self {
         Limb(self.0 & rhs.0)
     }
 
     /// Calculates `a | b`.
-    pub const fn bitor(self, rhs: Self) -> Self {
+    pub(crate) const fn bitor(self, rhs: Self) -> Self {
         Limb(self.0 | rhs.0)
     }
 
-    /// Calculate the number of bits needed to represent this number.
-    pub const fn bits(self) -> usize {
-        Limb::BITS - (self.0.leading_zeros() as usize)
-    }
-
     /// Calculate the number of leading zeros in the binary representation of this number.
-    pub const fn leading_zeros(self) -> usize {
+    pub(crate) const fn leading_zeros(self) -> usize {
         self.0.leading_zeros() as usize
     }
 
     /// Is this limb an odd number?
     #[inline]
-    pub fn is_odd(&self) -> Choice {
+    pub(crate) fn is_odd(&self) -> Choice {
         Choice::from(self.0 as u8 & 1)
-    }
-
-    /// Perform a comparison of the inner value in variable-time.
-    ///
-    /// Note that the [`PartialOrd`] and [`Ord`] impls wrap constant-time
-    /// comparisons using the `subtle` crate.
-    pub fn cmp_vartime(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
-    }
-
-    /// Performs an equality check in variable-time.
-    pub const fn eq_vartime(&self, other: &Self) -> bool {
-        self.0 == other.0
     }
 
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -216,33 +196,6 @@ impl Encoding for Limb {
     }
 }
 
-impl Limb {
-    /// Create a [`Limb`] from a `u8` integer (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<u8>` when stable
-    pub const fn from_u8(n: u8) -> Self {
-        Limb(n as Word)
-    }
-
-    /// Create a [`Limb`] from a `u16` integer (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<u16>` when stable
-    pub const fn from_u16(n: u16) -> Self {
-        Limb(n as Word)
-    }
-
-    /// Create a [`Limb`] from a `u32` integer (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<u32>` when stable
-    pub const fn from_u32(n: u32) -> Self {
-        #[allow(trivial_numeric_casts)]
-        Limb(n as Word)
-    }
-
-    /// Create a [`Limb`] from a `u64` integer (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<u64>` when stable
-    pub const fn from_u64(n: u64) -> Self {
-        Limb(n)
-    }
-}
-
 impl From<u8> for Limb {
     #[inline]
     fn from(n: u8) -> Limb {
@@ -292,14 +245,12 @@ mod tests {
     #[test]
     fn is_zero() {
         assert!(bool::from(Limb::ZERO.is_zero()));
-        assert!(!bool::from(Limb::ONE.is_zero()));
         assert!(!bool::from(Limb::MAX.is_zero()));
     }
 
     #[test]
     fn is_odd() {
         assert!(!bool::from(Limb::ZERO.is_odd()));
-        assert!(bool::from(Limb::ONE.is_odd()));
         assert!(bool::from(Limb::MAX.is_odd()));
     }
 
@@ -317,72 +268,57 @@ mod tests {
     #[test]
     fn ct_gt() {
         let a = Limb::ZERO;
-        let b = Limb::ONE;
         let c = Limb::MAX;
 
-        assert!(bool::from(b.ct_gt(&a)));
         assert!(bool::from(c.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&b)));
-
         assert!(!bool::from(a.ct_gt(&a)));
-        assert!(!bool::from(b.ct_gt(&b)));
         assert!(!bool::from(c.ct_gt(&c)));
-
-        assert!(!bool::from(a.ct_gt(&b)));
         assert!(!bool::from(a.ct_gt(&c)));
-        assert!(!bool::from(b.ct_gt(&c)));
     }
 
     #[test]
     fn ct_lt() {
         let a = Limb::ZERO;
-        let b = Limb::ONE;
         let c = Limb::MAX;
 
-        assert!(bool::from(a.ct_lt(&b)));
         assert!(bool::from(a.ct_lt(&c)));
-        assert!(bool::from(b.ct_lt(&c)));
-
         assert!(!bool::from(a.ct_lt(&a)));
-        assert!(!bool::from(b.ct_lt(&b)));
         assert!(!bool::from(c.ct_lt(&c)));
-
-        assert!(!bool::from(b.ct_lt(&a)));
         assert!(!bool::from(c.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&b)));
     }
 
     #[test]
     fn cmp() {
-        assert_eq!(Limb::ZERO.cmp(&Limb::ONE), Ordering::Less);
-        assert_eq!(Limb::ONE.cmp(&Limb::ONE), Ordering::Equal);
-        assert_eq!(Limb::MAX.cmp(&Limb::ONE), Ordering::Greater);
+        let one = Limb(1);
+        assert_eq!(Limb::ZERO.cmp(&one), Ordering::Less);
+        assert_eq!(Limb::MAX.cmp(&one), Ordering::Greater);
     }
 
     #[test]
     fn adc_no_carry() {
-        let (res, carry) = Limb::ZERO.adc(Limb::ONE, Limb::ZERO);
+        let (res, carry) = Limb::ZERO.adc(Limb(1), Limb::ZERO);
         assert_eq!(res.0, 1);
         assert_eq!(carry.0, 0);
     }
 
     #[test]
     fn adc_with_carry() {
-        let (res, carry) = Limb::MAX.adc(Limb::ONE, Limb::ZERO);
+        let (res, carry) = Limb::MAX.adc(Limb(1), Limb::ZERO);
         assert_eq!(res.0, 0);
         assert_eq!(carry.0, 1);
     }
 
     #[test]
     fn sbb_no_borrow() {
-        let (res, borrow) = Limb::ONE.sbb(Limb::ONE, Limb::ZERO);
+        let one = Limb(1);
+        let (res, borrow) = one.sbb(one, Limb::ZERO);
         assert_eq!(res.0, 0);
         assert_eq!(borrow.0, 0);
     }
 
     #[test]
     fn sbb_with_borrow() {
-        let (res, borrow) = Limb::ZERO.sbb(Limb::ONE, Limb::ZERO);
+        let (res, borrow) = Limb::ZERO.sbb(Limb(1), Limb::ZERO);
 
         assert_eq!(res.0, Limb::MAX.0);
         assert_eq!(borrow.0, Limb::MAX.0);

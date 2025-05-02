@@ -8,7 +8,7 @@ use crate::bigint::uint::modular::mul::{mul_montgomery_form, square_montgomery_f
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Multiplies by `rhs`.
-    pub const fn mul(&self, rhs: &Self) -> Self {
+    pub(crate) const fn mul(&self, rhs: &Self) -> Self {
         Self {
             montgomery_form: mul_montgomery_form(
                 &self.montgomery_form,

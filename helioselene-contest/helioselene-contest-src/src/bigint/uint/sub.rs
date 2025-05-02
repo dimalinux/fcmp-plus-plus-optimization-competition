@@ -6,7 +6,7 @@ use crate::bigint::{ct_choice::CtChoice, uint::Limb};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
-    pub const fn sbb(&self, rhs: &Self, mut borrow: Limb) -> (Self, Limb) {
+    pub(crate) const fn sbb(&self, rhs: &Self, mut borrow: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
 

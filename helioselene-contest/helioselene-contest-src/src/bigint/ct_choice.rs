@@ -6,13 +6,13 @@ use crate::bigint::limb::Word;
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
 // when `subtle` starts supporting const fns.
 #[derive(Debug, Copy, Clone)]
-pub struct CtChoice(Word);
+pub(crate) struct CtChoice(Word);
 
 impl CtChoice {
     /// The falsy value.
-    pub const FALSE: Self = Self(0);
+    pub(crate) const FALSE: Self = Self(0);
     /// The truthy value.
-    pub const TRUE: Self = Self(Word::MAX);
+    pub(crate) const TRUE: Self = Self(Word::MAX);
 
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
     /// Panics for other values.

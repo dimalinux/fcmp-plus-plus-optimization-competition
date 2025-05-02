@@ -1,21 +1,17 @@
 use super::reduction::montgomery_reduction;
-use crate::bigint::{Limb, Uint};
+use crate::bigint::{Limb, U256};
 
-pub(crate) const fn mul_montgomery_form<const LIMBS: usize>(
-    a: &Uint<LIMBS>,
-    b: &Uint<LIMBS>,
-    modulus: &Uint<LIMBS>,
+pub(crate) const fn mul_montgomery_form(
+    a: &U256,
+    b: &U256,
+    modulus: &U256,
     mod_neg_inv: Limb,
-) -> Uint<LIMBS> {
+) -> U256 {
     let product = a.mul_wide(b);
-    montgomery_reduction::<LIMBS>(&product, modulus, mod_neg_inv)
+    montgomery_reduction(&product, modulus, mod_neg_inv)
 }
 
-pub(crate) const fn square_montgomery_form<const LIMBS: usize>(
-    a: &Uint<LIMBS>,
-    modulus: &Uint<LIMBS>,
-    mod_neg_inv: Limb,
-) -> Uint<LIMBS> {
+pub(crate) const fn square_montgomery_form(a: &U256, modulus: &U256, mod_neg_inv: Limb) -> U256 {
     let product = a.square_wide();
-    montgomery_reduction::<LIMBS>(&product, modulus, mod_neg_inv)
+    montgomery_reduction(&product, modulus, mod_neg_inv)
 }

@@ -20,19 +20,4 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         w.wrapping_add(&p.bitand(&mask))
     }
-
-    /// Computes `self + rhs mod p` for the special modulus
-    /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
-    ///
-    /// Assumes `self + rhs` as unbounded integer is `< 2p`.
-    pub const fn add_mod_special(&self, rhs: &Self, c: Limb) -> Self {
-        // `Uint::adc` also works with a carry greater than 1.
-        let (out, carry) = self.adc(rhs, c);
-
-        // If overflow occurred, then above addition of `c` already accounts
-        // for the overflow. Otherwise, we need to subtract `c` again, which
-        // in that case cannot underflow.
-        let l = carry.0.wrapping_sub(1) & c.0;
-        out.wrapping_sub(&Uint::from_word(l))
-    }
 }

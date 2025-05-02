@@ -24,11 +24,11 @@ use crate::{
 const MODULUS: U256 = U256::from_u8(1)
     .shl_vartime(255)
     .saturating_sub(&U256::from_u8(19));
-const WIDE_MODULUS: U512 = U256::ZERO.concat(&MODULUS);
+const WIDE_MODULUS: U512 = U512::from_u256_lo_high(MODULUS, U256::ZERO);
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[repr(C)]
-pub struct FieldModulus {}
+pub(crate) struct FieldModulus {}
 impl ResidueParams for FieldModulus {
     const MODULUS: U256 = {
         let res =
@@ -61,7 +61,7 @@ pub(crate) type ResidueType = Residue<FieldModulus>;
 /// A constant-time implementation of the Ed25519 field.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
 #[repr(C)]
-pub struct Field25519(pub ResidueType);
+pub struct Field25519(pub(crate) ResidueType);
 
 // Square root of -1.
 // Formula from RFC-8032 (modp_sqrt_m1/sqrt8k5 z)

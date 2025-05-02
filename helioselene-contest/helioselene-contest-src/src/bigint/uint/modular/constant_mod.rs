@@ -30,7 +30,7 @@ mod macros;
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus. An easy way to generate these parameters is using the `impl_modulus!` macro. These parameters are constant, so they cannot be set at runtime.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
-pub trait ResidueParams: Copy + Debug + Default + Eq + Send + Sync + 'static {
+pub(crate) trait ResidueParams: Copy + Debug + Default + Eq + Send + Sync + 'static {
     /// The constant modulus
     const MODULUS: U256;
     /// Parameter used in Montgomery reduction
@@ -47,7 +47,7 @@ pub trait ResidueParams: Copy + Debug + Default + Eq + Send + Sync + 'static {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// A residue mod `MOD`, represented using `LIMBS` limbs. The modulus of this residue is constant, so it cannot be set at runtime.
 /// Internally, the value is stored in Montgomery form (multiplied by MOD::R) until it is retrieved.
-pub struct Residue<MOD>
+pub(crate) struct Residue<MOD>
 where
     MOD: ResidueParams,
 {
@@ -59,12 +59,12 @@ impl<MOD: ResidueParams> zeroize::DefaultIsZeroes for Residue<MOD> {}
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// The representation of 1 mod `MOD`.
-    pub const ONE: Self = Self {
+    pub(crate) const ONE: Self = Self {
         montgomery_form: MOD::R,
         phantom: PhantomData,
     };
     /// The representation of 0 mod `MOD`.
-    pub const ZERO: Self = Self {
+    pub(crate) const ZERO: Self = Self {
         montgomery_form: U256::ZERO,
         phantom: PhantomData,
     };
@@ -82,7 +82,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
 
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
     /// If the modulus represented by `MOD` is not odd, this function will panic; use [`new_checked`][`Residue::new_checked`] if you want to be able to detect an invalid modulus.
-    pub const fn new(integer: &U256) -> Self {
+    pub(crate) const fn new(integer: &U256) -> Self {
         // A valid modulus must be odd
         if MOD::MODULUS.ct_is_odd().to_u8() == 0 {
             panic!("modulus must be odd");
@@ -95,7 +95,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
     /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`Residue::new`], which can panic.
     // TODO: remove this method when we can use `generic_const_exprs.` to ensure the modulus is
     // always valid.
-    pub fn new_checked(integer: &U256) -> CtOption<Self> {
+    pub(crate) fn new_checked(integer: &U256) -> CtOption<Self> {
         // A valid modulus must be odd.
         CtOption::new(
             Self::generate_residue(integer),
@@ -104,36 +104,12 @@ impl<MOD: ResidueParams> Residue<MOD> {
     }
 
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
-    pub const fn retrieve(&self) -> U256 {
+    pub(crate) const fn retrieve(&self) -> U256 {
         montgomery_reduction(
             &(self.montgomery_form, Uint::ZERO),
             &MOD::MODULUS,
             MOD::MOD_NEG_INV,
         )
-    }
-
-    /// Access the `Residue` value in Montgomery form.
-    pub const fn as_montgomery(&self) -> &U256 {
-        &self.montgomery_form
-    }
-
-    /// Mutably access the `Residue` value in Montgomery form.
-    pub fn as_montgomery_mut(&mut self) -> &mut U256 {
-        &mut self.montgomery_form
-    }
-
-    /// Create a `Residue` from a value in Montgomery form.
-    pub const fn from_montgomery(integer: U256) -> Self {
-        Self {
-            montgomery_form: integer,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Extract the value from the `Residue` in Montgomery form.
-    #[allow(clippy::wrong_self_convention)]
-    pub const fn to_montgomery(&self) -> U256 {
-        self.montgomery_form
     }
 }
 

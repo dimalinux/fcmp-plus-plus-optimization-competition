@@ -8,7 +8,7 @@ use crate::bigint::{
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `a + b + carry`, returning the result along with the new carry.
     #[inline(always)]
-    pub const fn adc(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
+    pub(crate) const fn adc(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
 

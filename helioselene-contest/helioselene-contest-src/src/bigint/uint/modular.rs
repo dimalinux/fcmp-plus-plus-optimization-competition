@@ -9,4 +9,4 @@ mod mul;
 mod pow;
 mod sub;
 
-pub use reduction::montgomery_reduction;
+pub(crate) use reduction::montgomery_reduction;

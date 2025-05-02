@@ -1,7 +1,7 @@
 use super::Uint;
-use crate::bigint::ct_choice::CtChoice;
+use crate::bigint::{ct_choice::CtChoice, U256};
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Computes 1/`self` mod `2^k`.
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
@@ -44,7 +44,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// **Note:** variable time in `bits` and `modulus_bits`.
     ///
     /// The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
-    pub const fn inv_odd_mod_bounded(
+    pub(crate) const fn inv_odd_mod_bounded(
         &self,
         modulus: &Self,
         bits: usize,
@@ -106,7 +106,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     /// Returns `(inverse, CtChoice::TRUE)` if an inverse exists,
     /// otherwise `(undefined, CtChoice::FALSE)`.
-    pub const fn inv_odd_mod(&self, modulus: &Self) -> (Self, CtChoice) {
-        self.inv_odd_mod_bounded(modulus, Uint::<LIMBS>::BITS, Uint::<LIMBS>::BITS)
+    pub(crate) const fn inv_odd_mod(&self, modulus: &Self) -> (Self, CtChoice) {
+        self.inv_odd_mod_bounded(modulus, Self::BITS, Self::BITS)
     }
 }

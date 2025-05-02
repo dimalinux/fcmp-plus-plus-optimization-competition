@@ -50,7 +50,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn const_rem(&self, rhs: &Self) -> (Self, CtChoice) {
+    pub(crate) const fn const_rem(&self, rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
@@ -77,7 +77,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn const_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, CtChoice) {
+    pub(crate) const fn const_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
 
         // The number of bits to consider is two sets of limbs * BITS - mb (modulus bitcount)
@@ -107,7 +107,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes self % rhs, returns the remainder.
-    pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
+    pub(crate) fn rem(&self, rhs: &NonZero<Self>) -> Self {
         // Since `rhs` is nonzero, this should always hold.
         let (r, _c) = self.const_rem(rhs);
         r

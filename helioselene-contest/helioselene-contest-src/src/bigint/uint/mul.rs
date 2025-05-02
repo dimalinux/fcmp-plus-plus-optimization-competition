@@ -2,17 +2,18 @@
 
 use crate::bigint::{
     limb::{Limb, WideWord, Word},
-    uint::Uint,
+    U256,
 };
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Compute "wide" multiplication, with a product twice the size of the input.
     ///
     /// Returns a tuple containing the `(lo, hi)` components of the product.
-    pub const fn mul_wide<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> (Self, Uint<HLIMBS>) {
+    pub const fn mul_wide(&self, rhs: &U256) -> (U256, U256) {
+        const LIMBS: usize = U256::LIMBS;
         let mut i = 0;
-        let mut lo = Self::ZERO;
-        let mut hi = Uint::<HLIMBS>::ZERO;
+        let mut lo = U256::ZERO;
+        let mut hi = U256::ZERO;
 
         // Schoolbook multiplication.
         // TODO(tarcieri): use Karatsuba for better performance?
@@ -20,7 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let mut j = 0;
             let mut carry = Limb::ZERO;
 
-            while j < HLIMBS {
+            while j < LIMBS {
                 let k = i + j;
 
                 if k >= LIMBS {
@@ -48,13 +49,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
-    pub const fn square_wide(&self) -> (Self, Self) {
+    pub const fn square_wide(&self) -> (U256, U256) {
         // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
         //
         // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
         // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
-        let mut lo = Self::ZERO;
-        let mut hi = Self::ZERO;
+        const LIMBS: usize = U256::LIMBS;
+        let mut lo = U256::ZERO;
+        let mut hi = U256::ZERO;
 
         // Schoolbook multiplication, but only considering half of the multiplication grid
         let mut i = 1;

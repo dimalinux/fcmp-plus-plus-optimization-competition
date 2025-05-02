@@ -7,7 +7,7 @@ use subtle::{Choice, ConstantTimeEq};
 use crate::bigint::limb::Limb;
 
 /// Integer type.
-pub trait Integer:
+pub(crate) trait Integer:
     'static + AsRef<[Limb]> + Copy + Debug + Default + Eq + From<u64> + Sized + Zero
 {
     /// The value `1`.
@@ -31,19 +31,10 @@ pub trait Integer:
     ///
     /// If odd, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     fn is_odd(&self) -> Choice;
-
-    /// Is this integer value an even number?
-    ///
-    /// # Returns
-    ///
-    /// If even, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    fn is_even(&self) -> Choice {
-        !self.is_odd()
-    }
 }
 
 /// Zero values.
-pub trait Zero: ConstantTimeEq + Sized {
+pub(crate) trait Zero: ConstantTimeEq + Sized {
     /// The value `0`.
     const ZERO: Self;
 
@@ -58,7 +49,7 @@ pub trait Zero: ConstantTimeEq + Sized {
 }
 
 /// Encoding support.
-pub trait Encoding: Sized {
+pub(crate) trait Encoding: Sized {
     /// Byte array representation.
     type Repr: AsRef<[u8]> + AsMut<[u8]> + Copy + Clone + Sized;
 
