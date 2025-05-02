@@ -7,7 +7,7 @@ mod uint;
 pub use ct_choice::CtChoice;
 pub use limb::{Limb, Word};
 pub use non_zero::NonZero;
-pub use traits::{Concat, ConcatMixed, Encoding, Integer, Zero};
+pub use traits::{Encoding, Integer, Zero};
 pub use uint::modular::{
     constant_mod::{Residue, ResidueParams},
     montgomery_reduction,

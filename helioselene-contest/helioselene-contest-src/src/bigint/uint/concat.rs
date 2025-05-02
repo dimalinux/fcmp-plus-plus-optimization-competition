@@ -1,14 +1,4 @@
-use crate::bigint::{
-    traits::{Concat, ConcatMixed},
-    uint::{Limb, Uint},
-};
-
-impl<T> Concat for T
-where
-    T: ConcatMixed<T>,
-{
-    type Output = Self::MixedOutput;
-}
+use crate::bigint::uint::{Limb, Uint};
 
 /// Concatenate the two values, with `lo` as least significant and `hi`
 /// as the most significant.

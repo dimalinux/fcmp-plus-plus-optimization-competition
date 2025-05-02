@@ -1,26 +1,11 @@
 //! [`Uint`] addition operations.
 
-use core::ops::Mul;
-
 use crate::bigint::{
     limb::{Limb, WideWord, Word},
     uint::Uint,
-    Concat, ConcatMixed,
 };
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
-    pub fn mul<const HLIMBS: usize>(
-        &self,
-        rhs: &Uint<HLIMBS>,
-    ) -> <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput
-    where
-        Uint<HLIMBS>: ConcatMixed<Self>,
-    {
-        let (lo, hi) = self.mul_wide(rhs);
-        hi.concat_mixed(&lo)
-    }
-
     /// Compute "wide" multiplication, with a product twice the size of the input.
     ///
     /// Returns a tuple containing the `(lo, hi)` components of the product.
@@ -60,26 +45,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         (lo, hi)
-    }
-
-    /// Perform saturating multiplication, returning `MAX` on overflow.
-    pub const fn saturating_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> Self {
-        let (res, overflow) = self.mul_wide(rhs);
-        Self::ct_select(&res, &Self::MAX, overflow.ct_is_nonzero())
-    }
-
-    /// Perform wrapping multiplication, discarding overflow.
-    pub const fn wrapping_mul<const H: usize>(&self, rhs: &Uint<H>) -> Self {
-        self.mul_wide(rhs).0
-    }
-
-    /// Square self, returning a concatenated "wide" result.
-    pub fn square(&self) -> <Self as Concat>::Output
-    where
-        Self: Concat,
-    {
-        let (lo, hi) = self.square_wide();
-        hi.concat(&lo)
     }
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
@@ -154,49 +119,5 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         (lo, hi)
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
-
-    fn mul(self, other: Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(&self, &other)
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
-
-    fn mul(self, other: &Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(&self, other)
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for &Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Uint<LIMBS>>>::MixedOutput;
-
-    fn mul(self, other: Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(self, &other)
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for &Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Uint<LIMBS>>>::MixedOutput;
-
-    fn mul(self, other: &Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(self, other)
     }
 }

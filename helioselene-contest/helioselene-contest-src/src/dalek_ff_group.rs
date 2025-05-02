@@ -14,8 +14,8 @@ use zeroize::Zeroize;
 use crate::{
     backend::u8_from_bool,
     bigint::{
-        montgomery_reduction, ConcatMixed, Encoding, Integer, Limb, NonZero, Residue,
-        ResidueParams, Uint, Word, U256, U512,
+        montgomery_reduction, Encoding, Integer, Limb, NonZero, Residue, ResidueParams, Uint, Word,
+        U256, U512,
     },
 };
 
@@ -29,10 +29,7 @@ const WIDE_MODULUS: U512 = U256::ZERO.concat(&MODULUS);
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[repr(C)]
 pub struct FieldModulus {}
-impl<const DLIMBS: usize> ResidueParams for FieldModulus
-where
-    U256: ConcatMixed<MixedOutput = Uint<DLIMBS>>,
-{
+impl ResidueParams for FieldModulus {
     const MODULUS: U256 = {
         let res =
             <U256>::from_be_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");

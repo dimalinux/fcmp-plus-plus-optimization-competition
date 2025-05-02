@@ -4,15 +4,12 @@
 /// For example, `impl_modulus!(MyModulus, U256, "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");` implements a 256-bit modulus named `MyModulus`.
 /// The modulus _must_ be odd, or this will panic.
 macro_rules! impl_modulus {
-    ($name:ident, $uint_type:ty, $value:expr) => {
+    ($name:ident, $value:expr) => {
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct $name {}
-        impl<const DLIMBS: usize> $crate::bigint::ResidueParams for $name
-        where
-            $uint_type: $crate::bigint::ConcatMixed<MixedOutput = $crate::bigint::Uint<DLIMBS>>,
-        {
-            const MODULUS: $uint_type = {
-                let res = <$uint_type>::from_be_hex($value);
+        impl $crate::bigint::ResidueParams for $name {
+            const MODULUS: U256 = {
+                let res = <U256>::from_be_hex($value);
 
                 // Check that the modulus is odd
                 if res.as_limbs()[0].0 & 1 == 0 {
@@ -29,13 +26,13 @@ macro_rules! impl_modulus {
                         .0,
                 ),
             );
-            const R: $uint_type = $crate::bigint::Uint::MAX
+            const R: U256 = $crate::bigint::Uint::MAX
                 .const_rem(&Self::MODULUS)
                 .0
                 .wrapping_add(&$crate::bigint::Uint::ONE);
-            const R2: $uint_type =
+            const R2: U256 =
                 $crate::bigint::Uint::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
-            const R3: $uint_type = $crate::bigint::uint::modular::montgomery_reduction(
+            const R3: U256 = $crate::bigint::uint::modular::montgomery_reduction(
                 &Self::R2.square_wide(),
                 &Self::MODULUS,
                 Self::MOD_NEG_INV,

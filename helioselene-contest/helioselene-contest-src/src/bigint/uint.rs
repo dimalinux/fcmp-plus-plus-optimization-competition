@@ -26,7 +26,7 @@ use zeroize::DefaultIsZeroes;
 
 use crate::bigint::{
     limb::{Limb, Word},
-    traits, Encoding, Integer, Zero,
+    Encoding, Integer, Zero,
 };
 
 /// Stack-allocated big unsigned integer.
@@ -270,15 +270,6 @@ impl Encoding for U512 {
     }
 }
 
-// Implement concat and split for double-width Uint sizes: these should be
-// multiples of 128 bits.
-impl traits::ConcatMixed<Uint<{ <U256>::LIMBS / 2 }>> for Uint<{ <U256>::LIMBS / 2 }> {
-    type MixedOutput = U256;
-
-    fn concat_mixed(&self, lo: &Uint<{ <U256>::LIMBS / 2 }>) -> Self::MixedOutput {
-        concat::concat_mixed(lo, self)
-    }
-}
 impl Uint<{ <U256>::LIMBS / 2 }> {
     ///   Concatenate the two values, with  `self`  as most significant and  `rhs`
     ///   as the least significant.
@@ -287,13 +278,6 @@ impl Uint<{ <U256>::LIMBS / 2 }> {
     }
 }
 
-impl traits::ConcatMixed<Uint<{ <U512>::LIMBS / 2 }>> for Uint<{ <U512>::LIMBS / 2 }> {
-    type MixedOutput = U512;
-
-    fn concat_mixed(&self, lo: &Uint<{ <U512>::LIMBS / 2 }>) -> Self::MixedOutput {
-        concat::concat_mixed(lo, self)
-    }
-}
 impl Uint<{ <U512>::LIMBS / 2 }> {
     ///   Concatenate the two values, with  `self`  as most significant and  `rhs`
     ///   as the least significant.

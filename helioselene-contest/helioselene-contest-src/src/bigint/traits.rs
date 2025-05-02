@@ -57,30 +57,6 @@ pub trait Zero: ConstantTimeEq + Sized {
     }
 }
 
-/// Concatenate two numbers into a "wide" double-width value, using the `lo`
-/// value as the least significant value.
-pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
-    /// Concatenated output: twice the width of `Self`.
-    type Output;
-
-    /// Concatenate the two halves, with `self` as most significant and `lo`
-    /// as the least significant.
-    fn concat(&self, lo: &Self) -> Self::Output {
-        self.concat_mixed(lo)
-    }
-}
-
-/// Concatenate two numbers into a "wide" combined-width value, using the `lo`
-/// value as the least significant value.
-pub trait ConcatMixed<Lo: ?Sized = Self> {
-    /// Concatenated output: combination of `Lo` and `Self`.
-    type MixedOutput;
-
-    /// Concatenate the two values, with `self` as most significant and `lo`
-    /// as the least significant.
-    fn concat_mixed(&self, lo: &Lo) -> Self::MixedOutput;
-}
-
 /// Encoding support.
 pub trait Encoding: Sized {
     /// Byte array representation.

@@ -37,7 +37,6 @@ mod tests {
 
     impl_modulus!(
         Modulus,
-        U256,
         "9CC24C5DF431A864188AB905AC751B727C9447A8E99E6366E1AD78A21E8D882B"
     );
 

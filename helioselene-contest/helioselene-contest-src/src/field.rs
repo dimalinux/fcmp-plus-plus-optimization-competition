@@ -11,21 +11,17 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 use crate::{
     backend::u8_from_bool,
     bigint::{
-        montgomery_reduction, ConcatMixed, Encoding, Integer, Limb, NonZero, Residue,
-        ResidueParams, Uint, Word, U256, U512,
+        montgomery_reduction, Encoding, Integer, Limb, NonZero, Residue, ResidueParams, Uint, Word,
+        U256, U512,
     },
 };
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
 
-//impl_modulus!(HelioseleneQ, U256, MODULUS_STR);
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct HelioseleneQ {}
 
-impl<const DLIMBS: usize> ResidueParams for HelioseleneQ
-where
-    U256: ConcatMixed<MixedOutput = Uint<DLIMBS>>,
-{
+impl ResidueParams for HelioseleneQ {
     const MODULUS: U256 = {
         let res = <U256>::from_be_hex(MODULUS_STR);
 
