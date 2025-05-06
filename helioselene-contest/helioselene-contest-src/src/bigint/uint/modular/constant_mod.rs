@@ -21,18 +21,16 @@ mod const_pow;
 /// Subtractions between residues with a constant modulus
 mod const_sub;
 
-/// Macros to remove the boilerplate code when dealing with constant moduli.
-#[macro_use]
-mod macros;
-
 //pub use macros::*;
 
-/// The parameters to efficiently go to and from the Montgomery form for a given odd modulus. An easy way to generate these parameters is using the `impl_modulus!` macro. These parameters are constant, so they cannot be set at runtime.
+/// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
 pub(crate) trait ResidueParams: Copy + Debug + Default + Eq + Send + Sync + 'static {
     /// The constant modulus
     const MODULUS: U256;
+    /// 2^256 mod MODULUS, used to reduce 512-bit values
+    const TWO_TO_256_MOD_M: U256;
     /// Parameter used in Montgomery reduction
     const R: U256;
     /// R^2, used to move into Montgomery form
@@ -83,6 +81,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
     /// If the modulus represented by `MOD` is not odd, this function will panic; use [`new_checked`][`Residue::new_checked`] if you want to be able to detect an invalid modulus.
     pub(crate) const fn new(integer: &U256) -> Self {
+        // TODO: make this check debug only?
         // A valid modulus must be odd
         if MOD::MODULUS.ct_is_odd().to_u8() == 0 {
             panic!("modulus must be odd");

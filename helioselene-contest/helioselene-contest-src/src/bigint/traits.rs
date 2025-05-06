@@ -37,15 +37,6 @@ pub(crate) trait Integer:
 pub(crate) trait Zero: ConstantTimeEq + Sized {
     /// The value `0`.
     const ZERO: Self;
-
-    /// Determine if this value is equal to zero.
-    ///
-    /// # Returns
-    ///
-    /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    fn is_zero(&self) -> Choice {
-        self.ct_eq(&Self::ZERO)
-    }
 }
 
 /// Encoding support.
@@ -58,4 +49,8 @@ pub(crate) trait Encoding: Sized {
 
     /// Encode to little endian bytes.
     fn to_le_bytes(&self) -> Self::Repr;
+
+    /// Encode to bit endian bytes.
+    #[cfg(test)]
+    fn to_be_bytes(&self) -> Self::Repr;
 }

@@ -223,47 +223,12 @@ impl Encoding for U256 {
         self.write_le_bytes(&mut result);
         result
     }
-}
-
-#[doc = "512-bit"]
-#[doc = "unsigned big integer."]
-pub(crate) type U512 = Uint<{ 512 / Limb::BITS }>;
-impl Encoding for U512 {
-    type Repr = [u8; 512 / 8];
 
     #[inline]
-    fn from_le_bytes(bytes: Self::Repr) -> Self {
-        Self::from_le_slice(&bytes)
-    }
-
-    #[inline]
-    fn to_le_bytes(&self) -> Self::Repr {
-        let mut result = [0u8; 512 / 8];
-        self.write_le_bytes(&mut result);
+    #[cfg(test)]
+    fn to_be_bytes(&self) -> Self::Repr {
+        let mut result = [0u8; 256 / 8];
+        self.write_be_bytes(&mut result);
         result
-    }
-}
-
-impl U512 {
-    /// Creates a `U512` from a tuple of two `U256` values.
-    ///
-    /// # Parameters
-    /// - `nums`: A tuple `(low, high)` where:
-    ///   - `low` is the least significant `U256`.
-    ///   - `high` is the most significant `U256`.
-    ///
-    /// # Returns
-    /// A `U512` value constructed by combining the `low` and `high` parts.
-    pub(crate) const fn from_u256_lo_high(low: U256, high: U256) -> Self {
-        let mut to = U512::ZERO;
-        to.limbs[0] = low.limbs[0];
-        to.limbs[1] = low.limbs[1];
-        to.limbs[2] = low.limbs[2];
-        to.limbs[3] = low.limbs[3];
-        to.limbs[4] = high.limbs[0];
-        to.limbs[5] = high.limbs[1];
-        to.limbs[6] = high.limbs[2];
-        to.limbs[7] = high.limbs[3];
-        to
     }
 }

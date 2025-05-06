@@ -1,4 +1,4 @@
-use crate::bigint::Uint;
+use crate::bigint::uint::Uint;
 
 pub(crate) const fn sub_montgomery_form<const LIMBS: usize>(
     a: &Uint<LIMBS>,

@@ -62,6 +62,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint::new(res)
     }
 
+    /// Serialize this [`Uint`] as big-endian, writing it into the provided
+    /// byte slice.
+    #[inline]
+    #[cfg(test)]
+    pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
+        debug_assert_eq!(out.len(), Limb::BYTES * LIMBS);
+
+        for (src, dst) in self
+            .limbs
+            .iter()
+            .rev()
+            .cloned()
+            .zip(out.chunks_exact_mut(Limb::BYTES))
+        {
+            dst.copy_from_slice(&src.to_be_bytes());
+        }
+    }
+
     /// Serialize this [`Uint`] as little-endian, writing it into the provided
     /// byte slice.
     #[inline]

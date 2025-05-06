@@ -2,7 +2,6 @@
 
 use crate::bigint::{
     ct_choice::CtChoice,
-    non_zero::NonZero,
     uint::{Limb, Uint, Word},
 };
 
@@ -104,13 +103,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let is_some = Limb(mb as Word).ct_is_nonzero();
         (lower, is_some)
-    }
-
-    /// Computes self % rhs, returns the remainder.
-    pub(crate) fn rem(&self, rhs: &NonZero<Self>) -> Self {
-        // Since `rhs` is nonzero, this should always hold.
-        let (r, _c) = self.const_rem(rhs);
-        r
     }
 
     /// Wrapped division is just normal division i.e. `self` / `rhs`

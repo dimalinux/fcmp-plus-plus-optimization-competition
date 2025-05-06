@@ -194,6 +194,11 @@ impl Encoding for Limb {
     fn to_le_bytes(&self) -> Self::Repr {
         self.0.to_le_bytes()
     }
+
+    #[cfg(test)]
+    fn to_be_bytes(&self) -> Self::Repr {
+        self.0.to_be_bytes()
+    }
 }
 
 impl From<u8> for Limb {
@@ -241,12 +246,6 @@ impl From<Limb> for WideWord {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn is_zero() {
-        assert!(bool::from(Limb::ZERO.is_zero()));
-        assert!(!bool::from(Limb::MAX.is_zero()));
-    }
 
     #[test]
     fn is_odd() {

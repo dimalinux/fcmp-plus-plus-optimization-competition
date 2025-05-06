@@ -14,25 +14,18 @@ use zeroize::Zeroize;
 use crate::{
     backend::u8_from_bool,
     bigint::{
-        montgomery_reduction, Encoding, Integer, Limb, NonZero, Residue, ResidueParams, Uint, Word,
-        U256, U512,
+        montgomery_reduction, Encoding, Integer, Limb, Residue, ResidueParams, Uint, Word, U256,
     },
 };
-
-// 2 ** 255 - 19
-// Uses saturating_sub because checked_sub isn't available at compile time
-const MODULUS: U256 = U256::from_u8(1)
-    .shl_vartime(255)
-    .saturating_sub(&U256::from_u8(19));
-const WIDE_MODULUS: U512 = U512::from_u256_lo_high(MODULUS, U256::ZERO);
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[repr(C)]
 pub(crate) struct FieldModulus {}
 impl ResidueParams for FieldModulus {
+    // MODULUS is: 2^255 - 19
     const MODULUS: U256 = {
         let res =
-            <U256>::from_be_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
+            U256::from_be_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
 
         if res.as_limbs()[0].0 & 1 == 0 {
             panic!("modulus must be odd");
@@ -55,6 +48,8 @@ impl ResidueParams for FieldModulus {
     const R2: U256 = Uint::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
     const R3: U256 =
         montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
+    const TWO_TO_256_MOD_M: U256 =
+        U256::from_be_hex("0000000000000000000000000000000000000000000000000000000000000026");
 }
 pub(crate) type ResidueType = Residue<FieldModulus>;
 
@@ -68,7 +63,7 @@ pub struct Field25519(pub(crate) ResidueType);
 // 2 ** ((MODULUS - 1) // 4) % MODULUS
 const SQRT_M1: Field25519 = Field25519(
     ResidueType::new(&U256::from_u8(2)).pow(
-        &MODULUS
+        &FieldModulus::MODULUS
             .saturating_sub(&U256::ONE)
             .wrapping_div(&U256::from_u8(4)),
     ),
@@ -76,19 +71,13 @@ const SQRT_M1: Field25519 = Field25519(
 
 // Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
 const MOD_3_8: Field25519 = Field25519(ResidueType::new(
-    &MODULUS
+    &FieldModulus::MODULUS
         .saturating_add(&U256::from_u8(3))
         .wrapping_div(&U256::from_u8(8)),
 ));
 
 // Constant useful in sqrt_ratio_i (sqrt(u / v))
 const MOD_5_8: Field25519 = Field25519(ResidueType::sub(&MOD_3_8.0, &ResidueType::ONE));
-
-fn reduce(x: U512) -> ResidueType {
-    ResidueType::new(&U256::from_le_slice(
-        &x.rem(&NonZero::new(WIDE_MODULUS).unwrap()).to_le_bytes()[..32],
-    ))
-}
 
 impl ConstantTimeEq for Field25519 {
     fn ct_eq(&self, other: &Self) -> Choice {
@@ -227,7 +216,7 @@ impl Field for Field25519 {
     fn random(mut rng: impl RngCore) -> Self {
         let mut bytes = [0; 64];
         rng.fill_bytes(&mut bytes);
-        Field25519(reduce(U512::from_le_bytes(bytes)))
+        Self::reduce(&bytes)
     }
 
     fn square(&self) -> Self {
@@ -305,7 +294,10 @@ impl PrimeField for Field25519 {
 
     fn from_repr(bytes: [u8; 32]) -> CtOption<Self> {
         let res = U256::from_le_bytes(bytes);
-        CtOption::new(Self(ResidueType::new(&res)), res.ct_lt(&MODULUS))
+        CtOption::new(
+            Self(ResidueType::new(&res)),
+            res.ct_lt(&FieldModulus::MODULUS),
+        )
     }
 
     fn to_repr(&self) -> [u8; 32] {
@@ -329,16 +321,11 @@ impl PrimeFieldBits for Field25519 {
     }
 
     fn char_le_bits() -> FieldBits<Self::ReprBits> {
-        MODULUS.to_le_bytes().into()
+        FieldModulus::MODULUS.to_le_bytes().into()
     }
 }
 
 impl Field25519 {
-    /// Perform a wide reduction, presumably to obtain a non-biased Helioselene field element.
-    pub fn wide_reduce(bytes: [u8; 64]) -> Field25519 {
-        Field25519(reduce(U512::from_le_slice(bytes.as_ref())))
-    }
-
     /// Perform an exponentiation.
     pub fn pow(&self, other: Field25519) -> Field25519 {
         let mut table = [Field25519::ONE; 16];
@@ -373,6 +360,19 @@ impl Field25519 {
             }
         }
         res
+    }
+
+    /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
+    /// While taking the modulus of 512 bits produces negligible bias (method used
+    /// below), there may be better algorithms with zero bias.
+    pub(crate) fn reduce(bytes: &[u8; 64]) -> Self {
+        // Do modulus on 512 bits using 256-bit math
+        // val_512 mod M = (((2^256 mod M) * hi_256) mod M + (lo_256 mod M)) mod M
+        const TWO_TO_256_MOD_M: ResidueType = ResidueType::new(&FieldModulus::TWO_TO_256_MOD_M);
+        let lo = ResidueType::new(&U256::from_le_slice(&bytes[..32]));
+        let hi = ResidueType::new(&U256::from_le_slice(&bytes[32..64]));
+        let hi = ResidueType::mul(&TWO_TO_256_MOD_M, &hi);
+        Self(ResidueType::add(&hi, &lo))
     }
 }
 
@@ -409,13 +409,6 @@ impl<'a> Product<&'a Field25519> for Field25519 {
 }
 
 #[test]
-fn test_wide_modulus() {
-    let mut wide = [0; 64];
-    wide[..32].copy_from_slice(&MODULUS.to_le_bytes());
-    assert_eq!(wide, WIDE_MODULUS.to_le_bytes());
-}
-
-#[test]
 fn test_sqrt_m1() {
     // Test equivalence against the known constant value
     const SQRT_M1_MAGIC: U256 =
@@ -435,7 +428,52 @@ fn test_sqrt_m1() {
     );
 }
 
-#[test]
-fn test_field() {
-    ff_group_tests::prime_field::test_prime_field_bits::<_, Field25519>(&mut rand_core::OsRng);
+#[cfg(test)]
+mod tests {
+    use crate::{bigint::Encoding, Field25519};
+
+    #[test]
+    fn test_field() {
+        ff_group_tests::prime_field::test_prime_field_bits::<_, Field25519>(&mut rand_core::OsRng);
+    }
+
+    #[test]
+    fn test_reduce_field25519() {
+        struct TC {
+            input: &'static str,
+            output: &'static str,
+        }
+
+        // Hex values are in big endian.
+        const REDUCE_TESTS: [TC; 4] = [
+            TC {
+                input: "70b7f6776fedc692aaa93223b6694532d97205e209f2e2cb51b49c056988041780d802b0513e6a11e7ece450e3166ce4d8a13a56cdeb3c5d731c4cac2d9bc9a1",
+                output: "3c26986aee89e3d73d0a559df6b6b2711f8e19e447f8e68b93eb7579d7cc6791",
+            },
+            TC {
+                input: "0a6dc2d2be742c5d0d811ee43afeef432c8d529332ad7ca541d1477b5276ede8ade6b16414b5a165ef8d94f908036056f88d5228d9f9479e247e632c9de9715f",
+                output: "3a319cac59f43735f0b82ad9c9dae44f958794025fb9c825e98eff7adb90c21b",
+            },
+            TC {
+                input: "f23e13f70f8369004e2b0e06772676b4f827111bc2961f80c738aca2ac6a92c638c5a561f78952fd1dff02e2078e0ea7c49e4a1a6939cf3b8304c8ee9e31f4ef",
+                output: "2dfc9c0e450ae908b86317d7b743ad849a6ad4394b827c59156e69143603c3ab",
+            },
+            TC {
+                input: "d32b624c8176b0d0ed780fbdc248f7df4e862e110a9bc03624ba0ebff2d9f55906d9769ab1bcde613af3e3417805b728dd025f6c0cfc87209faeb2f484cacc08",
+                output: "5f4a0df5e95b1d647ac6396c4eda824e84ed35f3a01b0f2a134ce37291253bd8",
+            }
+        ];
+
+        for tc in &REDUCE_TESTS {
+            let mut input: [u8; 64] = hex::decode(tc.input)
+                .expect("Failed to decode hex")
+                .try_into()
+                .expect("Input must be 64 bytes");
+            input.reverse();
+
+            let output = Field25519::reduce(&input);
+            let output = hex::encode(output.0.retrieve().to_be_bytes());
+            assert_eq!(output, tc.output);
+        }
+    }
 }
