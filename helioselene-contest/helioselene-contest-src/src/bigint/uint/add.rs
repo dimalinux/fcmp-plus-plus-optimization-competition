@@ -1,18 +1,15 @@
 //! [`Uint`] addition operations.
 
-use crate::bigint::{
-    ct_choice::CtChoice,
-    uint::{Limb, Uint},
-};
+use crate::bigint::{ct_choice::CtChoice, uint::Limb, U256};
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Computes `a + b + carry`, returning the result along with the new carry.
     #[inline(always)]
     pub(crate) const fn adc(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
-        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut limbs = [Limb::ZERO; Self::LIMBS];
         let mut i = 0;
 
-        while i < LIMBS {
+        while i < Self::LIMBS {
             let (w, c) = self.limbs[i].adc(rhs.limbs[i], carry);
             limbs[i] = w;
             carry = c;
@@ -40,7 +37,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         rhs: &Self,
         choice: CtChoice,
     ) -> (Self, CtChoice) {
-        let actual_rhs = Uint::ct_select(&Uint::ZERO, rhs, choice);
+        let actual_rhs = Self::ct_select(&Self::ZERO, rhs, choice);
         let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
         (sum, CtChoice::from_lsb(carry.0))
     }

@@ -1,13 +1,13 @@
 use crate::bigint::{
     ct_choice::CtChoice,
     limb::{Limb, Word, HI_BIT},
-    uint::Uint,
+    U256,
 };
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Calculate the number of bits needed to represent this number.
     pub const fn bits_vartime(&self) -> usize {
-        let mut i = LIMBS - 1;
+        let mut i = Self::LIMBS - 1;
         while i > 0 && self.limbs[i].0 == 0 {
             i -= 1;
         }
@@ -18,10 +18,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     #[inline(always)]
     pub const fn bitand(&self, rhs: &Self) -> Self {
-        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut limbs = [Limb::ZERO; Self::LIMBS];
         let mut i = 0;
 
-        while i < LIMBS {
+        while i < Self::LIMBS {
             limbs[i] = self.limbs[i].bitand(rhs.limbs[i]);
             i += 1;
         }
@@ -32,10 +32,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes bitwise `a & b`.
     #[inline(always)]
     pub const fn bitor(&self, rhs: &Self) -> Self {
-        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut limbs = [Limb::ZERO; Self::LIMBS];
         let mut i = 0;
 
-        while i < LIMBS {
+        while i < Self::LIMBS {
             limbs[i] = self.limbs[i].bitor(rhs.limbs[i]);
             i += 1;
         }
@@ -47,18 +47,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// returning the result and the carry.
     #[inline(always)]
     pub(crate) const fn shl_limb(&self, n: usize) -> (Self, Limb) {
-        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut limbs = [Limb::ZERO; Self::LIMBS];
 
         let nz = Limb(n as Word).ct_is_nonzero();
         let lshift = n as Word;
         let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BITS - n) as Word), nz).0;
         let carry = Limb::ct_select(
             Limb::ZERO,
-            Limb(self.limbs[LIMBS - 1].0.wrapping_shr(Word::BITS - n as u32)),
+            Limb(
+                self.limbs[Self::LIMBS - 1]
+                    .0
+                    .wrapping_shr(Word::BITS - n as u32),
+            ),
             nz,
         );
 
-        let mut i = LIMBS - 1;
+        let mut i = Self::LIMBS - 1;
         while i > 0 {
             let mut limb = self.limbs[i].0 << lshift;
             let hi = self.limbs[i - 1].0 >> rshift;
@@ -68,7 +72,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
         limbs[0] = Limb(self.limbs[0].0 << lshift);
 
-        (Uint::<LIMBS>::new(limbs), carry)
+        (Self::new(limbs), carry)
     }
 
     /// Computes `self << shift`.
@@ -79,16 +83,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     #[inline(always)]
     pub const fn shl_vartime(&self, n: usize) -> Self {
-        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut limbs = [Limb::ZERO; Self::LIMBS];
 
-        if n >= Limb::BITS * LIMBS {
+        if n >= Limb::BITS * Self::LIMBS {
             return Self { limbs };
         }
 
         let shift_num = n / Limb::BITS;
         let rem = n % Limb::BITS;
 
-        let mut i = LIMBS;
+        let mut i = Self::LIMBS;
         while i > shift_num {
             i -= 1;
             limbs[i] = self.limbs[i - shift_num];
@@ -121,32 +125,34 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
     /// was set, and [`CtChoice::FALSE`] otherwise.
     pub(crate) const fn shr_1(&self) -> (Self, CtChoice) {
-        let mut shifted_bits = [0; LIMBS];
+        let mut shifted_bits = [0; Self::LIMBS];
         let mut i = 0;
-        while i < LIMBS {
+        while i < Self::LIMBS {
             shifted_bits[i] = self.limbs[i].0 >> 1;
             i += 1;
         }
 
-        let mut carry_bits = [0; LIMBS];
+        let mut carry_bits = [0; Self::LIMBS];
         let mut i = 0;
-        while i < LIMBS {
+        while i < Self::LIMBS {
             carry_bits[i] = self.limbs[i].0 << HI_BIT;
             i += 1;
         }
 
-        let mut limbs = [Limb(0); LIMBS];
+        let mut limbs = [Limb(0); Self::LIMBS];
 
         let mut i = 0;
-        while i < (LIMBS - 1) {
+        while i < (Self::LIMBS - 1) {
             limbs[i] = Limb(shifted_bits[i] | carry_bits[i + 1]);
             i += 1;
         }
-        limbs[LIMBS - 1] = Limb(shifted_bits[LIMBS - 1]);
+        limbs[Self::LIMBS - 1] = Limb(shifted_bits[Self::LIMBS - 1]);
 
-        debug_assert!(carry_bits[LIMBS - 1] == 0 || carry_bits[LIMBS - 1] == (1 << HI_BIT));
+        debug_assert!(
+            carry_bits[Self::LIMBS - 1] == 0 || carry_bits[Self::LIMBS - 1] == (1 << HI_BIT)
+        );
         (
-            Uint::new(limbs),
+            Self::new(limbs),
             CtChoice::from_lsb(carry_bits[0] >> HI_BIT),
         )
     }
@@ -161,13 +167,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn shr_vartime(&self, shift: usize) -> Self {
         let full_shifts = shift / Limb::BITS;
         let small_shift = shift & (Limb::BITS - 1);
-        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut limbs = [Limb::ZERO; Self::LIMBS];
 
-        if shift > Limb::BITS * LIMBS {
+        if shift > Limb::BITS * Self::LIMBS {
             return Self { limbs };
         }
 
-        let n = LIMBS - full_shifts;
+        let n = Self::LIMBS - full_shifts;
         let mut i = 0;
 
         if small_shift == 0 {
@@ -179,7 +185,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             while i < n {
                 let mut lo = self.limbs[i + full_shifts].0 >> small_shift;
 
-                if i < (LIMBS - 1) - full_shifts {
+                if i < (Self::LIMBS - 1) - full_shifts {
                     lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BITS - small_shift);
                 }
 

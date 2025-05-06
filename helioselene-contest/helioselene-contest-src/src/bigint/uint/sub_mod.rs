@@ -1,17 +1,17 @@
 //! [`Uint`] subtraction modulus operations.
 
-use crate::bigint::uint::{Limb, Uint};
+use crate::bigint::{uint::Limb, U256};
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Computes `self - rhs mod p`.
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
-    pub const fn sub_mod(&self, rhs: &Uint<LIMBS>, p: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub const fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
         let (out, borrow) = self.sbb(rhs, Limb::ZERO);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Uint::from_words([borrow.0; LIMBS]);
+        let mask = Self::from_words([borrow.0; Self::LIMBS]);
 
         out.wrapping_add(&p.bitand(&mask))
     }
@@ -29,7 +29,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Uint::from_words([borrow; LIMBS]);
+        let mask = Self::from_words([borrow; Self::LIMBS]);
 
         out.wrapping_add(&p.bitand(&mask))
     }

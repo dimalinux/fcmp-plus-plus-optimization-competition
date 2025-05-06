@@ -1,6 +1,7 @@
 use crate::bigint::{
     limb::WideWord,
-    uint::{Limb, Uint, Word},
+    uint::{Limb, Word},
+    U256,
 };
 
 /// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
@@ -14,33 +15,37 @@ const fn muladdcarry(x: Word, y: Word, z: Word, w: Word) -> (Word, Word) {
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
-pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
-    lower_upper: &(Uint<LIMBS>, Uint<LIMBS>),
-    modulus: &Uint<LIMBS>,
+pub(crate) const fn montgomery_reduction(
+    lower_upper: &(U256, U256),
+    modulus: &U256,
     mod_neg_inv: Limb,
-) -> Uint<LIMBS> {
+) -> U256 {
     let (mut lower, mut upper) = *lower_upper;
 
     let mut meta_carry = Limb(0);
     let mut new_sum;
 
     let mut i = 0;
-    while i < LIMBS {
+    while i < U256::LIMBS {
         let u = lower.limbs[i].0.wrapping_mul(mod_neg_inv.0);
 
         let (mut carry, _) = muladdcarry(u, modulus.limbs[0].0, lower.limbs[i].0, 0);
         let mut new_limb;
 
         let mut j = 1;
-        while j < (LIMBS - i) {
+        while j < (U256::LIMBS - i) {
             (carry, new_limb) = muladdcarry(u, modulus.limbs[j].0, lower.limbs[i + j].0, carry);
             lower.limbs[i + j] = Limb(new_limb);
             j += 1;
         }
-        while j < LIMBS {
-            (carry, new_limb) =
-                muladdcarry(u, modulus.limbs[j].0, upper.limbs[i + j - LIMBS].0, carry);
-            upper.limbs[i + j - LIMBS] = Limb(new_limb);
+        while j < U256::LIMBS {
+            (carry, new_limb) = muladdcarry(
+                u,
+                modulus.limbs[j].0,
+                upper.limbs[i + j - U256::LIMBS].0,
+                carry,
+            );
+            upper.limbs[i + j - U256::LIMBS] = Limb(new_limb);
             j += 1;
         }
 

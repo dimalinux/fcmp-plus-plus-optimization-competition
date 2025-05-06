@@ -1,16 +1,15 @@
 //! [`Uint`] addition operations.
 
-use super::Uint;
-use crate::bigint::{ct_choice::CtChoice, uint::Limb};
+use crate::bigint::{ct_choice::CtChoice, uint::Limb, U256};
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
     pub(crate) const fn sbb(&self, rhs: &Self, mut borrow: Limb) -> (Self, Limb) {
-        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut limbs = [Limb::ZERO; Self::LIMBS];
         let mut i = 0;
 
-        while i < LIMBS {
+        while i < Self::LIMBS {
             let (w, b) = self.limbs[i].sbb(rhs.limbs[i], borrow);
             limbs[i] = w;
             borrow = b;
@@ -39,7 +38,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         rhs: &Self,
         choice: CtChoice,
     ) -> (Self, CtChoice) {
-        let actual_rhs = Uint::ct_select(&Uint::ZERO, rhs, choice);
+        let actual_rhs = Self::ct_select(&Self::ZERO, rhs, choice);
         let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
         (res, CtChoice::from_mask(borrow.0))
     }

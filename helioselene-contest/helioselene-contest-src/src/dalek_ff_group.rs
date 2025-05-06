@@ -13,9 +13,7 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{
-        montgomery_reduction, Encoding, Integer, Limb, Residue, ResidueParams, Uint, Word, U256,
-    },
+    bigint::{montgomery_reduction, Encoding, Limb, Residue, ResidueParams, Word, U256},
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -41,11 +39,11 @@ impl ResidueParams for FieldModulus {
                 .0,
         ),
     );
-    const R: U256 = Uint::MAX
+    const R: U256 = U256::MAX
         .const_rem(&Self::MODULUS)
         .0
-        .wrapping_add(&Uint::ONE);
-    const R2: U256 = Uint::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
+        .wrapping_add(&U256::ONE);
+    const R2: U256 = U256::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
     const R3: U256 =
         montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
     const TWO_TO_256_MOD_M: U256 =

@@ -1,37 +1,5 @@
 //! Traits provided by this crate
-
-use core::fmt::Debug;
-
-use subtle::{Choice, ConstantTimeEq};
-
-use crate::bigint::limb::Limb;
-
-/// Integer type.
-pub(crate) trait Integer:
-    'static + AsRef<[Limb]> + Copy + Debug + Default + Eq + From<u64> + Sized + Zero
-{
-    /// The value `1`.
-    const ONE: Self;
-
-    /// Maximum value this integer can express.
-    const MAX: Self;
-
-    /// Total size of the represented integer in bits.
-    const BITS: usize;
-
-    /// Total size of the represented integer in bytes.
-    const BYTES: usize;
-
-    /// The number of limbs used on this platform.
-    const LIMBS: usize;
-
-    /// Is this integer value an odd number?
-    ///
-    /// # Returns
-    ///
-    /// If odd, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    fn is_odd(&self) -> Choice;
-}
+use subtle::ConstantTimeEq;
 
 /// Zero values.
 pub(crate) trait Zero: ConstantTimeEq + Sized {

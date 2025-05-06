@@ -6,22 +6,21 @@ use core::cmp::Ordering;
 
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
-use super::Uint;
-use crate::bigint::{ct_choice::CtChoice, uint::Limb};
+use crate::bigint::{ct_choice::CtChoice, uint::Limb, U256};
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
     pub(crate) const fn ct_select(a: &Self, b: &Self, c: CtChoice) -> Self {
-        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut limbs = [Limb::ZERO; Self::LIMBS];
 
         let mut i = 0;
-        while i < LIMBS {
+        while i < Self::LIMBS {
             limbs[i] = Limb::ct_select(a.limbs[i], b.limbs[i], c);
             i += 1;
         }
 
-        Uint { limbs }
+        Self { limbs }
     }
 
     #[inline]
@@ -37,7 +36,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
         let mut b = 0;
         let mut i = 0;
-        while i < LIMBS {
+        while i < Self::LIMBS {
             b |= self.limbs[i].0;
             i += 1;
         }
@@ -55,7 +54,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut acc = 0;
         let mut i = 0;
 
-        while i < LIMBS {
+        while i < Self::LIMBS {
             acc |= lhs.limbs[i].0 ^ rhs.limbs[i].0;
             i += 1;
         }
@@ -92,7 +91,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut borrow = Limb::ZERO;
         let mut diff = Limb::ZERO;
 
-        while i < LIMBS {
+        while i < Self::LIMBS {
             let (w, b) = rhs.limbs[i].sbb(lhs.limbs[i], borrow);
             diff = diff.bitor(w);
             borrow = b;
@@ -103,30 +102,30 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeEq for Uint<LIMBS> {
+impl ConstantTimeEq for U256 {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        Uint::ct_eq(self, other).into()
+        Self::ct_eq(self, other).into()
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeGreater for Uint<LIMBS> {
+impl ConstantTimeGreater for U256 {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
-        Uint::ct_gt(self, other).into()
+        Self::ct_gt(self, other).into()
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeLess for Uint<LIMBS> {
+impl ConstantTimeLess for U256 {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
-        Uint::ct_lt(self, other).into()
+        Self::ct_lt(self, other).into()
     }
 }
 
-impl<const LIMBS: usize> Eq for Uint<LIMBS> {}
+impl Eq for U256 {}
 
-impl<const LIMBS: usize> Ord for Uint<LIMBS> {
+impl Ord for U256 {
     fn cmp(&self, other: &Self) -> Ordering {
         let c = Self::ct_cmp(self, other);
         match c {
@@ -137,13 +136,13 @@ impl<const LIMBS: usize> Ord for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> PartialOrd for Uint<LIMBS> {
+impl PartialOrd for U256 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
+impl PartialEq for U256 {
     fn eq(&self, other: &Self) -> bool {
         self.ct_eq(other).into()
     }

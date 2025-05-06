@@ -2,10 +2,11 @@
 
 use crate::bigint::{
     ct_choice::CtChoice,
-    uint::{Limb, Uint, Word},
+    uint::{Limb, Word},
+    U256,
 };
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
     /// and the truthy value for is_some or the falsy value for is_none.
     ///
@@ -86,7 +87,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (mut lower, mut upper) = lower_upper;
 
         // Factor of the modulus, split into two halves
-        let mut c = Self::shl_vartime_wide((*rhs, Uint::ZERO), bd);
+        let mut c = Self::shl_vartime_wide((*rhs, Self::ZERO), bd);
 
         loop {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);

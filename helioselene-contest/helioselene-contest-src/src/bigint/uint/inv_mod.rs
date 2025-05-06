@@ -1,4 +1,3 @@
-use super::Uint;
 use crate::bigint::{ct_choice::CtChoice, U256};
 
 impl U256 {
@@ -25,7 +24,7 @@ impl U256 {
             // b_{i+1} = (b_i - a * X_i) / 2
             b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr_vartime(1);
             // Store the X_i bit in the result (x = x | (1 << X_i))
-            x = x.bitor(&Uint::from_word(x_i).shl_vartime(i));
+            x = x.bitor(&Self::from_word(x_i).shl_vartime(i));
 
             i += 1;
         }
@@ -54,8 +53,8 @@ impl U256 {
 
         let mut a = *self;
 
-        let mut u = Uint::ONE;
-        let mut v = Uint::ZERO;
+        let mut u = Self::ONE;
+        let mut v = Self::ZERO;
 
         let mut b = *modulus;
 
@@ -65,7 +64,7 @@ impl U256 {
         let mut m1hp = *modulus;
         let (m1hp_new, carry) = m1hp.shr_1();
         debug_assert!(carry.is_true_vartime());
-        m1hp = m1hp_new.wrapping_add(&Uint::ONE);
+        m1hp = m1hp_new.wrapping_add(&Self::ONE);
 
         let mut i = 0;
         while i < bit_size {
@@ -76,11 +75,11 @@ impl U256 {
             // Set `self -= b` if `self` is odd.
             let (new_a, swap) = a.conditional_wrapping_sub(&b, self_odd);
             // Set `b += self` if `swap` is true.
-            b = Uint::ct_select(&b, &b.wrapping_add(&new_a), swap);
+            b = Self::ct_select(&b, &b.wrapping_add(&new_a), swap);
             // Negate `self` if `swap` is true.
             a = new_a.conditional_wrapping_neg(swap);
 
-            let (new_u, new_v) = Uint::ct_swap(&u, &v, swap);
+            let (new_u, new_v) = Self::ct_swap(&u, &v, swap);
             let (new_u, cy) = new_u.conditional_wrapping_sub(&new_v, self_odd);
             let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
             debug_assert!(cy.is_true_vartime() == cyy.is_true_vartime());
@@ -100,7 +99,7 @@ impl U256 {
 
         debug_assert!(!a.ct_is_nonzero().is_true_vartime());
 
-        (v, Uint::ct_eq(&b, &Uint::ONE))
+        (v, Self::ct_eq(&b, &Self::ONE))
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.

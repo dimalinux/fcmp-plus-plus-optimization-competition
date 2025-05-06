@@ -1,26 +1,26 @@
 //! Const-friendly decoding operations for [`Uint`]
-use super::Uint;
+use super::U256;
 use crate::bigint::{
     traits::Encoding,
     uint::{Limb, Word},
 };
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl U256 {
     /// Create a new [`Uint`] from the provided big endian hex string.
     pub(crate) const fn from_be_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
         assert!(
-            bytes.len() == Limb::BYTES * LIMBS * 2,
+            bytes.len() == Limb::BYTES * Self::LIMBS * 2,
             "hex string is not the expected size"
         );
 
-        let mut res = [Limb::ZERO; LIMBS];
+        let mut res = [Limb::ZERO; Self::LIMBS];
         let mut buf = [0u8; Limb::BYTES];
         let mut i = 0;
         let mut err = 0;
 
-        while i < LIMBS {
+        while i < Self::LIMBS {
             let mut j = 0;
             while j < Limb::BYTES {
                 let offset = (i * Limb::BYTES + j) * 2;
@@ -29,27 +29,27 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 buf[j] = result;
                 j += 1;
             }
-            res[LIMBS - i - 1] = Limb(Word::from_be_bytes(buf));
+            res[Self::LIMBS - i - 1] = Limb(Word::from_be_bytes(buf));
             i += 1;
         }
 
         assert!(err == 0, "invalid hex byte");
 
-        Uint::new(res)
+        Self::new(res)
     }
 
     /// Create a new [`Uint`] from the provided little endian bytes.
     pub(crate) const fn from_le_slice(bytes: &[u8]) -> Self {
         assert!(
-            bytes.len() == Limb::BYTES * LIMBS,
+            bytes.len() == Limb::BYTES * Self::LIMBS,
             "bytes are not the expected size"
         );
 
-        let mut res = [Limb::ZERO; LIMBS];
+        let mut res = [Limb::ZERO; Self::LIMBS];
         let mut buf = [0u8; Limb::BYTES];
         let mut i = 0;
 
-        while i < LIMBS {
+        while i < Self::LIMBS {
             let mut j = 0;
             while j < Limb::BYTES {
                 buf[j] = bytes[i * Limb::BYTES + j];
@@ -59,7 +59,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        Uint::new(res)
+        Self::new(res)
     }
 
     /// Serialize this [`Uint`] as big-endian, writing it into the provided
@@ -67,7 +67,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline]
     #[cfg(test)]
     pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), Limb::BYTES * LIMBS);
+        debug_assert_eq!(out.len(), Limb::BYTES * Self::LIMBS);
 
         for (src, dst) in self
             .limbs
@@ -84,7 +84,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// byte slice.
     #[inline]
     pub(crate) fn write_le_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), Limb::BYTES * LIMBS);
+        debug_assert_eq!(out.len(), Limb::BYTES * Self::LIMBS);
 
         for (src, dst) in self
             .limbs

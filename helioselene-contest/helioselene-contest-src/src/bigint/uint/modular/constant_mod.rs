@@ -3,10 +3,7 @@ use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use super::reduction::montgomery_reduction;
-use crate::bigint::{
-    uint::{Limb, Uint},
-    Zero, U256,
-};
+use crate::bigint::{uint::Limb, Zero, U256};
 
 /// Additions between residues with a constant modulus
 mod const_add;
@@ -105,7 +102,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
     pub(crate) const fn retrieve(&self) -> U256 {
         montgomery_reduction(
-            &(self.montgomery_form, Uint::ZERO),
+            &(self.montgomery_form, U256::ZERO),
             &MOD::MODULUS,
             MOD::MOD_NEG_INV,
         )
@@ -115,7 +112,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
 impl<MOD: ResidueParams + Copy> ConditionallySelectable for Residue<MOD> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Residue {
-            montgomery_form: Uint::conditional_select(
+            montgomery_form: U256::conditional_select(
                 &a.montgomery_form,
                 &b.montgomery_form,
                 choice,
