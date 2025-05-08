@@ -3,57 +3,51 @@
 
 use crate::bigint::ct_choice::CtChoice;
 
-/// Unsigned integer type that the [`Limb`] newtype wraps.
-pub(crate) type Word = u64;
-
-/// Wide integer type: double the width of [`Word`].
-pub(crate) type WideWord = u128;
-
 #[inline(always)]
-pub(crate) const fn adc(lhs: Word, rhs: Word, carry: Word) -> (Word, Word) {
-    let a = lhs as WideWord;
-    let b = rhs as WideWord;
-    let carry = carry as WideWord;
+pub(crate) const fn adc(lhs: u64, rhs: u64, carry: u64) -> (u64, u64) {
+    let a = lhs as u128;
+    let b = rhs as u128;
+    let carry = carry as u128;
     let ret = a + b + carry;
-    (ret as Word, (ret >> Word::BITS) as Word)
+    (ret as u64, (ret >> u64::BITS) as u64)
 }
 
 /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
 #[inline(always)]
-pub(crate) const fn sbb(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
-    let a = lhs as WideWord;
-    let b = rhs as WideWord;
-    let borrow = (borrow >> (Word::BITS - 1)) as WideWord;
+pub(crate) const fn sbb(lhs: u64, rhs: u64, borrow: u64) -> (u64, u64) {
+    let a = lhs as u128;
+    let b = rhs as u128;
+    let borrow = (borrow >> (u64::BITS - 1)) as u128;
     let ret = a.wrapping_sub(b + borrow);
-    (ret as Word, (ret >> Word::BITS) as Word)
+    (ret as u64, (ret >> u64::BITS) as u64)
 }
 
 /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
 #[inline(always)]
-pub(crate) const fn mac(lhs: Word, b: Word, c: Word, carry: Word) -> (Word, Word) {
-    let a = lhs as WideWord;
-    let b = b as WideWord;
-    let c = c as WideWord;
-    let carry = carry as WideWord;
+pub(crate) const fn mac(lhs: u64, b: u64, c: u64, carry: u64) -> (u64, u64) {
+    let a = lhs as u128;
+    let b = b as u128;
+    let c = c as u128;
+    let carry = carry as u128;
     let ret = a + (b * c) + carry;
-    (ret as Word, (ret >> Word::BITS) as Word)
+    (ret as u64, (ret >> u64::BITS) as u64)
 }
 
 /// Return `b` if `c` is truthy, otherwise return `a`.
 #[inline]
-pub(crate) const fn ct_select(a: Word, b: Word, c: CtChoice) -> Word {
+pub(crate) const fn ct_select(a: u64, b: u64, c: CtChoice) -> u64 {
     c.select(a, b)
 }
 
 /// Returns the truthy value if `self != 0` and the falsy value otherwise.
 #[inline]
-pub(crate) const fn ct_is_nonzero(w: Word) -> CtChoice {
-    CtChoice::from_lsb((w | w.wrapping_neg()) >> (Word::BITS - 1))
+pub(crate) const fn ct_is_nonzero(w: u64) -> CtChoice {
+    CtChoice::from_lsb((w | w.wrapping_neg()) >> (u64::BITS - 1))
 }
 
 /// Returns the truthy value if `lhs == rhs` and the falsy value otherwise.
 #[inline]
-pub(crate) const fn ct_eq(x: Word, y: Word) -> CtChoice {
+pub(crate) const fn ct_eq(x: u64, y: u64) -> CtChoice {
     // x ^ y == 0 if and only if x == y
     ct_is_nonzero(x ^ y).not()
 }
@@ -71,7 +65,7 @@ mod tests {
 
     #[test]
     fn adc_with_carry() {
-        let (res, carry) = adc(Word::MAX, 1, 0);
+        let (res, carry) = adc(u64::MAX, 1, 0);
         assert_eq!(res, 0);
         assert_eq!(carry, 1);
     }
@@ -86,7 +80,7 @@ mod tests {
     #[test]
     fn sbb_with_borrow() {
         let (res, borrow) = sbb(0, 1, 0);
-        assert_eq!(res, Word::MAX);
-        assert_eq!(borrow, Word::MAX);
+        assert_eq!(res, u64::MAX);
+        assert_eq!(borrow, u64::MAX);
     }
 }

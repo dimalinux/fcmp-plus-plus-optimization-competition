@@ -1,6 +1,6 @@
 //! [`Uint`] division operations.
 
-use crate::bigint::{ct_choice::CtChoice, u256::Word, word, U256};
+use crate::bigint::{ct_choice::CtChoice, word, U256};
 
 impl U256 {
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
@@ -21,7 +21,7 @@ impl U256 {
         let mut c = rhs.shl_vartime(bd);
 
         loop {
-            let (mut r, borrow) = rem.sbb(&c, 0);
+            let (mut r, borrow) = rem.subtract_with_borrow(&c, 0);
             rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow));
             r = quo.bitor(&Self::ONE);
             quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow));
@@ -33,7 +33,7 @@ impl U256 {
             quo = quo.shl_vartime(1);
         }
 
-        let is_some = word::ct_is_nonzero(mb as Word);
+        let is_some = word::ct_is_nonzero(mb as u64);
         quo = Self::ct_select(&Self::ZERO, &quo, is_some);
         (quo, rem, is_some)
     }

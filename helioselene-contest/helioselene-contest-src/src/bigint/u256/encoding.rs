@@ -1,6 +1,5 @@
 //! Const-friendly decoding operations for [`Uint`]
 use super::{U256, WORD_BYTES};
-use crate::bigint::u256::Word;
 
 impl U256 {
     /// Create a new [`Uint`] from the provided big endian hex string.
@@ -26,7 +25,7 @@ impl U256 {
                 buf[j] = result;
                 j += 1;
             }
-            res[Self::LIMBS - i - 1] = Word::from_be_bytes(buf);
+            res[Self::LIMBS - i - 1] = u64::from_be_bytes(buf);
             i += 1;
         }
 

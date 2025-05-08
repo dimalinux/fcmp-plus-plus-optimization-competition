@@ -1,20 +1,20 @@
-use crate::bigint::{u256::Word, word, word::WideWord, U256};
+use crate::bigint::{word, U256};
 
 /// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
 #[inline(always)]
-const fn muladdcarry(x: Word, y: Word, z: Word, w: Word) -> (Word, Word) {
-    let res = (x as WideWord)
-        .wrapping_mul(y as WideWord)
-        .wrapping_add(z as WideWord)
-        .wrapping_add(w as WideWord);
-    ((res >> Word::BITS) as Word, res as Word)
+const fn muladdcarry(x: u64, y: u64, z: u64, w: u64) -> (u64, u64) {
+    let res = (x as u128)
+        .wrapping_mul(y as u128)
+        .wrapping_add(z as u128)
+        .wrapping_add(w as u128);
+    ((res >> u64::BITS) as u64, res as u64)
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
 pub(crate) const fn montgomery_reduction(
     lower_upper: &(U256, U256),
     modulus: &U256,
-    mod_neg_inv: Word,
+    mod_neg_inv: u64,
 ) -> U256 {
     let (mut lower, mut upper) = *lower_upper;
 

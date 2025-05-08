@@ -1,8 +1,8 @@
 use super::mul::{mul_montgomery_form, square_montgomery_form};
-use crate::bigint::{u256::WORD_BITS, word, Word, U256};
+use crate::bigint::{u256::WORD_BITS, word, U256};
 
 const WINDOW: usize = 4;
-const WINDOW_MASK: Word = (1 << WINDOW) - 1;
+const WINDOW_MASK: u64 = (1 << WINDOW) - 1;
 
 /// Performs modular exponentiation using Montgomery's ladder.
 /// `exponent_bits` represents the number of bits to take into account for the exponent.
@@ -14,7 +14,7 @@ pub(crate) const fn pow_montgomery_form(
     exponent_bits: usize,
     modulus: &U256,
     r: &U256,
-    mod_neg_inv: Word,
+    mod_neg_inv: u64,
 ) -> U256 {
     multi_exponentiate_montgomery_form_array(
         &[(*x, *exponent)],
@@ -30,7 +30,7 @@ const fn multi_exponentiate_montgomery_form_array(
     exponent_bits: usize,
     modulus: &U256,
     r: &U256,
-    mod_neg_inv: Word,
+    mod_neg_inv: u64,
 ) -> U256 {
     if exponent_bits == 0 {
         return *r; // 1 in Montgomery form
@@ -58,7 +58,7 @@ const fn compute_powers(
     x: &U256,
     modulus: &U256,
     r: &U256,
-    mod_neg_inv: Word,
+    mod_neg_inv: u64,
 ) -> [U256; 1 << WINDOW] {
     // powers[i] contains x^i
     let mut powers = [*r; 1 << WINDOW];
@@ -78,7 +78,7 @@ const fn multi_exponentiate_montgomery_form_internal(
     exponent_bits: usize,
     modulus: &U256,
     r: &U256,
-    mod_neg_inv: Word,
+    mod_neg_inv: u64,
 ) -> U256 {
     let starting_limb = (exponent_bits - 1) / WORD_BITS;
     let starting_bit_in_limb = (exponent_bits - 1) % WORD_BITS;
@@ -121,7 +121,7 @@ const fn multi_exponentiate_montgomery_form_internal(
                 let mut power = powers[0];
                 let mut j = 1;
                 while j < 1 << WINDOW {
-                    let choice = word::ct_eq(j as Word, idx);
+                    let choice = word::ct_eq(j as u64, idx);
                     power = U256::ct_select(&power, &powers[j], choice);
                     j += 1;
                 }

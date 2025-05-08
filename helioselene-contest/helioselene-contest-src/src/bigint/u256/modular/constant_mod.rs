@@ -3,7 +3,7 @@ use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use super::reduction::montgomery_reduction;
-use crate::bigint::{Word, Zero, U256};
+use crate::bigint::{Zero, U256};
 
 /// Additions between residues with a constant modulus
 mod const_add;
@@ -36,7 +36,7 @@ pub(crate) trait ResidueParams: Copy + Debug + Default + Eq + Send + Sync + 'sta
     const R3: U256;
     /// The lowest limbs of -(MODULUS^-1) mod R
     // We only need the LSB because during reduction this value is multiplied modulo 2**WORD_BITS.
-    const MOD_NEG_INV: Word;
+    const MOD_NEG_INV: u64;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

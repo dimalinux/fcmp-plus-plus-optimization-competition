@@ -2,22 +2,9 @@ use crate::bigint::{ct_choice::CtChoice, U256};
 
 impl U256 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    /// In other words `self^-1 mod modulus`.
-    /// `bits` and `modulus_bits` are the bounds on the bit size
-    /// of `self` and `modulus`, respectively
-    /// (the inversion speed will be proportional to `bits + modulus_bits`).
-    /// The second element of the tuple is the truthy value if an inverse exists,
-    /// otherwise it is a falsy value.
-    ///
-    /// **Note:** variable time in `bits` and `modulus_bits`.
-    ///
-    /// The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
-    pub(crate) const fn inv_odd_mod_bounded(
-        &self,
-        modulus: &Self,
-        bits: usize,
-        modulus_bits: usize,
-    ) -> (Self, CtChoice) {
+    /// Returns `(inverse, CtChoice::TRUE)` if an inverse exists,
+    /// otherwise `(undefined, CtChoice::FALSE)`.
+    pub(crate) const fn inv_odd_mod(&self, modulus: &Self) -> (Self, CtChoice) {
         debug_assert!(modulus.ct_is_odd().is_true_vartime());
 
         let mut a = *self;
@@ -27,8 +14,8 @@ impl U256 {
 
         let mut b = *modulus;
 
-        // `bit_size` can be anything >= `self.bits()` + `modulus.bits()`, setting to the minimum.
-        let bit_size = bits + modulus_bits;
+        // `BIT_SIZE` can be anything >= `self.bits()` + `modulus.bits()`, setting to the minimum.
+        const BIT_SIZE: usize = U256::BITS * 2;
 
         let mut m1hp = *modulus;
         let (m1hp_new, carry) = m1hp.shr_1();
@@ -36,7 +23,7 @@ impl U256 {
         m1hp = m1hp_new.wrapping_add(&Self::ONE);
 
         let mut i = 0;
-        while i < bit_size {
+        while i < BIT_SIZE {
             debug_assert!(b.ct_is_odd().is_true_vartime());
 
             let self_odd = a.ct_is_odd();
@@ -69,12 +56,5 @@ impl U256 {
         debug_assert!(!a.ct_is_nonzero().is_true_vartime());
 
         (v, Self::ct_eq(&b, &Self::ONE))
-    }
-
-    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    /// Returns `(inverse, CtChoice::TRUE)` if an inverse exists,
-    /// otherwise `(undefined, CtChoice::FALSE)`.
-    pub(crate) const fn inv_odd_mod(&self, modulus: &Self) -> (Self, CtChoice) {
-        self.inv_odd_mod_bounded(modulus, Self::BITS, Self::BITS)
     }
 }

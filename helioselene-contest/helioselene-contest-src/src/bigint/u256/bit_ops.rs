@@ -1,7 +1,7 @@
 use crate::bigint::{
     ct_choice::CtChoice,
     u256::WORD_BITS,
-    word::{ct_is_nonzero, ct_select, Word},
+    word::{ct_is_nonzero, ct_select},
     U256,
 };
 
@@ -47,15 +47,15 @@ impl U256 {
     /// Computes `self << shift` where `0 <= shift < WORD_BITS`,
     /// returning the result and the carry.
     #[inline(always)]
-    pub(crate) const fn shl_limb(&self, n: usize) -> (Self, Word) {
+    pub(crate) const fn shl_limb(&self, n: usize) -> (Self, u64) {
         let mut limbs = [0; Self::LIMBS];
 
-        let nz = ct_is_nonzero(n as Word);
-        let lshift = n as Word;
-        let rshift = ct_select(0, (WORD_BITS - n) as Word, nz);
+        let nz = ct_is_nonzero(n as u64);
+        let lshift = n as u64;
+        let rshift = ct_select(0, (WORD_BITS - n) as u64, nz);
         let carry = ct_select(
             0,
-            self.limbs[Self::LIMBS - 1].wrapping_shr(Word::BITS - n as u32),
+            self.limbs[Self::LIMBS - 1].wrapping_shr(u64::BITS - n as u32),
             nz,
         );
 
@@ -147,11 +147,11 @@ impl U256 {
 
         debug_assert!(
             carry_bits[Self::LIMBS - 1] == 0
-                || carry_bits[Self::LIMBS - 1] == (1 << (Word::BITS - 1))
+                || carry_bits[Self::LIMBS - 1] == (1 << (u64::BITS - 1))
         );
         (
             Self::new(limbs),
-            CtChoice::from_lsb(carry_bits[0] >> (Word::BITS - 1)),
+            CtChoice::from_lsb(carry_bits[0] >> (u64::BITS - 1)),
         )
     }
 

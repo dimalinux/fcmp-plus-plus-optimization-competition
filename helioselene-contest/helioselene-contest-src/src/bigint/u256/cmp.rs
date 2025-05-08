@@ -69,14 +69,14 @@ impl U256 {
         // We could use the same approach as in Limb::ct_lt(),
         // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
         // there are no savings compared to just calling `sbb()` directly.
-        let (_res, borrow) = lhs.sbb(rhs, 0);
+        let (_res, borrow) = lhs.subtract_with_borrow(rhs, 0);
         CtChoice::from_mask(borrow)
     }
 
     /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn ct_gt(lhs: &Self, rhs: &Self) -> CtChoice {
-        let (_res, borrow) = rhs.sbb(lhs, 0);
+        let (_res, borrow) = rhs.subtract_with_borrow(lhs, 0);
         CtChoice::from_mask(borrow)
     }
 

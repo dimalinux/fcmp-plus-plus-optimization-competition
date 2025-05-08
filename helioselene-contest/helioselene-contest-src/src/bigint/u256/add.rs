@@ -1,11 +1,11 @@
 //! [`Uint`] addition operations.
 
-use crate::bigint::{ct_choice::CtChoice, word, Word, U256};
+use crate::bigint::{ct_choice::CtChoice, word, U256};
 
 impl U256 {
     /// Computes `a + b + carry`, returning the result along with the new carry.
     #[inline(always)]
-    pub(crate) const fn adc(&self, rhs: &Self, mut carry: Word) -> (Self, Word) {
+    pub(crate) const fn adc(&self, rhs: &Self, mut carry: u64) -> (Self, u64) {
         let mut limbs = [0; Self::LIMBS];
         let mut i = 0;
 

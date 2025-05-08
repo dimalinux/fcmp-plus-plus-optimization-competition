@@ -10,7 +10,7 @@ impl U256 {
         let (w, carry) = self.adc(rhs, 0);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
-        let (w, borrow) = w.sbb(p, 0);
+        let (w, borrow) = w.subtract_with_borrow(p, 0);
         let (_, borrow) = word::sbb(carry, 0, borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise

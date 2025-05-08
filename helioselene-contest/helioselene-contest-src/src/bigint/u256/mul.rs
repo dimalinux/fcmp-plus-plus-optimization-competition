@@ -1,10 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::bigint::{
-    word,
-    word::{WideWord, Word},
-    U256,
-};
+use crate::bigint::{word, U256};
 
 impl U256 {
     /// Compute "wide" multiplication, with a product twice the size of the input.
@@ -111,13 +107,13 @@ impl U256 {
             }
 
             if (i * 2 + 1) < LIMBS {
-                let n = lo.limbs[i * 2 + 1] as WideWord + carry as WideWord;
-                lo.limbs[i * 2 + 1] = n as Word;
-                carry = (n >> Word::BITS) as Word;
+                let n = lo.limbs[i * 2 + 1] as u128 + carry as u128;
+                lo.limbs[i * 2 + 1] = n as u64;
+                carry = (n >> u64::BITS) as u64;
             } else {
-                let n = hi.limbs[i * 2 + 1 - LIMBS] as WideWord + carry as WideWord;
-                hi.limbs[i * 2 + 1 - LIMBS] = n as Word;
-                carry = (n >> Word::BITS) as Word;
+                let n = hi.limbs[i * 2 + 1 - LIMBS] as u128 + carry as u128;
+                hi.limbs[i * 2 + 1 - LIMBS] = n as u64;
+                carry = (n >> u64::BITS) as u64;
             }
 
             i += 1;

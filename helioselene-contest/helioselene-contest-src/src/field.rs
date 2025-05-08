@@ -10,7 +10,7 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{Encoding, Residue, ResidueParams, Word, U256},
+    bigint::{Encoding, Residue, ResidueParams, U256},
 };
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
@@ -28,7 +28,7 @@ impl ResidueParams for HelioseleneQ {
 
         res
     };
-    const MOD_NEG_INV: Word = 0x8a5f094bd6f46ba1_u64;
+    const MOD_NEG_INV: u64 = 0x8a5f094bd6f46ba1_u64;
     //= Word::MIN.wrapping_sub(
     //     Self::MODULUS
     //         .inv_mod2k_vartime(Word::BITS as usize)

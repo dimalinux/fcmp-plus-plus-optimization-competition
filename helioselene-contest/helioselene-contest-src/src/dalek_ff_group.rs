@@ -13,7 +13,7 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{Encoding, Residue, ResidueParams, Word, U256},
+    bigint::{Encoding, Residue, ResidueParams, U256},
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -33,7 +33,7 @@ impl ResidueParams for FieldModulus {
     };
     // `MOD_NEG_INV` is the modular multiplicative inverse of the least
     // significant word of `MODULUS` modulo 2^64, negated.
-    const MOD_NEG_INV: Word = 0x86bca1af286bca1b_u64;
+    const MOD_NEG_INV: u64 = 0x86bca1af286bca1b_u64;
     //= Word::MIN.wrapping_sub(
     //     Self::MODULUS
     //         .inv_mod2k_vartime(Word::BITS as usize)

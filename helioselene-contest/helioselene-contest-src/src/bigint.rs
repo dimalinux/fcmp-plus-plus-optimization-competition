@@ -11,4 +11,3 @@ pub(crate) use u256::modular::{
 };
 /// Re-export `U256`
 pub(crate) use u256::U256;
-pub(crate) use word::Word;

@@ -22,13 +22,10 @@ use zeroize::DefaultIsZeroes;
 
 use crate::bigint::{Encoding, Zero};
 
-/// Unsigned integer type for native processor math
-pub(crate) type Word = u64;
-
-const WORD_BITS: usize = Word::BITS as usize;
+const WORD_BITS: usize = u64::BITS as usize;
 const WORD_BYTES: usize = WORD_BITS / 8;
 
-/// Wide integer type: double the width of [`crate::bigint::Word`].
+/// Wide integer type: double the width of [`crate::bigint::u64`].
 //pub(crate) type WideWord = u128;
 
 /// Stack-allocated 256-bit unsigned integer.
@@ -36,7 +33,7 @@ const WORD_BYTES: usize = WORD_BITS / 8;
 #[derive(Copy, Clone, Hash)]
 pub struct U256 {
     /// Inner limb array. Stored from least significant to most significant.
-    limbs: [Word; 256 / WORD_BITS],
+    limbs: [u64; 4],
 }
 
 impl U256 {
@@ -59,14 +56,14 @@ impl U256 {
 
     // TODO: use default?
 
-    /// Const [`Uint`] constructor from an array of [`Word`]s.
+    /// Const [`Uint`] constructor from an array of [`u64`]s.
     #[inline]
-    pub(crate) const fn new(limbs: [Word; Self::LIMBS]) -> Self {
+    pub(crate) const fn new(limbs: [u64; Self::LIMBS]) -> Self {
         Self { limbs }
     }
 
     /// Borrow the limbs of this [`Uint`].
-    pub(crate) const fn as_words(&self) -> &[Word; Self::LIMBS] {
+    pub(crate) const fn as_words(&self) -> &[u64; Self::LIMBS] {
         &self.limbs
     }
 
@@ -80,7 +77,7 @@ impl ConditionallySelectable for U256 {
         let mut limbs = [0; Self::LIMBS];
 
         for i in 0..Self::LIMBS {
-            limbs[i] = Word::conditional_select(&a.limbs[i], &b.limbs[i], choice);
+            limbs[i] = u64::conditional_select(&a.limbs[i], &b.limbs[i], choice);
         }
 
         Self { limbs }
