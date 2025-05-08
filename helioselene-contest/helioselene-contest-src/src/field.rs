@@ -10,7 +10,7 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{montgomery_reduction, Encoding, Residue, ResidueParams, Word, U256},
+    bigint::{Encoding, Residue, ResidueParams, Word, U256},
 };
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
@@ -28,18 +28,24 @@ impl ResidueParams for HelioseleneQ {
 
         res
     };
-    const MOD_NEG_INV: Word = Word::MIN.wrapping_sub(
-        Self::MODULUS
-            .inv_mod2k_vartime(Word::BITS as usize)
-            .as_words()[0],
-    );
-    const R: U256 = U256::MAX
-        .const_rem(&Self::MODULUS)
-        .0
-        .wrapping_add(&U256::ONE);
-    const R2: U256 = U256::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
+    const MOD_NEG_INV: Word = 0x8a5f094bd6f46ba1_u64;
+    //= Word::MIN.wrapping_sub(
+    //     Self::MODULUS
+    //         .inv_mod2k_vartime(Word::BITS as usize)
+    //         .as_words()[0],
+    // );
+    const R: U256 =
+        U256::from_be_hex("0000000000000000000000000000000081010fa69135294f22925b1b0db070c2");
+    // = U256::MAX
+    //     .const_rem(&Self::MODULUS)
+    //     .0
+    //     .wrapping_add(&U256::ONE);
+    const R2: U256 =
+        U256::from_be_hex("410211c6fe99a770f19be179bd15cd0c6e709b56a6427587796519faf06a5304");
+    // = U256::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
     const R3: U256 =
-        montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
+        U256::from_be_hex("233029c4d15001cac205e02ae548627197f0fb0a46f8b46253018af9d307af37");
+    //   = montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
     const TWO_TO_256_MOD_M: U256 =
         U256::from_be_hex("0000000000000000000000000000000081010fa69135294f22925b1b0db070c2");
 }
@@ -137,17 +143,17 @@ impl<'a> MulAssign<&'a HelioseleneField> for HelioseleneField {
 }
 impl From<u8> for HelioseleneField {
     fn from(a: u8) -> HelioseleneField {
-        Self(Residue::new(&U256::from(a)))
+        Self(Residue::new(&U256::from_u64(a as u64)))
     }
 }
 impl From<u16> for HelioseleneField {
     fn from(a: u16) -> HelioseleneField {
-        Self(Residue::new(&U256::from(a)))
+        Self(Residue::new(&U256::from_u64(a as u64)))
     }
 }
 impl From<u32> for HelioseleneField {
     fn from(a: u32) -> HelioseleneField {
-        Self(Residue::new(&U256::from_u32(a)))
+        Self(Residue::new(&U256::from_u64(a as u64)))
     }
 }
 impl From<u64> for HelioseleneField {
@@ -249,11 +255,12 @@ impl Field for HelioseleneField {
     }
 
     fn sqrt(&self) -> CtOption<Self> {
-        let mod_plus_one_div_four = HelioseleneQ::MODULUS
+        const MOD_PLUS_ONE_DIV_FOUR: U256 = HelioseleneQ::MODULUS
             .saturating_add(&U256::ONE)
-            .wrapping_div(&(4u8.into()));
+            .wrapping_div(&U256::from_u64(4));
+        // TODO: below is using checked on a constant
         let res = self.pow(Self(
-            ResidueType::new_checked(&mod_plus_one_div_four).unwrap(),
+            ResidueType::new_checked(&MOD_PLUS_ONE_DIV_FOUR).unwrap(),
         ));
         CtOption::new(res, res.square().ct_eq(self))
     }
@@ -266,14 +273,14 @@ impl PrimeField for HelioseleneField {
         "0000000000000000000000000000000000000000000000000000000000000019",
     )));
     const MODULUS: &'static str = MODULUS_STR;
-    const MULTIPLICATIVE_GENERATOR: Self = Self(Residue::new(&U256::from_u8(5)));
+    const MULTIPLICATIVE_GENERATOR: Self = Self(Residue::new(&U256::from_u64(5)));
     const NUM_BITS: u32 = 255;
     const ROOT_OF_UNITY: Self = HelioseleneField(Residue::new(&U256::from_be_hex(
         "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79e",
     )));
     const ROOT_OF_UNITY_INV: Self = Self(Self::ROOT_OF_UNITY.0.invert().0);
     const S: u32 = 1;
-    const TWO_INV: Self = HelioseleneField(ResidueType::new(&U256::from_u8(2)).invert().0);
+    const TWO_INV: Self = HelioseleneField(ResidueType::new(&U256::from_u64(2)).invert().0);
 
     fn from_repr(bytes: Self::Repr) -> CtOption<Self> {
         let res = U256::from_le_slice(&bytes);
@@ -388,5 +395,17 @@ mod tests {
             let ouput = hex::encode(output.0.retrieve().to_be_bytes());
             assert_eq!(ouput, tc.output);
         }
+    }
+
+    #[test]
+    fn print_helioselene_field_consts_in_big_endian_hex() {
+        // eprintln!(
+        //     "MOD_NEG_INV: {}",
+        //     hex::encode(HelioseleneQ::MOD_NEG_INV.to_be_bytes())
+        // );
+        // eprintln!("R: {}", hex::encode(HelioseleneQ::R.to_be_bytes()));
+        // eprintln!("R2: {}", hex::encode(HelioseleneQ::R2.to_be_bytes()));
+        // eprintln!("R3: {}", hex::encode(HelioseleneQ::R3.to_be_bytes()));
+        // assert!(false);
     }
 }

@@ -1,7 +1,4 @@
-//! Stack-allocated big unsigned integers.
-
-#![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
-
+//! Stack-allocated 256-bit integer.
 mod add;
 mod add_mod;
 mod bit_ops;
@@ -23,7 +20,7 @@ use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 use zeroize::DefaultIsZeroes;
 
-use crate::bigint::{word, Encoding, Zero};
+use crate::bigint::{Encoding, Zero};
 
 /// Unsigned integer type for native processor math
 pub(crate) type Word = u64;
@@ -34,24 +31,7 @@ const WORD_BYTES: usize = WORD_BITS / 8;
 /// Wide integer type: double the width of [`crate::bigint::Word`].
 //pub(crate) type WideWord = u128;
 
-/// Stack-allocated big unsigned integer.
-///
-/// Generic over the given number of `LIMBS`
-///
-/// # Encoding support
-/// This type supports many different types of encodings, either via the
-/// [`Encoding`][`crate::Encoding`] trait or various `const fn` decoding and
-/// encoding functions that can be used with [`Uint`] constants.
-///
-/// Optional crate features for encoding (off-by-default):
-/// - `generic-array`: enables [`ArrayEncoding`][`crate::ArrayEncoding`] trait which can be used to
-///   [`Uint`] as `GenericArray<u8, N>` and a [`ArrayDecoding`][`crate::ArrayDecoding`] trait which
-///   can be used to `GenericArray<u8, N>` as [`Uint`].
-/// - `rlp`: support for [Recursive Length Prefix (RLP)][RLP] encoding.
-///
-/// [RLP]: https://eth.wiki/fundamentals/rlp
-// TODO: make generic around a specified number of bits.
-// Our PartialEq impl only differs from the default one by being constant-time, so this is safe
+/// Stack-allocated 256-bit unsigned integer.
 #[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Hash)]
 pub struct U256 {
@@ -63,33 +43,26 @@ impl U256 {
     /// Total size of the represented integer in bits.
     pub(crate) const BITS: usize = 256;
     /// Total size of the represented integer in bytes.
-    pub(crate) const BYTES: usize = Self::BITS / 8;
+    pub(crate) const BYTES: usize = 32;
+    // 256 bits / 8 bits per byte
     /// The number of limbs used on this platform.
-    pub(crate) const LIMBS: usize = Self::BITS / WORD_BITS;
+    pub(crate) const LIMBS: usize = 4;
+    // 4 u64 limbs = 256 bits
     /// Maximum value this [`Uint`] can express.
     pub(crate) const MAX: Self = Self {
         limbs: [u64::MAX; Self::LIMBS],
     };
     /// The value `1`.
-    pub(crate) const ONE: Self = Self::from_u8(1);
+    pub(crate) const ONE: Self = Self::from_u64(1);
     /// The value `0`.
-    pub(crate) const ZERO: Self = Self::from_u8(0);
+    pub(crate) const ZERO: Self = Self::from_u64(0);
 
-    /// Const-friendly [`Uint`] constructor.
+    // TODO: use default?
+
+    /// Const [`Uint`] constructor from an array of [`Word`]s.
+    #[inline]
     pub(crate) const fn new(limbs: [Word; Self::LIMBS]) -> Self {
         Self { limbs }
-    }
-
-    /// Create a [`Uint`] from an array of [`Word`]s (i.e. word-sized unsigned
-    /// integers).
-    #[inline]
-    pub(crate) const fn from_words(arr: [Word; Self::LIMBS]) -> Self {
-        Self { limbs: arr }
-    }
-
-    /// Borrow the inner limbs as a mutable array of [`Word`]s.
-    pub(crate) fn as_words_mut(&mut self) -> &mut [Word; Self::LIMBS] {
-        &mut self.limbs
     }
 
     /// Borrow the limbs of this [`Uint`].
@@ -98,34 +71,7 @@ impl U256 {
     }
 
     pub(crate) fn is_odd(&self) -> Choice {
-        self.limbs
-            .first()
-            .map(|limb| word::is_odd(*limb))
-            .unwrap_or_else(|| Choice::from(0))
-    }
-}
-
-impl AsRef<[Word; U256::LIMBS]> for U256 {
-    fn as_ref(&self) -> &[Word; Self::LIMBS] {
-        &self.limbs
-    }
-}
-
-impl AsMut<[Word; U256::LIMBS]> for U256 {
-    fn as_mut(&mut self) -> &mut [Word; Self::LIMBS] {
-        self.as_words_mut()
-    }
-}
-
-impl AsRef<[Word]> for U256 {
-    fn as_ref(&self) -> &[Word] {
-        &self.limbs
-    }
-}
-
-impl AsMut<[Word]> for U256 {
-    fn as_mut(&mut self) -> &mut [Word] {
-        &mut self.limbs
+        Choice::from((self.limbs[0] & 1) as u8)
     }
 }
 
@@ -153,13 +99,13 @@ impl Zero for U256 {
 
 impl fmt::Debug for U256 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Uint(0x{self:X})")
+        write!(f, "Uint(0x{self:x})")
     }
 }
 
 impl fmt::Display for U256 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::UpperHex::fmt(self, f)
+        fmt::LowerHex::fmt(self, f)
     }
 }
 
@@ -167,15 +113,6 @@ impl fmt::LowerHex for U256 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for limb in self.limbs.iter().rev() {
             write!(f, "{:0width$x}", limb, width = Self::BYTES * 2)?;
-        }
-        Ok(())
-    }
-}
-
-impl fmt::UpperHex for U256 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$X}", limb, width = Self::BYTES * 2)?;
         }
         Ok(())
     }

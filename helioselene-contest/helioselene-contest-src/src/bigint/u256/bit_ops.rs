@@ -194,24 +194,4 @@ impl U256 {
 
         Self { limbs }
     }
-
-    /// Computes a right shift on a wide input as `(lo, hi)`.
-    ///
-    /// NOTE: this operation is variable time with respect to `n` *ONLY*.
-    ///
-    /// When used with a fixed `n`, this function is constant-time with respect
-    /// to `self`.
-    #[inline(always)]
-    pub const fn shr_vartime_wide(lower_upper: (Self, Self), n: usize) -> (Self, Self) {
-        let (mut lower, upper) = lower_upper;
-        let new_upper = upper.shr_vartime(n);
-        lower = lower.shr_vartime(n);
-        if n >= Self::BITS {
-            lower = lower.bitor(&upper.shr_vartime(n - Self::BITS));
-        } else {
-            lower = lower.bitor(&upper.shl_vartime(Self::BITS - n));
-        }
-
-        (lower, new_upper)
-    }
 }

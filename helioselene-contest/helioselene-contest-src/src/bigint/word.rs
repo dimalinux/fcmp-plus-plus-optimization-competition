@@ -1,8 +1,6 @@
 //! Big integers are represented as an array of smaller CPU word-size integers
 //! called "limbs".
 
-use subtle::Choice;
-
 use crate::bigint::ct_choice::CtChoice;
 
 /// Unsigned integer type that the [`Limb`] newtype wraps.
@@ -39,12 +37,6 @@ pub(crate) const fn mac(lhs: Word, b: Word, c: Word, carry: Word) -> (Word, Word
     let carry = carry as WideWord;
     let ret = a + (b * c) + carry;
     (ret as Word, (ret >> Word::BITS) as Word)
-}
-
-/// Is this limb an odd number?
-#[inline]
-pub(crate) fn is_odd(w: Word) -> Choice {
-    Choice::from(w as u8 & 1)
 }
 
 /// Return `b` if `c` is truthy, otherwise return `a`.

@@ -37,26 +37,27 @@ impl U256 {
 
     /// Create a new [`Uint`] from the provided little endian bytes.
     pub(crate) const fn from_le_slice(bytes: &[u8]) -> Self {
-        assert!(
-            bytes.len() == Self::BYTES,
-            "bytes are not the expected size"
-        );
-
-        let mut res = [0; Self::LIMBS];
-        let mut buf = [0u8; WORD_BYTES];
-        let mut i = 0;
-
-        while i < Self::LIMBS {
-            let mut j = 0;
-            while j < WORD_BYTES {
-                buf[j] = bytes[i * WORD_BYTES + j];
-                j += 1;
-            }
-            res[i] = Word::from_le_bytes(buf);
-            i += 1;
+        assert!(bytes.len() == 32, "bytes are not the expected size");
+        Self {
+            // cant use slices below, because try_into() is not const
+            limbs: [
+                u64::from_le_bytes([
+                    bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+                ]),
+                u64::from_le_bytes([
+                    bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14],
+                    bytes[15],
+                ]),
+                u64::from_le_bytes([
+                    bytes[16], bytes[17], bytes[18], bytes[19], bytes[20], bytes[21], bytes[22],
+                    bytes[23],
+                ]),
+                u64::from_le_bytes([
+                    bytes[24], bytes[25], bytes[26], bytes[27], bytes[28], bytes[29], bytes[30],
+                    bytes[31],
+                ]),
+            ],
         }
-
-        Self::new(res)
     }
 
     /// Serialize this [`Uint`] as big-endian, writing it into the provided
@@ -64,33 +65,22 @@ impl U256 {
     #[inline]
     #[cfg(test)]
     pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), WORD_BYTES * Self::LIMBS);
-
-        for (src, dst) in self
-            .limbs
-            .iter()
-            .rev()
-            .cloned()
-            .zip(out.chunks_exact_mut(WORD_BYTES))
-        {
-            dst.copy_from_slice(&src.to_be_bytes());
-        }
+        debug_assert_eq!(out.len(), 32);
+        out[0..8].copy_from_slice(&self.limbs[3].to_be_bytes());
+        out[8..16].copy_from_slice(&self.limbs[2].to_be_bytes());
+        out[16..24].copy_from_slice(&self.limbs[1].to_be_bytes());
+        out[24..32].copy_from_slice(&self.limbs[0].to_be_bytes());
     }
 
     /// Serialize this [`Uint`] as little-endian, writing it into the provided
     /// byte slice.
     #[inline]
     pub(crate) fn write_le_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), WORD_BYTES * Self::LIMBS);
-
-        for (src, dst) in self
-            .limbs
-            .iter()
-            .cloned()
-            .zip(out.chunks_exact_mut(WORD_BYTES))
-        {
-            dst.copy_from_slice(&src.to_le_bytes());
-        }
+        debug_assert_eq!(out.len(), 32);
+        out[0..8].copy_from_slice(&self.limbs[0].to_le_bytes());
+        out[8..16].copy_from_slice(&self.limbs[1].to_le_bytes());
+        out[16..24].copy_from_slice(&self.limbs[2].to_le_bytes());
+        out[24..32].copy_from_slice(&self.limbs[3].to_le_bytes());
     }
 }
 

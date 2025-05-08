@@ -13,14 +13,14 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{montgomery_reduction, Encoding, Residue, ResidueParams, Word, U256},
+    bigint::{Encoding, Residue, ResidueParams, Word, U256},
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[repr(C)]
 pub(crate) struct FieldModulus {}
 impl ResidueParams for FieldModulus {
-    // MODULUS is: 2^255 - 19
+    // `MODULUS` is 2^255 - 19
     const MODULUS: U256 = {
         let res =
             U256::from_be_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
@@ -31,18 +31,26 @@ impl ResidueParams for FieldModulus {
 
         res
     };
-    const MOD_NEG_INV: Word = Word::MIN.wrapping_sub(
-        Self::MODULUS
-            .inv_mod2k_vartime(Word::BITS as usize)
-            .as_words()[0],
-    );
-    const R: U256 = U256::MAX
-        .const_rem(&Self::MODULUS)
-        .0
-        .wrapping_add(&U256::ONE);
-    const R2: U256 = U256::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
+    // `MOD_NEG_INV` is the modular multiplicative inverse of the least
+    // significant word of `MODULUS` modulo 2^64, negated.
+    const MOD_NEG_INV: Word = 0x86bca1af286bca1b_u64;
+    //= Word::MIN.wrapping_sub(
+    //     Self::MODULUS
+    //         .inv_mod2k_vartime(Word::BITS as usize)
+    //         .as_words()[0],
+    // );
+    const R: U256 =
+        U256::from_be_hex("0000000000000000000000000000000000000000000000000000000000000026");
+    //    U256::MAX
+    //     .const_rem(&Self::MODULUS)
+    //     .0
+    //     .wrapping_add(&U256::ONE);
+    const R2: U256 =
+        U256::from_be_hex("00000000000000000000000000000000000000000000000000000000000005a4");
+    // = U256::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
     const R3: U256 =
-        montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
+        U256::from_be_hex("000000000000000000000000000000000000000000000000000000000000d658");
+    //    montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
     const TWO_TO_256_MOD_M: U256 =
         U256::from_be_hex("0000000000000000000000000000000000000000000000000000000000000026");
 }
@@ -57,18 +65,18 @@ pub struct Field25519(pub(crate) ResidueType);
 // Formula from RFC-8032 (modp_sqrt_m1/sqrt8k5 z)
 // 2 ** ((MODULUS - 1) // 4) % MODULUS
 const SQRT_M1: Field25519 = Field25519(
-    ResidueType::new(&U256::from_u8(2)).pow(
+    ResidueType::new(&U256::from_u64(2)).pow(
         &FieldModulus::MODULUS
             .saturating_sub(&U256::ONE)
-            .wrapping_div(&U256::from_u8(4)),
+            .wrapping_div(&U256::from_u64(4)),
     ),
 );
 
 // Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
 const MOD_3_8: Field25519 = Field25519(ResidueType::new(
     &FieldModulus::MODULUS
-        .saturating_add(&U256::from_u8(3))
-        .wrapping_div(&U256::from_u8(8)),
+        .saturating_add(&U256::from_u64(3))
+        .wrapping_div(&U256::from_u64(8)),
 ));
 
 // Constant useful in sqrt_ratio_i (sqrt(u / v))
@@ -160,19 +168,19 @@ impl<'a> MulAssign<&'a Field25519> for Field25519 {
 
 impl From<u8> for Field25519 {
     fn from(a: u8) -> Field25519 {
-        Self(ResidueType::new(&U256::from(a)))
+        Self(ResidueType::new(&U256::from_u64(a as u64)))
     }
 }
 
 impl From<u16> for Field25519 {
     fn from(a: u16) -> Field25519 {
-        Self(ResidueType::new(&U256::from_u16(a)))
+        Self(ResidueType::new(&U256::from_u64(a as u64)))
     }
 }
 
 impl From<u32> for Field25519 {
     fn from(a: u32) -> Field25519 {
-        Self(ResidueType::new(&U256::from_u32(a)))
+        Self(ResidueType::new(&U256::from_u64(a as u64)))
     }
 }
 
@@ -273,7 +281,7 @@ impl PrimeField for Field25519 {
         "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
     // This was calculated with the method from the ff crate docs
     // SageMath GF(modulus).primitive_element()
-    const MULTIPLICATIVE_GENERATOR: Self = Self(ResidueType::new(&U256::from_u8(2)));
+    const MULTIPLICATIVE_GENERATOR: Self = Self(ResidueType::new(&U256::from_u64(2)));
     const NUM_BITS: u32 = 255;
     // This was calculated via the formula from the ff crate docs
     // Self::MULTIPLICATIVE_GENERATOR ** ((modulus - 1) >> Self::S)
@@ -285,7 +293,7 @@ impl PrimeField for Field25519 {
     // This was set per the specification in the ff crate docs
     // The number of leading zero bits in the little-endian bit representation of (modulus - 1)
     const S: u32 = 2;
-    const TWO_INV: Self = Field25519(ResidueType::new(&U256::from_u8(2)).invert().0);
+    const TWO_INV: Self = Field25519(ResidueType::new(&U256::from_u64(2)).invert().0);
 
     fn from_repr(bytes: [u8; 32]) -> CtOption<Self> {
         let res = U256::from_le_bytes(bytes);
@@ -418,7 +426,7 @@ fn test_sqrt_m1() {
             &(Field25519::ZERO - Field25519::ONE)
                 .0
                 .retrieve()
-                .wrapping_div(&U256::from(4u8))
+                .wrapping_div(&U256::from_u64(4))
         )))
     );
 }
@@ -470,5 +478,14 @@ mod tests {
             let output = hex::encode(output.0.retrieve().to_be_bytes());
             assert_eq!(output, tc.output);
         }
+    }
+
+    #[test]
+    fn print_fieldmodulus_consts_in_big_endian_hex() {
+        // eprintln!("MOD_NEG_INV: {}", hex::encode(FieldModulus::MOD_NEG_INV.to_be_bytes()));
+        // eprintln!("R: {}", hex::encode(FieldModulus::R.to_be_bytes()));
+        // eprintln!("R2: {}", hex::encode(FieldModulus::R2.to_be_bytes()));
+        // eprintln!("R3: {}", hex::encode(FieldModulus::R3.to_be_bytes()));
+        // assert!(false);
     }
 }
