@@ -1,16 +1,16 @@
 //! [`Uint`] addition operations.
 
-use crate::bigint::{ct_choice::CtChoice, uint::Limb, U256};
+use crate::bigint::{ct_choice::CtChoice, word, Word, U256};
 
 impl U256 {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
-    pub(crate) const fn sbb(&self, rhs: &Self, mut borrow: Limb) -> (Self, Limb) {
-        let mut limbs = [Limb::ZERO; Self::LIMBS];
+    pub(crate) const fn sbb(&self, rhs: &Self, mut borrow: Word) -> (Self, Word) {
+        let mut limbs = [0; Self::LIMBS];
         let mut i = 0;
 
         while i < Self::LIMBS {
-            let (w, b) = self.limbs[i].sbb(rhs.limbs[i], borrow);
+            let (w, b) = word::sbb(self.limbs[i], rhs.limbs[i], borrow);
             limbs[i] = w;
             borrow = b;
             i += 1;
@@ -21,14 +21,14 @@ impl U256 {
 
     /// Perform saturating subtraction, returning `ZERO` on underflow.
     pub const fn saturating_sub(&self, rhs: &Self) -> Self {
-        let (res, underflow) = self.sbb(rhs, Limb::ZERO);
-        Self::ct_select(&res, &Self::ZERO, CtChoice::from_mask(underflow.0))
+        let (res, underflow) = self.sbb(rhs, 0);
+        Self::ct_select(&res, &Self::ZERO, CtChoice::from_mask(underflow))
     }
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around
     /// the boundary of the type.
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
-        self.sbb(rhs, Limb::ZERO).0
+        self.sbb(rhs, 0).0
     }
 
     /// Perform wrapping subtraction, returning the truthy value as the second element of the tuple
@@ -39,7 +39,7 @@ impl U256 {
         choice: CtChoice,
     ) -> (Self, CtChoice) {
         let actual_rhs = Self::ct_select(&Self::ZERO, rhs, choice);
-        let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
-        (res, CtChoice::from_mask(borrow.0))
+        let (res, borrow) = self.sbb(&actual_rhs, 0);
+        (res, CtChoice::from_mask(borrow))
     }
 }

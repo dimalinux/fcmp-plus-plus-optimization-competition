@@ -1,10 +1,6 @@
 //! [`Uint`] division operations.
 
-use crate::bigint::{
-    ct_choice::CtChoice,
-    uint::{Limb, Word},
-    U256,
-};
+use crate::bigint::{ct_choice::CtChoice, u256::Word, word, U256};
 
 impl U256 {
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
@@ -25,10 +21,10 @@ impl U256 {
         let mut c = rhs.shl_vartime(bd);
 
         loop {
-            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
+            let (mut r, borrow) = rem.sbb(&c, 0);
+            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow));
             r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0));
+            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow));
             if bd == 0 {
                 break;
             }
@@ -37,7 +33,7 @@ impl U256 {
             quo = quo.shl_vartime(1);
         }
 
-        let is_some = Limb(mb as Word).ct_is_nonzero();
+        let is_some = word::ct_is_nonzero(mb as Word);
         quo = Self::ct_select(&Self::ZERO, &quo, is_some);
         (quo, rem, is_some)
     }
@@ -57,8 +53,8 @@ impl U256 {
         let mut c = rhs.shl_vartime(bd);
 
         loop {
-            let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
+            let (r, borrow) = rem.sbb(&c, 0);
+            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow));
             if bd == 0 {
                 break;
             }
@@ -66,7 +62,7 @@ impl U256 {
             c = c.shr_vartime(1);
         }
 
-        let is_some = Limb(mb as Word).ct_is_nonzero();
+        let is_some = word::ct_is_nonzero(mb as Word);
         (rem, is_some)
     }
 
@@ -90,11 +86,11 @@ impl U256 {
         let mut c = Self::shl_vartime_wide((*rhs, Self::ZERO), bd);
 
         loop {
-            let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
+            let (lower_sub, borrow) = lower.sbb(&c.0, 0);
             let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
 
-            lower = Self::ct_select(&lower_sub, &lower, CtChoice::from_mask(borrow.0));
-            upper = Self::ct_select(&upper_sub, &upper, CtChoice::from_mask(borrow.0));
+            lower = Self::ct_select(&lower_sub, &lower, CtChoice::from_mask(borrow));
+            upper = Self::ct_select(&upper_sub, &upper, CtChoice::from_mask(borrow));
             if bd == 0 {
                 break;
             }
@@ -102,7 +98,7 @@ impl U256 {
             c = Self::shr_vartime_wide(c, 1);
         }
 
-        let is_some = Limb(mb as Word).ct_is_nonzero();
+        let is_some = word::ct_is_nonzero(mb as Word);
         (lower, is_some)
     }
 

@@ -23,10 +23,16 @@ use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 use zeroize::DefaultIsZeroes;
 
-use crate::bigint::{
-    limb::{Limb, Word},
-    Encoding, Zero,
-};
+use crate::bigint::{word, Encoding, Zero};
+
+/// Unsigned integer type for native processor math
+pub(crate) type Word = u64;
+
+const WORD_BITS: usize = Word::BITS as usize;
+const WORD_BYTES: usize = WORD_BITS / 8;
+
+/// Wide integer type: double the width of [`crate::bigint::Word`].
+//pub(crate) type WideWord = u128;
 
 /// Stack-allocated big unsigned integer.
 ///
@@ -44,13 +50,13 @@ use crate::bigint::{
 /// - `rlp`: support for [Recursive Length Prefix (RLP)][RLP] encoding.
 ///
 /// [RLP]: https://eth.wiki/fundamentals/rlp
-// TODO(tarcieri): make generic around a specified number of bits.
+// TODO: make generic around a specified number of bits.
 // Our PartialEq impl only differs from the default one by being constant-time, so this is safe
 #[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Hash)]
 pub struct U256 {
     /// Inner limb array. Stored from least significant to most significant.
-    limbs: [Limb; U256::LIMBS],
+    limbs: [Word; 256 / WORD_BITS],
 }
 
 impl U256 {
@@ -59,10 +65,10 @@ impl U256 {
     /// Total size of the represented integer in bytes.
     pub(crate) const BYTES: usize = Self::BITS / 8;
     /// The number of limbs used on this platform.
-    pub(crate) const LIMBS: usize = Self::BITS / Limb::BITS;
+    pub(crate) const LIMBS: usize = Self::BITS / WORD_BITS;
     /// Maximum value this [`Uint`] can express.
     pub(crate) const MAX: Self = Self {
-        limbs: [Limb::MAX; Self::LIMBS],
+        limbs: [u64::MAX; Self::LIMBS],
     };
     /// The value `1`.
     pub(crate) const ONE: Self = Self::from_u8(1);
@@ -70,7 +76,7 @@ impl U256 {
     pub(crate) const ZERO: Self = Self::from_u8(0);
 
     /// Const-friendly [`Uint`] constructor.
-    pub(crate) const fn new(limbs: [Limb; Self::LIMBS]) -> Self {
+    pub(crate) const fn new(limbs: [Word; Self::LIMBS]) -> Self {
         Self { limbs }
     }
 
@@ -78,51 +84,30 @@ impl U256 {
     /// integers).
     #[inline]
     pub(crate) const fn from_words(arr: [Word; Self::LIMBS]) -> Self {
-        let mut limbs = [Limb::ZERO; Self::LIMBS];
-        let mut i = 0;
-
-        while i < Self::LIMBS {
-            limbs[i] = Limb(arr[i]);
-            i += 1;
-        }
-
-        Self { limbs }
-    }
-
-    /// Borrow the inner limbs as an array of [`Word`]s.
-    pub(crate) const fn as_words(&self) -> &[Word; Self::LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
-        unsafe {
-            &*((&self.limbs as *const _) as *const [Word; Self::LIMBS])
-        }
+        Self { limbs: arr }
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
     pub(crate) fn as_words_mut(&mut self) -> &mut [Word; Self::LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
-        unsafe {
-            &mut *((&mut self.limbs as *mut _) as *mut [Word; Self::LIMBS])
-        }
+        &mut self.limbs
     }
 
     /// Borrow the limbs of this [`Uint`].
-    pub(crate) const fn as_limbs(&self) -> &[Limb; Self::LIMBS] {
+    pub(crate) const fn as_words(&self) -> &[Word; Self::LIMBS] {
         &self.limbs
     }
 
     pub(crate) fn is_odd(&self) -> Choice {
         self.limbs
             .first()
-            .map(|limb| limb.is_odd())
+            .map(|limb| word::is_odd(*limb))
             .unwrap_or_else(|| Choice::from(0))
     }
 }
 
 impl AsRef<[Word; U256::LIMBS]> for U256 {
     fn as_ref(&self) -> &[Word; Self::LIMBS] {
-        self.as_words()
+        &self.limbs
     }
 }
 
@@ -132,24 +117,24 @@ impl AsMut<[Word; U256::LIMBS]> for U256 {
     }
 }
 
-impl AsRef<[Limb]> for U256 {
-    fn as_ref(&self) -> &[Limb] {
+impl AsRef<[Word]> for U256 {
+    fn as_ref(&self) -> &[Word] {
         &self.limbs
     }
 }
 
-impl AsMut<[Limb]> for U256 {
-    fn as_mut(&mut self) -> &mut [Limb] {
+impl AsMut<[Word]> for U256 {
+    fn as_mut(&mut self) -> &mut [Word] {
         &mut self.limbs
     }
 }
 
 impl ConditionallySelectable for U256 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        let mut limbs = [Limb::ZERO; Self::LIMBS];
+        let mut limbs = [0; Self::LIMBS];
 
         for i in 0..Self::LIMBS {
-            limbs[i] = Limb::conditional_select(&a.limbs[i], &b.limbs[i], choice);
+            limbs[i] = Word::conditional_select(&a.limbs[i], &b.limbs[i], choice);
         }
 
         Self { limbs }
@@ -181,7 +166,7 @@ impl fmt::Display for U256 {
 impl fmt::LowerHex for U256 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$x}", limb.0, width = Self::BYTES * 2)?;
+            write!(f, "{:0width$x}", limb, width = Self::BYTES * 2)?;
         }
         Ok(())
     }
@@ -190,7 +175,7 @@ impl fmt::LowerHex for U256 {
 impl fmt::UpperHex for U256 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$X}", limb.0, width = Self::BYTES * 2)?;
+            write!(f, "{:0width$X}", limb, width = Self::BYTES * 2)?;
         }
         Ok(())
     }

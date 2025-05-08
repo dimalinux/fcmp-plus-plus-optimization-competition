@@ -4,7 +4,7 @@ use core::{
 };
 
 use super::{Residue, ResidueParams};
-use crate::bigint::uint::modular::mul::{mul_montgomery_form, square_montgomery_form};
+use crate::bigint::u256::modular::mul::{mul_montgomery_form, square_montgomery_form};
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Multiplies by `rhs`.

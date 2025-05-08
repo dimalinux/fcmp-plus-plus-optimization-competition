@@ -1,9 +1,6 @@
 //! Const-friendly decoding operations for [`Uint`]
-use super::U256;
-use crate::bigint::{
-    traits::Encoding,
-    uint::{Limb, Word},
-};
+use super::{U256, WORD_BYTES};
+use crate::bigint::u256::Word;
 
 impl U256 {
     /// Create a new [`Uint`] from the provided big endian hex string.
@@ -11,25 +8,25 @@ impl U256 {
         let bytes = hex.as_bytes();
 
         assert!(
-            bytes.len() == Limb::BYTES * Self::LIMBS * 2,
+            bytes.len() == Self::BYTES * 2,
             "hex string is not the expected size"
         );
 
-        let mut res = [Limb::ZERO; Self::LIMBS];
-        let mut buf = [0u8; Limb::BYTES];
+        let mut res = [0; Self::LIMBS];
+        let mut buf = [0u8; WORD_BYTES];
         let mut i = 0;
         let mut err = 0;
 
         while i < Self::LIMBS {
             let mut j = 0;
-            while j < Limb::BYTES {
-                let offset = (i * Limb::BYTES + j) * 2;
+            while j < WORD_BYTES {
+                let offset = (i * WORD_BYTES + j) * 2;
                 let (result, byte_err) = decode_hex_byte([bytes[offset], bytes[offset + 1]]);
                 err |= byte_err;
                 buf[j] = result;
                 j += 1;
             }
-            res[Self::LIMBS - i - 1] = Limb(Word::from_be_bytes(buf));
+            res[Self::LIMBS - i - 1] = Word::from_be_bytes(buf);
             i += 1;
         }
 
@@ -41,21 +38,21 @@ impl U256 {
     /// Create a new [`Uint`] from the provided little endian bytes.
     pub(crate) const fn from_le_slice(bytes: &[u8]) -> Self {
         assert!(
-            bytes.len() == Limb::BYTES * Self::LIMBS,
+            bytes.len() == Self::BYTES,
             "bytes are not the expected size"
         );
 
-        let mut res = [Limb::ZERO; Self::LIMBS];
-        let mut buf = [0u8; Limb::BYTES];
+        let mut res = [0; Self::LIMBS];
+        let mut buf = [0u8; WORD_BYTES];
         let mut i = 0;
 
         while i < Self::LIMBS {
             let mut j = 0;
-            while j < Limb::BYTES {
-                buf[j] = bytes[i * Limb::BYTES + j];
+            while j < WORD_BYTES {
+                buf[j] = bytes[i * WORD_BYTES + j];
                 j += 1;
             }
-            res[i] = Limb(Word::from_le_bytes(buf));
+            res[i] = Word::from_le_bytes(buf);
             i += 1;
         }
 
@@ -67,14 +64,14 @@ impl U256 {
     #[inline]
     #[cfg(test)]
     pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), Limb::BYTES * Self::LIMBS);
+        debug_assert_eq!(out.len(), WORD_BYTES * Self::LIMBS);
 
         for (src, dst) in self
             .limbs
             .iter()
             .rev()
             .cloned()
-            .zip(out.chunks_exact_mut(Limb::BYTES))
+            .zip(out.chunks_exact_mut(WORD_BYTES))
         {
             dst.copy_from_slice(&src.to_be_bytes());
         }
@@ -84,13 +81,13 @@ impl U256 {
     /// byte slice.
     #[inline]
     pub(crate) fn write_le_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), Limb::BYTES * Self::LIMBS);
+        debug_assert_eq!(out.len(), WORD_BYTES * Self::LIMBS);
 
         for (src, dst) in self
             .limbs
             .iter()
             .cloned()
-            .zip(out.chunks_exact_mut(Limb::BYTES))
+            .zip(out.chunks_exact_mut(WORD_BYTES))
         {
             dst.copy_from_slice(&src.to_le_bytes());
         }

@@ -13,7 +13,7 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{montgomery_reduction, Encoding, Limb, Residue, ResidueParams, Word, U256},
+    bigint::{montgomery_reduction, Encoding, Residue, ResidueParams, Word, U256},
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -25,19 +25,16 @@ impl ResidueParams for FieldModulus {
         let res =
             U256::from_be_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
 
-        if res.as_limbs()[0].0 & 1 == 0 {
+        if res.as_words()[0] & 1 == 0 {
             panic!("modulus must be odd");
         }
 
         res
     };
-    const MOD_NEG_INV: Limb = Limb(
-        Word::MIN.wrapping_sub(
-            Self::MODULUS
-                .inv_mod2k_vartime(Word::BITS as usize)
-                .as_limbs()[0]
-                .0,
-        ),
+    const MOD_NEG_INV: Word = Word::MIN.wrapping_sub(
+        Self::MODULUS
+            .inv_mod2k_vartime(Word::BITS as usize)
+            .as_words()[0],
     );
     const R: U256 = U256::MAX
         .const_rem(&Self::MODULUS)

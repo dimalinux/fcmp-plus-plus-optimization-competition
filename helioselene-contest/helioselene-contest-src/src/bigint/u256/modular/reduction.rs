@@ -1,8 +1,4 @@
-use crate::bigint::{
-    limb::WideWord,
-    uint::{Limb, Word},
-    U256,
-};
+use crate::bigint::{u256::Word, word, word::WideWord, U256};
 
 /// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
 #[inline(always)]
@@ -18,38 +14,34 @@ const fn muladdcarry(x: Word, y: Word, z: Word, w: Word) -> (Word, Word) {
 pub(crate) const fn montgomery_reduction(
     lower_upper: &(U256, U256),
     modulus: &U256,
-    mod_neg_inv: Limb,
+    mod_neg_inv: Word,
 ) -> U256 {
     let (mut lower, mut upper) = *lower_upper;
 
-    let mut meta_carry = Limb(0);
+    let mut meta_carry = 0;
     let mut new_sum;
 
     let mut i = 0;
     while i < U256::LIMBS {
-        let u = lower.limbs[i].0.wrapping_mul(mod_neg_inv.0);
+        let u = lower.limbs[i].wrapping_mul(mod_neg_inv);
 
-        let (mut carry, _) = muladdcarry(u, modulus.limbs[0].0, lower.limbs[i].0, 0);
+        let (mut carry, _) = muladdcarry(u, modulus.limbs[0], lower.limbs[i], 0);
         let mut new_limb;
 
         let mut j = 1;
         while j < (U256::LIMBS - i) {
-            (carry, new_limb) = muladdcarry(u, modulus.limbs[j].0, lower.limbs[i + j].0, carry);
-            lower.limbs[i + j] = Limb(new_limb);
+            (carry, new_limb) = muladdcarry(u, modulus.limbs[j], lower.limbs[i + j], carry);
+            lower.limbs[i + j] = new_limb;
             j += 1;
         }
         while j < U256::LIMBS {
-            (carry, new_limb) = muladdcarry(
-                u,
-                modulus.limbs[j].0,
-                upper.limbs[i + j - U256::LIMBS].0,
-                carry,
-            );
-            upper.limbs[i + j - U256::LIMBS] = Limb(new_limb);
+            (carry, new_limb) =
+                muladdcarry(u, modulus.limbs[j], upper.limbs[i + j - U256::LIMBS], carry);
+            upper.limbs[i + j - U256::LIMBS] = new_limb;
             j += 1;
         }
 
-        (new_sum, meta_carry) = upper.limbs[i].adc(Limb(carry), meta_carry);
+        (new_sum, meta_carry) = word::adc(upper.limbs[i], carry, meta_carry);
         upper.limbs[i] = new_sum;
 
         i += 1;

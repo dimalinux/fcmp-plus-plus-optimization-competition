@@ -1,7 +1,8 @@
 //! [`Uint`] addition operations.
 
 use crate::bigint::{
-    limb::{Limb, WideWord, Word},
+    word,
+    word::{WideWord, Word},
     U256,
 };
 
@@ -16,20 +17,20 @@ impl U256 {
         let mut hi = U256::ZERO;
 
         // Schoolbook multiplication.
-        // TODO(tarcieri): use Karatsuba for better performance?
+        // TODO: use Karatsuba for better performance?
         while i < LIMBS {
             let mut j = 0;
-            let mut carry = Limb::ZERO;
+            let mut carry = 0;
 
             while j < LIMBS {
                 let k = i + j;
 
                 if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], rhs.limbs[j], carry);
+                    let (n, c) = word::mac(hi.limbs[k - LIMBS], self.limbs[i], rhs.limbs[j], carry);
                     hi.limbs[k - LIMBS] = n;
                     carry = c;
                 } else {
-                    let (n, c) = lo.limbs[k].mac(self.limbs[i], rhs.limbs[j], carry);
+                    let (n, c) = word::mac(lo.limbs[k], self.limbs[i], rhs.limbs[j], carry);
                     lo.limbs[k] = n;
                     carry = c;
                 }
@@ -62,17 +63,18 @@ impl U256 {
         let mut i = 1;
         while i < LIMBS {
             let mut j = 0;
-            let mut carry = Limb::ZERO;
+            let mut carry = 0;
 
             while j < i {
                 let k = i + j;
 
                 if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], self.limbs[j], carry);
+                    let (n, c) =
+                        word::mac(hi.limbs[k - LIMBS], self.limbs[i], self.limbs[j], carry);
                     hi.limbs[k - LIMBS] = n;
                     carry = c;
                 } else {
-                    let (n, c) = lo.limbs[k].mac(self.limbs[i], self.limbs[j], carry);
+                    let (n, c) = word::mac(lo.limbs[k], self.limbs[i], self.limbs[j], carry);
                     lo.limbs[k] = n;
                     carry = c;
                 }
@@ -94,27 +96,28 @@ impl U256 {
         (lo, hi) = Self::shl_vartime_wide((lo, hi), 1);
 
         // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
-        let mut carry = Limb::ZERO;
+        let mut carry = 0;
         let mut i = 0;
         while i < LIMBS {
             if (i * 2) < LIMBS {
-                let (n, c) = lo.limbs[i * 2].mac(self.limbs[i], self.limbs[i], carry);
+                let (n, c) = word::mac(lo.limbs[i * 2], self.limbs[i], self.limbs[i], carry);
                 lo.limbs[i * 2] = n;
                 carry = c;
             } else {
-                let (n, c) = hi.limbs[i * 2 - LIMBS].mac(self.limbs[i], self.limbs[i], carry);
+                let (n, c) =
+                    word::mac(hi.limbs[i * 2 - LIMBS], self.limbs[i], self.limbs[i], carry);
                 hi.limbs[i * 2 - LIMBS] = n;
                 carry = c;
             }
 
             if (i * 2 + 1) < LIMBS {
-                let n = lo.limbs[i * 2 + 1].0 as WideWord + carry.0 as WideWord;
-                lo.limbs[i * 2 + 1] = Limb(n as Word);
-                carry = Limb((n >> Word::BITS) as Word);
+                let n = lo.limbs[i * 2 + 1] as WideWord + carry as WideWord;
+                lo.limbs[i * 2 + 1] = n as Word;
+                carry = (n >> Word::BITS) as Word;
             } else {
-                let n = hi.limbs[i * 2 + 1 - LIMBS].0 as WideWord + carry.0 as WideWord;
-                hi.limbs[i * 2 + 1 - LIMBS] = Limb(n as Word);
-                carry = Limb((n >> Word::BITS) as Word);
+                let n = hi.limbs[i * 2 + 1 - LIMBS] as WideWord + carry as WideWord;
+                hi.limbs[i * 2 + 1 - LIMBS] = n as Word;
+                carry = (n >> Word::BITS) as Word;
             }
 
             i += 1;

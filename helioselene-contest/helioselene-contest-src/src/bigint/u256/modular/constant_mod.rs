@@ -3,7 +3,7 @@ use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use super::reduction::montgomery_reduction;
-use crate::bigint::{uint::Limb, Zero, U256};
+use crate::bigint::{Word, Zero, U256};
 
 /// Additions between residues with a constant modulus
 mod const_add;
@@ -35,8 +35,8 @@ pub(crate) trait ResidueParams: Copy + Debug + Default + Eq + Send + Sync + 'sta
     /// R^3, used to perform a multiplicative inverse
     const R3: U256;
     /// The lowest limbs of -(MODULUS^-1) mod R
-    // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
-    const MOD_NEG_INV: Limb;
+    // We only need the LSB because during reduction this value is multiplied modulo 2**WORD_BITS.
+    const MOD_NEG_INV: Word;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

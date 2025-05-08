@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
 use super::{Residue, ResidueParams};
-use crate::bigint::{ct_choice::CtChoice, uint::modular::inv::inv_montgomery_form};
+use crate::bigint::{ct_choice::CtChoice, u256::modular::inv::inv_montgomery_form};
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.

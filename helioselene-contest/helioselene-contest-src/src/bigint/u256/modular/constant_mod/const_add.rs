@@ -1,7 +1,7 @@
 use core::ops::{Add, AddAssign};
 
 use super::{Residue, ResidueParams};
-use crate::bigint::uint::modular::add::add_montgomery_form;
+use crate::bigint::u256::modular::add::add_montgomery_form;
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Adds `rhs`.

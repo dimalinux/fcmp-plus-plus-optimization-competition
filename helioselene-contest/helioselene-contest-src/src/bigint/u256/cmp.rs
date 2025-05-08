@@ -6,17 +6,17 @@ use core::cmp::Ordering;
 
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
-use crate::bigint::{ct_choice::CtChoice, uint::Limb, U256};
+use crate::bigint::{ct_choice::CtChoice, word, U256};
 
 impl U256 {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
     pub(crate) const fn ct_select(a: &Self, b: &Self, c: CtChoice) -> Self {
-        let mut limbs = [Limb::ZERO; Self::LIMBS];
+        let mut limbs = [0; Self::LIMBS];
 
         let mut i = 0;
         while i < Self::LIMBS {
-            limbs[i] = Limb::ct_select(a.limbs[i], b.limbs[i], c);
+            limbs[i] = word::ct_select(a.limbs[i], b.limbs[i], c);
             i += 1;
         }
 
@@ -37,15 +37,15 @@ impl U256 {
         let mut b = 0;
         let mut i = 0;
         while i < Self::LIMBS {
-            b |= self.limbs[i].0;
+            b |= self.limbs[i];
             i += 1;
         }
-        Limb(b).ct_is_nonzero()
+        word::ct_is_nonzero(b)
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
     pub(crate) const fn ct_is_odd(&self) -> CtChoice {
-        CtChoice::from_lsb(self.limbs[0].0 & 1)
+        CtChoice::from_lsb(self.limbs[0] & 1)
     }
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
@@ -55,12 +55,12 @@ impl U256 {
         let mut i = 0;
 
         while i < Self::LIMBS {
-            acc |= lhs.limbs[i].0 ^ rhs.limbs[i].0;
+            acc |= lhs.limbs[i] ^ rhs.limbs[i];
             i += 1;
         }
 
         // acc == 0 if and only if self == rhs
-        Limb(acc).ct_is_nonzero().not()
+        word::ct_is_nonzero(acc).not()
     }
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
@@ -69,15 +69,15 @@ impl U256 {
         // We could use the same approach as in Limb::ct_lt(),
         // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
         // there are no savings compared to just calling `sbb()` directly.
-        let (_res, borrow) = lhs.sbb(rhs, Limb::ZERO);
-        CtChoice::from_mask(borrow.0)
+        let (_res, borrow) = lhs.sbb(rhs, 0);
+        CtChoice::from_mask(borrow)
     }
 
     /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn ct_gt(lhs: &Self, rhs: &Self) -> CtChoice {
-        let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
-        CtChoice::from_mask(borrow.0)
+        let (_res, borrow) = rhs.sbb(lhs, 0);
+        CtChoice::from_mask(borrow)
     }
 
     /// Returns the ordering between `self` and `rhs` as an i8.
@@ -88,17 +88,17 @@ impl U256 {
     #[inline]
     pub(crate) const fn ct_cmp(lhs: &Self, rhs: &Self) -> i8 {
         let mut i = 0;
-        let mut borrow = Limb::ZERO;
-        let mut diff = Limb::ZERO;
+        let mut borrow = 0;
+        let mut diff = 0;
 
         while i < Self::LIMBS {
-            let (w, b) = rhs.limbs[i].sbb(lhs.limbs[i], borrow);
-            diff = diff.bitor(w);
+            let (w, b) = word::sbb(rhs.limbs[i], lhs.limbs[i], borrow);
+            diff = diff | w;
             borrow = b;
             i += 1;
         }
-        let sgn = ((borrow.0 & 2) as i8) - 1;
-        (diff.ct_is_nonzero().to_u8() as i8) * sgn
+        let sgn = ((borrow & 2) as i8) - 1;
+        (word::ct_is_nonzero(diff).to_u8() as i8) * sgn
     }
 }
 

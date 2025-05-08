@@ -1,5 +1,5 @@
 use super::{Residue, ResidueParams};
-use crate::bigint::{uint::modular::pow::pow_montgomery_form, U256};
+use crate::bigint::{u256::modular::pow::pow_montgomery_form, U256};
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Raises to the `exponent` power.

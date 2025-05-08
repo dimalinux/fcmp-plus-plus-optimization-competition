@@ -1,6 +1,6 @@
 use subtle::Choice;
 
-use crate::bigint::limb::Word;
+use crate::bigint::word::Word;
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`

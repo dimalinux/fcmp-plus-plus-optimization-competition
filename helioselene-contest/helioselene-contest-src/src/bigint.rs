@@ -1,14 +1,14 @@
 mod ct_choice;
-mod limb;
 mod traits;
-mod uint;
+mod u256;
+mod word;
 
 pub(crate) use ct_choice::CtChoice;
-pub(crate) use limb::{Limb, Word};
 pub(crate) use traits::{Encoding, Zero};
-pub(crate) use uint::modular::{
+pub(crate) use u256::modular::{
     constant_mod::{Residue, ResidueParams},
     montgomery_reduction,
 };
 /// Re-export `U256`
-pub(crate) use uint::U256;
+pub(crate) use u256::U256;
+pub(crate) use word::Word;

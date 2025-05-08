@@ -1,7 +1,7 @@
 use core::ops::{Sub, SubAssign};
 
 use super::{Residue, ResidueParams};
-use crate::bigint::uint::modular::sub::sub_montgomery_form;
+use crate::bigint::u256::modular::sub::sub_montgomery_form;
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Subtracts `rhs`.

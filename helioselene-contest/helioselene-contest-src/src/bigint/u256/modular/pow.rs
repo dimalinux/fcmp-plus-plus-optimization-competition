@@ -1,5 +1,5 @@
 use super::mul::{mul_montgomery_form, square_montgomery_form};
-use crate::bigint::{Limb, Word, U256};
+use crate::bigint::{u256::WORD_BITS, word, Word, U256};
 
 const WINDOW: usize = 4;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
@@ -14,7 +14,7 @@ pub(crate) const fn pow_montgomery_form(
     exponent_bits: usize,
     modulus: &U256,
     r: &U256,
-    mod_neg_inv: Limb,
+    mod_neg_inv: Word,
 ) -> U256 {
     multi_exponentiate_montgomery_form_array(
         &[(*x, *exponent)],
@@ -30,7 +30,7 @@ const fn multi_exponentiate_montgomery_form_array(
     exponent_bits: usize,
     modulus: &U256,
     r: &U256,
-    mod_neg_inv: Limb,
+    mod_neg_inv: Word,
 ) -> U256 {
     if exponent_bits == 0 {
         return *r; // 1 in Montgomery form
@@ -58,7 +58,7 @@ const fn compute_powers(
     x: &U256,
     modulus: &U256,
     r: &U256,
-    mod_neg_inv: Limb,
+    mod_neg_inv: Word,
 ) -> [U256; 1 << WINDOW] {
     // powers[i] contains x^i
     let mut powers = [*r; 1 << WINDOW];
@@ -78,10 +78,10 @@ const fn multi_exponentiate_montgomery_form_internal(
     exponent_bits: usize,
     modulus: &U256,
     r: &U256,
-    mod_neg_inv: Limb,
+    mod_neg_inv: Word,
 ) -> U256 {
-    let starting_limb = (exponent_bits - 1) / Limb::BITS;
-    let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
+    let starting_limb = (exponent_bits - 1) / WORD_BITS;
+    let starting_bit_in_limb = (exponent_bits - 1) % WORD_BITS;
     let starting_window = starting_bit_in_limb / WINDOW;
     let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
 
@@ -94,7 +94,7 @@ const fn multi_exponentiate_montgomery_form_internal(
         let mut window_num = if limb_num == starting_limb {
             starting_window + 1
         } else {
-            Limb::BITS / WINDOW
+            WORD_BITS / WINDOW
         };
         while window_num > 0 {
             window_num -= 1;
@@ -110,7 +110,7 @@ const fn multi_exponentiate_montgomery_form_internal(
             let mut i = 0;
             while i < powers_and_exponents.len() {
                 let (powers, exponent) = powers_and_exponents[i];
-                let w = exponent.as_limbs()[limb_num].0;
+                let w = exponent.as_words()[limb_num];
                 let mut idx = (w >> (window_num * WINDOW)) & WINDOW_MASK;
 
                 if limb_num == starting_limb && window_num == starting_window {
@@ -121,7 +121,7 @@ const fn multi_exponentiate_montgomery_form_internal(
                 let mut power = powers[0];
                 let mut j = 1;
                 while j < 1 << WINDOW {
-                    let choice = Limb::ct_eq(Limb(j as Word), Limb(idx));
+                    let choice = word::ct_eq(j as Word, idx);
                     power = U256::ct_select(&power, &powers[j], choice);
                     j += 1;
                 }

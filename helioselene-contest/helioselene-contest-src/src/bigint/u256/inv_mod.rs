@@ -19,7 +19,7 @@ impl U256 {
 
         while i < k {
             // X_i = b_i mod 2
-            let x_i = b.limbs[0].0 & 1;
+            let x_i = b.limbs[0] & 1;
             let x_i_choice = CtChoice::from_lsb(x_i);
             // b_{i+1} = (b_i - a * X_i) / 2
             b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr_vartime(1);
