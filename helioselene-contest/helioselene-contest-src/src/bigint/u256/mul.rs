@@ -7,40 +7,75 @@ impl U256 {
     ///
     /// Returns a tuple containing the `(lo, hi)` components of the product.
     pub const fn mul_wide(&self, rhs: &U256) -> (U256, U256) {
-        const LIMBS: usize = U256::LIMBS;
-        let mut i = 0;
         let mut lo = U256::ZERO;
         let mut hi = U256::ZERO;
+        let mut carry: u64;
 
-        // Schoolbook multiplication.
-        // TODO: use Karatsuba for better performance?
-        while i < LIMBS {
-            let mut j = 0;
-            let mut carry = 0;
+        // Using schoolbook multiplication.
 
-            while j < LIMBS {
-                let k = i + j;
+        // i = 0
+        carry = 0;
+        let (w, c) = word::mac(lo.limbs[0], self.limbs[0], rhs.limbs[0], carry);
+        lo.limbs[0] = w;
+        carry = c;
+        let (w, c) = word::mac(lo.limbs[1], self.limbs[0], rhs.limbs[1], carry);
+        lo.limbs[1] = w;
+        carry = c;
+        let (w, c) = word::mac(lo.limbs[2], self.limbs[0], rhs.limbs[2], carry);
+        lo.limbs[2] = w;
+        carry = c;
+        let (w, c) = word::mac(lo.limbs[3], self.limbs[0], rhs.limbs[3], carry);
+        lo.limbs[3] = w;
+        carry = c;
+        hi.limbs[0] = carry;
 
-                if k >= LIMBS {
-                    let (n, c) = word::mac(hi.limbs[k - LIMBS], self.limbs[i], rhs.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = word::mac(lo.limbs[k], self.limbs[i], rhs.limbs[j], carry);
-                    lo.limbs[k] = n;
-                    carry = c;
-                }
+        // i = 1
+        carry = 0;
+        let (w, c) = word::mac(lo.limbs[1], self.limbs[1], rhs.limbs[0], carry);
+        lo.limbs[1] = w;
+        carry = c;
+        let (w, c) = word::mac(lo.limbs[2], self.limbs[1], rhs.limbs[1], carry);
+        lo.limbs[2] = w;
+        carry = c;
+        let (w, c) = word::mac(lo.limbs[3], self.limbs[1], rhs.limbs[2], carry);
+        lo.limbs[3] = w;
+        carry = c;
+        let (w, c) = word::mac(hi.limbs[0], self.limbs[1], rhs.limbs[3], carry);
+        hi.limbs[0] = w;
+        carry = c;
+        hi.limbs[1] = carry;
 
-                j += 1;
-            }
+        // i = 2
+        carry = 0;
+        let (w, c) = word::mac(lo.limbs[2], self.limbs[2], rhs.limbs[0], carry);
+        lo.limbs[2] = w;
+        carry = c;
+        let (w, c) = word::mac(lo.limbs[3], self.limbs[2], rhs.limbs[1], carry);
+        lo.limbs[3] = w;
+        carry = c;
+        let (w, c) = word::mac(hi.limbs[0], self.limbs[2], rhs.limbs[2], carry);
+        hi.limbs[0] = w;
+        carry = c;
+        let (w, c) = word::mac(hi.limbs[1], self.limbs[2], rhs.limbs[3], carry);
+        hi.limbs[1] = w;
+        carry = c;
+        hi.limbs[2] = carry;
 
-            if i + j >= LIMBS {
-                hi.limbs[i + j - LIMBS] = carry;
-            } else {
-                lo.limbs[i + j] = carry;
-            }
-            i += 1;
-        }
+        // i = 3
+        carry = 0;
+        let (w, c) = word::mac(lo.limbs[3], self.limbs[3], rhs.limbs[0], carry);
+        lo.limbs[3] = w;
+        carry = c;
+        let (w, c) = word::mac(hi.limbs[0], self.limbs[3], rhs.limbs[1], carry);
+        hi.limbs[0] = w;
+        carry = c;
+        let (w, c) = word::mac(hi.limbs[1], self.limbs[3], rhs.limbs[2], carry);
+        hi.limbs[1] = w;
+        carry = c;
+        let (w, c) = word::mac(hi.limbs[2], self.limbs[3], rhs.limbs[3], carry);
+        hi.limbs[2] = w;
+        carry = c;
+        hi.limbs[3] = carry;
 
         (lo, hi)
     }
