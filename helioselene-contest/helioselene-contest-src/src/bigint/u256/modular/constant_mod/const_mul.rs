@@ -4,30 +4,25 @@ use core::{
 };
 
 use super::{Residue, ResidueParams};
-use crate::bigint::u256::modular::mul::{mul_montgomery_form, square_montgomery_form};
+use crate::bigint::u256::modular::reduction::montgomery_reduction;
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Multiplies by `rhs`.
     pub(crate) const fn mul(&self, rhs: &Self) -> Self {
+        let product = self.montgomery_form.mul_wide(&rhs.montgomery_form);
+        let montgomery_form = montgomery_reduction(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
         Self {
-            montgomery_form: mul_montgomery_form(
-                &self.montgomery_form,
-                &rhs.montgomery_form,
-                &MOD::MODULUS,
-                MOD::MOD_NEG_INV,
-            ),
+            montgomery_form,
             phantom: PhantomData,
         }
     }
 
     /// Computes the (reduced) square of a residue.
     pub const fn square(&self) -> Self {
+        let product = self.montgomery_form.square_wide();
+        let montgomery_form = montgomery_reduction(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
         Self {
-            montgomery_form: square_montgomery_form(
-                &self.montgomery_form,
-                &MOD::MODULUS,
-                MOD::MOD_NEG_INV,
-            ),
+            montgomery_form,
             phantom: PhantomData,
         }
     }

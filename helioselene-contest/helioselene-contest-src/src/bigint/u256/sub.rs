@@ -19,12 +19,6 @@ impl U256 {
         )
     }
 
-    /// Perform saturating subtraction, returning `ZERO` on underflow.
-    pub const fn saturating_sub(&self, rhs: &Self) -> Self {
-        let (res, underflow) = self.subtract_with_borrow(rhs, 0);
-        Self::ct_select(&res, &Self::ZERO, CtChoice::from_mask(underflow))
-    }
-
     /// Perform wrapping subtraction, returning the truthy value as the second element of the tuple
     /// if an underflow has occurred.
     pub(crate) const fn conditional_wrapping_sub(

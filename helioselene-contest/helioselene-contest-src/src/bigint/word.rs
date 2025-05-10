@@ -45,13 +45,6 @@ pub(crate) const fn ct_is_nonzero(w: u64) -> CtChoice {
     CtChoice::from_lsb((w | w.wrapping_neg()) >> (u64::BITS - 1))
 }
 
-/// Returns the truthy value if `lhs == rhs` and the falsy value otherwise.
-#[inline]
-pub(crate) const fn ct_eq(x: u64, y: u64) -> CtChoice {
-    // x ^ y == 0 if and only if x == y
-    ct_is_nonzero(x ^ y).not()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

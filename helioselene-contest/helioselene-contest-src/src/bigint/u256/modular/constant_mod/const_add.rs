@@ -1,17 +1,14 @@
 use core::ops::{Add, AddAssign};
 
 use super::{Residue, ResidueParams};
-use crate::bigint::u256::modular::add::add_montgomery_form;
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Adds `rhs`.
     pub(crate) const fn add(&self, rhs: &Residue<MOD>) -> Self {
         Self {
-            montgomery_form: add_montgomery_form(
-                &self.montgomery_form,
-                &rhs.montgomery_form,
-                &MOD::MODULUS,
-            ),
+            montgomery_form: self
+                .montgomery_form
+                .add_mod(&rhs.montgomery_form, &MOD::MODULUS),
             phantom: core::marker::PhantomData,
         }
     }

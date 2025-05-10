@@ -1,17 +1,14 @@
 use core::ops::{Sub, SubAssign};
 
 use super::{Residue, ResidueParams};
-use crate::bigint::u256::modular::sub::sub_montgomery_form;
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Subtracts `rhs`.
     pub const fn sub(&self, rhs: &Self) -> Self {
         Self {
-            montgomery_form: sub_montgomery_form(
-                &self.montgomery_form,
-                &rhs.montgomery_form,
-                &MOD::MODULUS,
-            ),
+            montgomery_form: self
+                .montgomery_form
+                .sub_mod(&rhs.montgomery_form, &MOD::MODULUS),
             phantom: core::marker::PhantomData,
         }
     }
