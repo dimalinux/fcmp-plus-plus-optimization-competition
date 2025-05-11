@@ -5,7 +5,7 @@ use core::{
 
 use ff::{helpers::sqrt_ratio_generic, Field, FieldBits, PrimeField, PrimeFieldBits};
 use rand_core::RngCore;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeLess, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
@@ -19,33 +19,20 @@ const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d
 pub struct HelioseleneQ {}
 
 impl ResidueParams for HelioseleneQ {
-    const MODULUS: U256 = {
-        let res = <U256>::from_be_hex(MODULUS_STR);
-
-        if res.as_words()[0] & 1 == 0 {
-            panic!("modulus must be odd");
-        }
-
-        res
-    };
+    const MODULUS: U256 = U256::from_be_hex(MODULUS_STR);
+    /// MOD_NEG_INV is the modular multiplicative inverse of the least
+    /// significant 64-bits of `MODULUS` modulo 2^64, negated.
     const MOD_NEG_INV: u64 = 0x8a5f094bd6f46ba1_u64;
-    //= Word::MIN.wrapping_sub(
-    //     Self::MODULUS
-    //         .inv_mod2k_vartime(Word::BITS as usize)
-    //         .as_words()[0],
-    // );
+    /// R is U256::MAX % MODULUS + 1
     const R: U256 =
         U256::from_be_hex("0000000000000000000000000000000081010fa69135294f22925b1b0db070c2");
-    // = U256::MAX
-    //     .const_rem(&Self::MODULUS)
-    //     .0
-    //     .wrapping_add(&U256::ONE);
+    /// R2 is R^2 mod MODULUS
     const R2: U256 =
         U256::from_be_hex("410211c6fe99a770f19be179bd15cd0c6e709b56a6427587796519faf06a5304");
-    // = U256::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
+    /// R3 is the montgomery form of R2^2
     const R3: U256 =
         U256::from_be_hex("233029c4d15001cac205e02ae548627197f0fb0a46f8b46253018af9d307af37");
-    //   = montgomery_reduction(&Self::R2.square_wide(), &Self::MODULUS, Self::MOD_NEG_INV);
+    /// TWO_TO_256_MOD_M is 2^256 mod MODULUS
     const TWO_TO_256_MOD_M: U256 =
         U256::from_be_hex("0000000000000000000000000000000081010fa69135294f22925b1b0db070c2");
 }
@@ -54,7 +41,6 @@ pub(crate) type ResidueType = Residue<HelioseleneQ>;
 
 /// The field novel to Helios/Selene.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
-#[repr(C)]
 pub struct HelioseleneField(pub(crate) ResidueType);
 
 impl DefaultIsZeroes for HelioseleneField {}
@@ -286,7 +272,7 @@ impl PrimeField for HelioseleneField {
         let res = U256::from_le_slice(&bytes);
         CtOption::new(
             HelioseleneField(Residue::new(&res)),
-            res.ct_lt(&HelioseleneQ::MODULUS),
+            U256::ct_lt(&res, &HelioseleneQ::MODULUS).into(),
         )
     }
 
@@ -395,17 +381,5 @@ mod tests {
             let ouput = hex::encode(output.0.retrieve().to_be_bytes());
             assert_eq!(ouput, tc.output);
         }
-    }
-
-    #[test]
-    fn print_helioselene_field_consts_in_big_endian_hex() {
-        // eprintln!(
-        //     "MOD_NEG_INV: {}",
-        //     hex::encode(HelioseleneQ::MOD_NEG_INV.to_be_bytes())
-        // );
-        // eprintln!("R: {}", hex::encode(HelioseleneQ::R.to_be_bytes()));
-        // eprintln!("R2: {}", hex::encode(HelioseleneQ::R2.to_be_bytes()));
-        // eprintln!("R3: {}", hex::encode(HelioseleneQ::R3.to_be_bytes()));
-        // assert!(false);
     }
 }

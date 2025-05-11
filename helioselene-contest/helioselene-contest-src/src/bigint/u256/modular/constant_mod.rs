@@ -121,8 +121,9 @@ impl<MOD: ResidueParams + Copy> ConditionallySelectable for Residue<MOD> {
 }
 
 impl<MOD: ResidueParams> ConstantTimeEq for Residue<MOD> {
+    #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        ConstantTimeEq::ct_eq(&self.montgomery_form, &other.montgomery_form)
+        U256::ct_eq(&self.montgomery_form, &other.montgomery_form).into()
     }
 }
 

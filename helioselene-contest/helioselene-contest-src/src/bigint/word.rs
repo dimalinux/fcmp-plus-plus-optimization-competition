@@ -42,7 +42,11 @@ pub(crate) const fn ct_select(a: u64, b: u64, c: CtChoice) -> u64 {
 /// Returns the truthy value if `self != 0` and the falsy value otherwise.
 #[inline]
 pub(crate) const fn ct_is_nonzero(w: u64) -> CtChoice {
-    CtChoice::from_lsb((w | w.wrapping_neg()) >> (u64::BITS - 1))
+    // (x | x.wrapping_neg()) is 0 if and only if x == 0, otherwise
+    // the MSB is set. We use sign-extension to convert the MSB value
+    // into truthy or falsy.
+    let mask = ((w | w.wrapping_neg()) as i64 >> 63) as u64;
+    CtChoice::from_mask(mask)
 }
 
 #[cfg(test)]
@@ -75,5 +79,14 @@ mod tests {
         let (res, borrow) = sbb(0, 1, 0);
         assert_eq!(res, u64::MAX);
         assert_eq!(borrow, u64::MAX);
+    }
+
+    #[test]
+    fn test_ct_is_nonzero() {
+        assert!(!ct_is_nonzero(0).is_true_vartime());
+        assert!(ct_is_nonzero(1).is_true_vartime());
+        assert!(ct_is_nonzero(2).is_true_vartime());
+        assert!(ct_is_nonzero(i64::MIN as u64).is_true_vartime());
+        assert!(ct_is_nonzero(u64::MAX).is_true_vartime());
     }
 }

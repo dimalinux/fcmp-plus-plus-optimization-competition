@@ -119,7 +119,7 @@ impl U256 {
         (new_lower, upper)
     }
 
-    /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
+    /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUTHY`] if the overflowing bit
     /// was set, and [`CtChoice::FALSE`] otherwise.
     pub(crate) const fn shr_1(&self) -> (Self, CtChoice) {
         let mut shifted_bits = [0; Self::LIMBS];

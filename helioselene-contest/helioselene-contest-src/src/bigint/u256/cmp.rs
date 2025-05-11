@@ -2,9 +2,7 @@
 //!
 //! By default these are all constant-time and use the `subtle` crate.
 
-use core::cmp::Ordering;
-
-use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
+use subtle::{Choice, ConstantTimeEq};
 
 use crate::bigint::{ct_choice::CtChoice, word, U256};
 
@@ -34,13 +32,8 @@ impl U256 {
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
     pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
-        let mut b = 0;
-        let mut i = 0;
-        while i < Self::LIMBS {
-            b |= self.limbs[i];
-            i += 1;
-        }
-        word::ct_is_nonzero(b)
+        let w = self.limbs[0] | self.limbs[1] | self.limbs[2] | self.limbs[3];
+        word::ct_is_nonzero(w)
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
@@ -50,14 +43,11 @@ impl U256 {
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_eq(lhs: &Self, rhs: &Self) -> CtChoice {
-        let mut acc = 0;
-        let mut i = 0;
-
-        while i < Self::LIMBS {
-            acc |= lhs.limbs[i] ^ rhs.limbs[i];
-            i += 1;
-        }
+    pub(crate) const fn ct_eq(lhs: &U256, rhs: &U256) -> CtChoice {
+        let mut acc = lhs.limbs[0] ^ rhs.limbs[0];
+        acc |= lhs.limbs[1] ^ rhs.limbs[1];
+        acc |= lhs.limbs[2] ^ rhs.limbs[2];
+        acc |= lhs.limbs[3] ^ rhs.limbs[3];
 
         // acc == 0 if and only if self == rhs
         word::ct_is_nonzero(acc).not()
@@ -72,34 +62,6 @@ impl U256 {
         let (_res, borrow) = lhs.subtract_with_borrow(rhs, 0);
         CtChoice::from_mask(borrow)
     }
-
-    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn ct_gt(lhs: &Self, rhs: &Self) -> CtChoice {
-        let (_res, borrow) = rhs.subtract_with_borrow(lhs, 0);
-        CtChoice::from_mask(borrow)
-    }
-
-    /// Returns the ordering between `self` and `rhs` as an i8.
-    /// Values correspond to the Ordering enum:
-    ///   -1 is Less
-    ///   0 is Equal
-    ///   1 is Greater
-    #[inline]
-    pub(crate) const fn ct_cmp(lhs: &Self, rhs: &Self) -> i8 {
-        let mut i = 0;
-        let mut borrow = 0;
-        let mut diff = 0;
-
-        while i < Self::LIMBS {
-            let (w, b) = word::sbb(rhs.limbs[i], lhs.limbs[i], borrow);
-            diff = diff | w;
-            borrow = b;
-            i += 1;
-        }
-        let sgn = ((borrow & 2) as i8) - 1;
-        (word::ct_is_nonzero(diff).to_u8() as i8) * sgn
-    }
 }
 
 impl ConstantTimeEq for U256 {
@@ -109,41 +71,26 @@ impl ConstantTimeEq for U256 {
     }
 }
 
-impl ConstantTimeGreater for U256 {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> Choice {
-        Self::ct_gt(self, other).into()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ct_eq_simple() {
+        assert!(U256::ct_eq(&U256::ZERO, &U256::ZERO).is_true_vartime());
+        assert!(U256::ct_eq(&U256::ONE, &U256::ONE).is_true_vartime());
+        assert!(U256::ct_eq(&U256::MAX, &U256::MAX).is_true_vartime());
+        assert!(!U256::ct_eq(&U256::ONE, &U256::ZERO).is_true_vartime());
+        assert!(!U256::ct_eq(&U256::MAX, &U256::ONE).is_true_vartime());
     }
-}
 
-impl ConstantTimeLess for U256 {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> Choice {
-        Self::ct_lt(self, other).into()
-    }
-}
+    #[test]
+    fn ct_eq_high_bit_in_last_limb() {
+        let a = U256::ZERO;
+        let mut b = U256::ZERO;
+        b.limbs[3] = i64::MIN as u64;
 
-impl Eq for U256 {}
-
-impl Ord for U256 {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let c = Self::ct_cmp(self, other);
-        match c {
-            -1 => Ordering::Less,
-            0 => Ordering::Equal,
-            _ => Ordering::Greater,
-        }
-    }
-}
-
-impl PartialOrd for U256 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for U256 {
-    fn eq(&self, other: &Self) -> bool {
-        self.ct_eq(other).into()
+        assert!(!U256::ct_eq(&a, &b).is_true_vartime());
+        assert!(U256::ct_eq(&b, &b).is_true_vartime());
     }
 }

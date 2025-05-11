@@ -29,8 +29,7 @@ const WORD_BYTES: usize = WORD_BITS / 8;
 //pub(crate) type WideWord = u128;
 
 /// Stack-allocated 256-bit unsigned integer.
-#[allow(clippy::derived_hash_with_manual_eq)]
-#[derive(Copy, Clone, Hash)]
+#[derive(Copy, Clone, Hash, PartialEq, Eq)]
 pub struct U256 {
     /// Inner limb array. Stored from least significant to most significant.
     limbs: [u64; 4],
@@ -54,17 +53,10 @@ impl U256 {
     /// The value `0`.
     pub(crate) const ZERO: Self = Self::from_u64(0);
 
-    // TODO: use default?
-
     /// Const [`Uint`] constructor from an array of [`u64`]s.
     #[inline]
     pub(crate) const fn new(limbs: [u64; Self::LIMBS]) -> Self {
         Self { limbs }
-    }
-
-    /// Borrow the limbs of this [`Uint`].
-    pub(crate) const fn as_words(&self) -> &[u64; Self::LIMBS] {
-        &self.limbs
     }
 
     pub(crate) fn is_odd(&self) -> Choice {
@@ -74,13 +66,14 @@ impl U256 {
 
 impl ConditionallySelectable for U256 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        let mut limbs = [0; Self::LIMBS];
-
-        for i in 0..Self::LIMBS {
-            limbs[i] = u64::conditional_select(&a.limbs[i], &b.limbs[i], choice);
+        Self {
+            limbs: [
+                u64::conditional_select(&a.limbs[0], &b.limbs[0], choice),
+                u64::conditional_select(&a.limbs[1], &b.limbs[1], choice),
+                u64::conditional_select(&a.limbs[2], &b.limbs[2], choice),
+                u64::conditional_select(&a.limbs[3], &b.limbs[3], choice),
+            ],
         }
-
-        Self { limbs }
     }
 }
 

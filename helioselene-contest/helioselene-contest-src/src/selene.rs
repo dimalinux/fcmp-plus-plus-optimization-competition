@@ -1,6 +1,6 @@
 use core::{
     iter::Sum,
-    ops::{Add, AddAssign, DerefMut, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, BitAnd, BitOr, DerefMut, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 use group::{
@@ -55,19 +55,25 @@ const G: SelenePoint = SelenePoint {
 };
 impl ConstantTimeEq for SelenePoint {
     fn ct_eq(&self, other: &Self) -> Choice {
-        let x1 = self.x * other.z;
-        let x2 = other.x * self.z;
-        let y1 = self.y * other.z;
-        let y2 = other.y * self.z;
-        (self.x.is_zero() & other.x.is_zero()) | (x1.ct_eq(&x2) & y1.ct_eq(&y2))
+        let x1 = ResidueType::mul(&self.x.0, &other.z.0);
+        let x2 = ResidueType::mul(&other.x.0, &self.z.0);
+        let y1 = ResidueType::mul(&self.y.0, &other.z.0);
+        let y2 = ResidueType::mul(&other.y.0, &self.z.0);
+        let both_x_zero = Choice::bitand(self.x.is_zero(), other.x.is_zero());
+        let x_and_y_eq = Choice::bitand(x1.ct_eq(&x2), y1.ct_eq(&y2));
+        Choice::bitor(both_x_zero, x_and_y_eq)
     }
 }
+
 impl PartialEq for SelenePoint {
     fn eq(&self, other: &SelenePoint) -> bool {
+        // TODO: Does the contest use it? We could create a vartime eq method.
         self.ct_eq(other).into()
     }
 }
+
 impl Eq for SelenePoint {}
+
 impl ConditionallySelectable for SelenePoint {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         SelenePoint {

@@ -5,10 +5,7 @@ use core::{
 
 use group::ff::{Field, FieldBits, PrimeField, PrimeFieldBits};
 use rand_core::RngCore;
-use subtle::{
-    Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTimeEq, ConstantTimeLess,
-    CtOption,
-};
+use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
 
 use crate::{
@@ -19,44 +16,43 @@ use crate::{
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[repr(C)]
 pub(crate) struct FieldModulus {}
 impl ResidueParams for FieldModulus {
-    /// `MODULUS` is 2^255 - 19 (an odd value)
+    /// MODULUS is 2^255 - 19 (an odd value)
     const MODULUS: U256 = U256::from_be_hex(MODULUS_HEX);
-    // `MOD_NEG_INV` is the modular multiplicative inverse of the least
-    // significant 64-bits of `MODULUS` modulo 2^64, negated.
+    /// MOD_NEG_INV is the modular multiplicative inverse of the least
+    /// significant 64-bits of `MODULUS` modulo 2^64, negated.
     const MOD_NEG_INV: u64 = 0x86bca1af286bca1b_u64;
     /// R is U256::MAX % MODULUS + 1
     const R: U256 = U256::from_u64(0x26);
     /// R2 is R^2 mod MODULUS
     const R2: U256 = U256::from_u64(0x5a4);
+    /// R3 is the montgomery form of R2^2
     const R3: U256 = U256::from_u64(0xd658);
-    // TWO_TO_256_MOD_M is 2^256 mod MODULUS
+    /// TWO_TO_256_MOD_M is 2^256 mod MODULUS
     const TWO_TO_256_MOD_M: U256 = U256::from_u64(0x26);
 }
 pub(crate) type ResidueType = Residue<FieldModulus>;
 
 /// A constant-time implementation of the Ed25519 field.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
-#[repr(C)]
 pub struct Field25519(pub(crate) ResidueType);
 
-// Square root of -1.
-// Formula from RFC-8032 (modp_sqrt_m1/sqrt8k5 z)
-// 2 ** ((MODULUS - 1) // 4) % MODULUS
+/// Square root of -1.
+/// Formula from RFC-8032 (modp_sqrt_m1/sqrt8k5 z)
+/// 2 ** ((MODULUS - 1) // 4) % MODULUS
 const SQRT_M1: Field25519 = Field25519(ResidueType::new(&U256::from_be_hex(
     "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
 )));
 
-// Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
-// (MODULUS + 3) / 8
+/// Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
+/// (MODULUS + 3) / 8
 const MOD_3_8: Field25519 = Field25519(ResidueType::new(&U256::from_be_hex(
     "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
 )));
 
-// Constant useful in sqrt_ratio_i (sqrt(u / v))
-// MOD_3_8 - 1
+/// Constant useful in sqrt_ratio_i (sqrt(u / v))
+/// MOD_3_8 - 1
 const MOD_5_8: Field25519 = Field25519(ResidueType::new(&U256::from_be_hex(
     "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd",
 )));
@@ -275,7 +271,7 @@ impl PrimeField for Field25519 {
         let res = U256::from_le_bytes(bytes);
         CtOption::new(
             Self(ResidueType::new(&res)),
-            res.ct_lt(&FieldModulus::MODULUS),
+            U256::ct_lt(&res, &FieldModulus::MODULUS).into(),
         )
     }
 
