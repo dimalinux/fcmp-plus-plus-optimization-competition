@@ -1,7 +1,10 @@
 //! Big integers are represented as an array of smaller CPU word-size integers
 //! called "limbs".
 
-use crate::bigint::ct_choice::CtChoice;
+use crate::u256::ct_choice::CtChoice;
+
+pub(crate) const WORD_BITS: usize = u64::BITS as usize; // TODO: remove?
+pub(crate) const WORD_BYTES: usize = WORD_BITS / 8;
 
 #[inline(always)]
 pub(crate) const fn adc(lhs: u64, rhs: u64, carry: u64) -> (u64, u64) {

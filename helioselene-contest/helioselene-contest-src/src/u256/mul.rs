@@ -1,12 +1,12 @@
 //! [`Uint`] addition operations.
 
-use crate::bigint::{word, U256};
+use crate::u256::{word, U256};
 
 impl U256 {
     /// Compute "wide" multiplication, with a product twice the size of the input.
     ///
     /// Returns a tuple containing the `(lo, hi)` components of the product.
-    pub const fn mul_wide(&self, rhs: &U256) -> (U256, U256) {
+    pub(crate) const fn mul_wide(&self, rhs: &U256) -> (U256, U256) {
         let mut lo = U256::ZERO;
         let mut hi = U256::ZERO;
         let mut carry: u64;
@@ -81,7 +81,7 @@ impl U256 {
     }
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
-    pub const fn square_wide(&self) -> (U256, U256) {
+    pub(crate) const fn square_wide(&self) -> (U256, U256) {
         // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
         //
         // Permission to relicense the resulting translation as Apache 2.0 + MIT was given

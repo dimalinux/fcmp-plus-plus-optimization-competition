@@ -1,9 +1,5 @@
-use core::{fmt::Debug, marker::PhantomData};
-
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use super::reduction::montgomery_reduction;
-use crate::bigint::{Zero, U256};
+/// Implements `Residue`s, supporting modular arithmetic with a constant modulus.
+mod reduction;
 
 /// Additions between residues with a constant modulus
 mod const_add;
@@ -16,7 +12,12 @@ mod const_neg;
 /// Subtractions between residues with a constant modulus
 mod const_sub;
 
-//pub use macros::*;
+use core::{fmt::Debug, marker::PhantomData};
+
+use reduction::montgomery_reduction;
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::u256::{Zero, U256};
 
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
 ///

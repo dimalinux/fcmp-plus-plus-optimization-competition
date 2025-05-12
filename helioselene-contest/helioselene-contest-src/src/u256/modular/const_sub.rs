@@ -4,7 +4,7 @@ use super::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Subtracts `rhs`.
-    pub const fn sub(&self, rhs: &Self) -> Self {
+    pub(crate) const fn sub(&self, rhs: &Self) -> Self {
         Self {
             montgomery_form: self
                 .montgomery_form

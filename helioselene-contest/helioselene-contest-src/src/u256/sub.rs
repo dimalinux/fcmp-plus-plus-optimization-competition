@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::bigint::{ct_choice::CtChoice, word, U256};
+use crate::u256::{ct_choice::CtChoice, word, U256};
 
 impl U256 {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.

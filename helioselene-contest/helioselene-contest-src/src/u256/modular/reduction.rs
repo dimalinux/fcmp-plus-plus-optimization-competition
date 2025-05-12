@@ -1,4 +1,4 @@
-use crate::bigint::{word, U256};
+use crate::u256::{word, U256};
 
 /// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
 #[inline(always)]

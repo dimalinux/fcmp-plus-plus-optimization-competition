@@ -1,12 +1,12 @@
 //! [`Uint`] addition modulus operations.
 
-use crate::bigint::{word, U256};
+use crate::u256::{word, U256};
 
 impl U256 {
     /// Computes `self + rhs mod p`.
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
-    pub const fn add_mod(&self, rhs: &U256, p: &U256) -> U256 {
+    pub(crate) const fn add_mod(&self, rhs: &U256, p: &U256) -> U256 {
         let (w, carry) = self.adc(rhs, 0);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.

@@ -1,4 +1,4 @@
-use crate::bigint::{ct_choice::CtChoice, U256};
+use crate::u256::{ct_choice::CtChoice, U256};
 
 impl U256 {
     /// Negates based on `choice` by wrapping the integer.
@@ -7,7 +7,7 @@ impl U256 {
     }
 
     /// Perform wrapping negation.
-    pub const fn wrapping_neg(&self) -> Self {
+    pub(crate) const fn wrapping_neg(&self) -> Self {
         let mut carry = 1;
 
         let r0 = (!self.limbs[0] as u128) + carry;

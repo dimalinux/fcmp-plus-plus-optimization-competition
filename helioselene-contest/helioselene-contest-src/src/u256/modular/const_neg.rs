@@ -1,10 +1,10 @@
 use core::ops::Neg;
 
-use super::{Residue, ResidueParams};
+use crate::u256::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Negates the number.
-    pub const fn neg(&self) -> Self {
+    pub(crate) const fn neg(&self) -> Self {
         Self::ZERO.sub(self)
     }
 }

@@ -1,6 +1,6 @@
 use core::ops::{Add, AddAssign};
 
-use super::{Residue, ResidueParams};
+use crate::u256::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Adds `rhs`.

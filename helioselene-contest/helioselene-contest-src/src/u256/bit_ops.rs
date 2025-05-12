@@ -1,13 +1,12 @@
-use crate::bigint::{
+use crate::u256::{
     ct_choice::CtChoice,
-    u256::WORD_BITS,
-    word::{ct_is_nonzero, ct_select},
+    word::{ct_is_nonzero, ct_select, WORD_BITS},
     U256,
 };
 
 impl U256 {
     /// Calculate the number of bits needed to represent this number.
-    pub const fn bits_vartime(&self) -> usize {
+    pub(crate) const fn bits_vartime(&self) -> usize {
         let mut i = Self::LIMBS - 1;
         while i > 0 && self.limbs[i] == 0 {
             i -= 1;
@@ -18,7 +17,7 @@ impl U256 {
     }
 
     #[inline(always)]
-    pub const fn bitand(&self, rhs: &Self) -> Self {
+    pub(crate) const fn bitand(&self, rhs: &Self) -> Self {
         let mut limbs = [0; Self::LIMBS];
         let mut i = 0;
 
@@ -32,7 +31,7 @@ impl U256 {
 
     /// Computes bitwise `a & b`.
     #[inline(always)]
-    pub const fn bitor(&self, rhs: &Self) -> Self {
+    pub(crate) const fn bitor(&self, rhs: &Self) -> Self {
         let mut limbs = [0; Self::LIMBS];
         let mut i = 0;
 
@@ -79,7 +78,7 @@ impl U256 {
     /// When used with a fixed `n`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn shl_vartime(&self, n: usize) -> Self {
+    pub(crate) const fn shl_vartime(&self, n: usize) -> Self {
         let mut limbs = [0; Self::LIMBS];
 
         if n >= WORD_BITS * Self::LIMBS {
@@ -106,7 +105,7 @@ impl U256 {
     /// When used with a fixed `n`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn shl_vartime_wide(lower_upper: (Self, Self), n: usize) -> (Self, Self) {
+    pub(crate) const fn shl_vartime_wide(lower_upper: (Self, Self), n: usize) -> (Self, Self) {
         let (lower, mut upper) = lower_upper;
         let new_lower = lower.shl_vartime(n);
         upper = upper.shl_vartime(n);
@@ -162,7 +161,7 @@ impl U256 {
     /// When used with a fixed `n`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn shr_vartime(&self, shift: usize) -> Self {
+    pub(crate) const fn shr_vartime(&self, shift: usize) -> Self {
         let full_shifts = shift / WORD_BITS;
         let small_shift = shift & (WORD_BITS - 1);
         let mut limbs = [0; Self::LIMBS];

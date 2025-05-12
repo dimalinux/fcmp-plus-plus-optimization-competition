@@ -14,9 +14,9 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{Residue, U256},
     dalek_ff_group::Field25519,
     field::{HelioseleneField, ResidueType},
+    u256::{Residue, U256},
 };
 
 pub(crate) const G_X: HelioseleneField = HelioseleneField(Residue::new(&U256::from_be_hex(
@@ -41,7 +41,6 @@ fn recover_y(x: HelioseleneField) -> CtOption<HelioseleneField> {
 }
 /// Point.
 #[derive(Clone, Copy, Debug, Zeroize)]
-#[repr(C)]
 pub struct SelenePoint {
     x: HelioseleneField,
     y: HelioseleneField,

@@ -10,13 +10,13 @@ use zeroize::{DefaultIsZeroes, Zeroize};
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{Encoding, Residue, ResidueParams, U256},
+    u256::{Encoding, Residue, ResidueParams, U256},
 };
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct HelioseleneQ {}
+pub(crate) struct HelioseleneQ {}
 
 impl ResidueParams for HelioseleneQ {
     const MODULUS: U256 = U256::from_be_hex(MODULUS_STR);

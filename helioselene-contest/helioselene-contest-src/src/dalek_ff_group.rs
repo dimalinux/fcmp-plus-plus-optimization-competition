@@ -10,7 +10,7 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    bigint::{Encoding, Residue, ResidueParams, U256},
+    u256::{Encoding, Residue, ResidueParams, U256},
 };
 
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
@@ -405,7 +405,7 @@ fn test_sqrt_m1() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bigint::Encoding, Field25519};
+    use crate::{u256::Encoding, Field25519};
 
     #[test]
     fn test_field() {

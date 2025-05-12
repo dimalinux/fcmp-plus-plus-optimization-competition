@@ -1,6 +1,6 @@
 //! [`Uint`] division operations.
 
-use crate::bigint::{ct_choice::CtChoice, word, U256};
+use crate::u256::{ct_choice::CtChoice, word, U256};
 
 impl U256 {
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
@@ -43,7 +43,7 @@ impl U256 {
     /// This function exists, so that all operations are accounted for in the wrapping operations.
     ///
     /// Panics if `rhs == 0`.
-    pub const fn wrapping_div(&self, rhs: &Self) -> Self {
+    pub(crate) const fn wrapping_div(&self, rhs: &Self) -> Self {
         let (q, _, c) = self.ct_div_rem(rhs);
         assert!(c.is_true_vartime(), "divide by zero");
         q

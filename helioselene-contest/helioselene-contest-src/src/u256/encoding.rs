@@ -1,5 +1,29 @@
 //! Const-friendly decoding operations for [`Uint`]
-use super::{U256, WORD_BYTES};
+
+use crate::u256::{word::WORD_BYTES, Encoding, U256};
+
+impl Encoding for U256 {
+    type Repr = [u8; 32];
+
+    #[inline]
+    fn from_le_bytes(bytes: Self::Repr) -> Self {
+        Self::from_le_slice(&bytes)
+    }
+
+    #[inline]
+    fn to_le_bytes(&self) -> Self::Repr {
+        let mut result = [0u8; 32];
+        self.write_le_bytes(&mut result);
+        result
+    }
+
+    #[cfg(test)]
+    fn to_be_bytes(&self) -> Self::Repr {
+        let mut result = [0u8; 32];
+        self.write_be_bytes(&mut result);
+        result
+    }
+}
 
 impl U256 {
     /// Create a new [`Uint`] from the provided big endian hex string.
@@ -36,7 +60,7 @@ impl U256 {
 
     /// Create a new [`Uint`] from the provided little endian bytes.
     pub(crate) const fn from_le_slice(bytes: &[u8]) -> Self {
-        assert!(bytes.len() == 32, "bytes are not the expected size");
+        debug_assert!(bytes.len() == 32, "bytes are not the expected size");
         Self {
             // cant use slices below, because try_into() is not const
             limbs: [
@@ -61,10 +85,9 @@ impl U256 {
 
     /// Serialize this [`Uint`] as big-endian, writing it into the provided
     /// byte slice.
-    #[inline]
     #[cfg(test)]
     pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), 32);
+        debug_assert!(out.len() == 32);
         out[0..8].copy_from_slice(&self.limbs[3].to_be_bytes());
         out[8..16].copy_from_slice(&self.limbs[2].to_be_bytes());
         out[16..24].copy_from_slice(&self.limbs[1].to_be_bytes());
@@ -75,7 +98,7 @@ impl U256 {
     /// byte slice.
     #[inline]
     pub(crate) fn write_le_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), 32);
+        debug_assert!(out.len() == 32);
         out[0..8].copy_from_slice(&self.limbs[0].to_le_bytes());
         out[8..16].copy_from_slice(&self.limbs[1].to_le_bytes());
         out[16..24].copy_from_slice(&self.limbs[2].to_le_bytes());

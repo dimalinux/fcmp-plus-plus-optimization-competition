@@ -1,36 +1,33 @@
-//! Stack-allocated 256-bit integer.
 mod add;
 mod add_mod;
 mod bit_ops;
 mod cmp;
+/// Implements modular arithmetic for constant moduli.
+mod ct_choice;
 mod div;
 mod encoding;
 mod from;
 mod inv_mod;
+mod modular;
 mod mul;
 mod neg;
 mod sub;
 mod sub_mod;
+mod traits;
+mod word;
 
-/// Implements modular arithmetic for constant moduli.
-pub(crate) mod modular;
-
-use core::fmt;
-
+use ::core::fmt;
+pub(crate) use modular::{Residue, ResidueParams};
 use subtle::{Choice, ConditionallySelectable};
+pub(crate) use traits::{Encoding, Zero};
 use zeroize::DefaultIsZeroes;
 
-use crate::bigint::{Encoding, Zero};
-
-const WORD_BITS: usize = u64::BITS as usize;
-const WORD_BYTES: usize = WORD_BITS / 8;
-
-/// Wide integer type: double the width of [`crate::bigint::u64`].
+/// Wide integer type: double the width of [`crate::u256::u64`].
 //pub(crate) type WideWord = u128;
 
 /// Stack-allocated 256-bit unsigned integer.
-#[derive(Copy, Clone, Hash, PartialEq, Eq)]
-pub struct U256 {
+#[derive(Default, Copy, Clone, Hash, PartialEq, Eq)]
+pub(crate) struct U256 {
     /// Inner limb array. Stored from least significant to most significant.
     limbs: [u64; 4],
 }
@@ -77,15 +74,11 @@ impl ConditionallySelectable for U256 {
     }
 }
 
-impl Default for U256 {
-    fn default() -> Self {
-        Self::ZERO
-    }
-}
-
 impl Zero for U256 {
     const ZERO: Self = Self::ZERO;
 }
+
+impl DefaultIsZeroes for U256 {}
 
 impl fmt::Debug for U256 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -105,31 +98,5 @@ impl fmt::LowerHex for U256 {
             write!(f, "{:0width$x}", limb, width = Self::BYTES * 2)?;
         }
         Ok(())
-    }
-}
-
-impl DefaultIsZeroes for U256 {}
-
-impl Encoding for U256 {
-    type Repr = [u8; 256 / 8];
-
-    #[inline]
-    fn from_le_bytes(bytes: Self::Repr) -> Self {
-        Self::from_le_slice(&bytes)
-    }
-
-    #[inline]
-    fn to_le_bytes(&self) -> Self::Repr {
-        let mut result = [0u8; 256 / 8];
-        self.write_le_bytes(&mut result);
-        result
-    }
-
-    #[inline]
-    #[cfg(test)]
-    fn to_be_bytes(&self) -> Self::Repr {
-        let mut result = [0u8; 256 / 8];
-        self.write_be_bytes(&mut result);
-        result
     }
 }

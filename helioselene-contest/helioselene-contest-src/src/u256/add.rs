@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::bigint::{ct_choice::CtChoice, word, U256};
+use super::{ct_choice::CtChoice, word, U256};
 
 impl U256 {
     /// Computes `a + b + carry`, returning the result along with the new carry.
@@ -20,13 +20,13 @@ impl U256 {
     }
 
     /// Perform saturating addition, returning `MAX` on overflow.
-    pub const fn saturating_add(&self, rhs: &Self) -> Self {
+    pub(crate) const fn saturating_add(&self, rhs: &Self) -> Self {
         let (res, overflow) = self.adc(rhs, 0);
         Self::ct_select(&res, &Self::MAX, CtChoice::from_lsb(overflow))
     }
 
     /// Perform wrapping addition, discarding overflow.
-    pub const fn wrapping_add(&self, rhs: &Self) -> Self {
+    pub(crate) const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, 0).0
     }
 

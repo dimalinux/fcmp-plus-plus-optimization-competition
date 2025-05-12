@@ -4,7 +4,7 @@
 
 use subtle::{Choice, ConstantTimeEq};
 
-use crate::bigint::{ct_choice::CtChoice, word, U256};
+use crate::u256::{ct_choice::CtChoice, word, U256};
 
 impl U256 {
     /// Return `b` if `c` is truthy, otherwise return `a`.

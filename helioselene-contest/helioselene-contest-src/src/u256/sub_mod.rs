@@ -1,12 +1,12 @@
 //! [`Uint`] subtraction modulus operations.
 
-use crate::bigint::U256;
+use crate::u256::U256;
 
 impl U256 {
     /// Computes `self - rhs mod p`.
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
-    pub const fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
+    pub(crate) const fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
         let (out, borrow) = self.subtract_with_borrow(rhs, 0);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise

@@ -1,4 +1,4 @@
-use crate::bigint::{ct_choice::CtChoice, U256};
+use crate::u256::{ct_choice::CtChoice, U256};
 
 impl U256 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
