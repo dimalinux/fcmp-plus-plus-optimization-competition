@@ -30,27 +30,28 @@ impl CtChoice {
     }
 
     #[inline(always)]
-    pub(crate) const fn not(&self) -> Self {
+    pub(crate) const fn not(self) -> Self {
         Self(!self.0)
     }
 
     /// Return `b` if `self` is truthy, otherwise return `a`.
     #[inline(always)]
-    pub(crate) const fn select(&self, a: u64, b: u64) -> u64 {
+    pub(crate) const fn select(self, a: u64, b: u64) -> u64 {
         a ^ (self.0 & (a ^ b))
     }
 
     /// Return `x` if `self` is truthy, otherwise return 0.
     #[inline(always)]
-    pub(crate) const fn if_true(&self, x: u64) -> u64 {
+    pub(crate) const fn if_true(self, x: u64) -> u64 {
         x & self.0
     }
 
-    pub(crate) const fn is_true_vartime(&self) -> bool {
-        self.0 == CtChoice::TRUTHY.0
+    pub(crate) const fn is_true_vartime(self) -> bool {
+        self.0 == Self::TRUTHY.0
     }
 
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn to_u8(self) -> u8 {
         (self.0 as u8) & 1
     }
@@ -58,7 +59,7 @@ impl CtChoice {
 
 impl From<CtChoice> for Choice {
     fn from(choice: CtChoice) -> Self {
-        Choice::from(choice.to_u8())
+        Self::from(choice.to_u8())
     }
 }
 

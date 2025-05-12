@@ -23,8 +23,8 @@ subtle = { version = "^2.4", default-features = false }
 ff = { version = "0.13", default-features = false, features = ["bits"] }
 group = { version = "0.13", default-features = false }
 
-digest = "0.10.7"
-curve25519-dalek = "4.1.3"
+#digest = "0.10.7"
+#curve25519-dalek = "4.1.3"
 
 [dev-dependencies]
 hex = "0.4"

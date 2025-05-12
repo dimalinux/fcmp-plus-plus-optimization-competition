@@ -1,6 +1,6 @@
 use core::{
     iter::Sum,
-    ops::{Add, AddAssign, BitAnd, BitOr, DerefMut, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, BitAnd, BitOr, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 use group::{
@@ -63,7 +63,7 @@ impl ConstantTimeEq for HeliosPoint {
 
 impl PartialEq for HeliosPoint {
     // TODO: Does the contest use it? We could create a vartime eq method.
-    fn eq(&self, other: &HeliosPoint) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.ct_eq(other).into()
     }
 }
@@ -72,7 +72,7 @@ impl Eq for HeliosPoint {}
 
 impl ConditionallySelectable for HeliosPoint {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        HeliosPoint {
+        Self {
             x: Field25519::conditional_select(&a.x, &b.x, choice),
             y: Field25519::conditional_select(&a.y, &b.y, choice),
             z: Field25519::conditional_select(&a.z, &b.z, choice),
@@ -80,7 +80,7 @@ impl ConditionallySelectable for HeliosPoint {
     }
 }
 impl Add for HeliosPoint {
-    type Output = HeliosPoint;
+    type Output = Self;
 
     #[allow(non_snake_case)]
     fn add(self, other: Self) -> Self {
@@ -129,7 +129,7 @@ impl Add for HeliosPoint {
         let t0 = Residue::mul(&t3, &t1);
         let Z3 = Residue::mul(&t5, &Z3);
         let Z3 = Residue::add(&Z3, &t0);
-        HeliosPoint {
+        Self {
             x: Field25519(X3),
             y: Field25519(Y3),
             z: Field25519(Z3),
@@ -137,27 +137,27 @@ impl Add for HeliosPoint {
     }
 }
 impl AddAssign for HeliosPoint {
-    fn add_assign(&mut self, other: HeliosPoint) {
-        *self = HeliosPoint::add(*self, other);
+    fn add_assign(&mut self, other: Self) {
+        *self = Self::add(*self, other);
     }
 }
-impl Add<&HeliosPoint> for HeliosPoint {
-    type Output = HeliosPoint;
+impl Add<&Self> for HeliosPoint {
+    type Output = Self;
 
-    fn add(self, other: &HeliosPoint) -> HeliosPoint {
-        HeliosPoint::add(self, *other)
+    fn add(self, other: &Self) -> Self {
+        Self::add(self, *other)
     }
 }
-impl AddAssign<&HeliosPoint> for HeliosPoint {
-    fn add_assign(&mut self, other: &HeliosPoint) {
-        *self = HeliosPoint::add(*self, *other);
+impl AddAssign<&Self> for HeliosPoint {
+    fn add_assign(&mut self, other: &Self) {
+        *self = Self::add(*self, *other);
     }
 }
 impl Neg for HeliosPoint {
-    type Output = HeliosPoint;
+    type Output = Self;
 
     fn neg(self) -> Self {
-        HeliosPoint {
+        Self {
             x: self.x,
             y: self.y.neg(),
             z: self.z,
@@ -165,27 +165,27 @@ impl Neg for HeliosPoint {
     }
 }
 impl Sub for HeliosPoint {
-    type Output = HeliosPoint;
+    type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        HeliosPoint::add(self, other.neg())
+        Self::add(self, other.neg())
     }
 }
 impl SubAssign for HeliosPoint {
-    fn sub_assign(&mut self, other: HeliosPoint) {
-        *self = HeliosPoint::add(*self, other.neg());
+    fn sub_assign(&mut self, other: Self) {
+        *self = Self::add(*self, other.neg());
     }
 }
-impl Sub<&HeliosPoint> for HeliosPoint {
-    type Output = HeliosPoint;
+impl Sub<&Self> for HeliosPoint {
+    type Output = Self;
 
-    fn sub(self, other: &HeliosPoint) -> HeliosPoint {
-        HeliosPoint::add(self, other.neg())
+    fn sub(self, other: &Self) -> Self {
+        Self::add(self, other.neg())
     }
 }
-impl SubAssign<&HeliosPoint> for HeliosPoint {
-    fn sub_assign(&mut self, other: &HeliosPoint) {
-        *self = HeliosPoint::add(*self, other.neg());
+impl SubAssign<&Self> for HeliosPoint {
+    fn sub_assign(&mut self, other: &Self) {
+        *self = Self::add(*self, other.neg());
     }
 }
 impl Group for HeliosPoint {
@@ -204,7 +204,7 @@ impl Group for HeliosPoint {
     }
 
     fn identity() -> Self {
-        HeliosPoint {
+        Self {
             x: Field25519::ZERO,
             y: Field25519::ONE,
             z: Field25519::ZERO,
@@ -244,8 +244,8 @@ impl Group for HeliosPoint {
         Self::conditional_select(&res, &Self::identity(), self.is_identity())
     }
 }
-impl Sum<HeliosPoint> for HeliosPoint {
-    fn sum<I: Iterator<Item = HeliosPoint>>(iter: I) -> HeliosPoint {
+impl Sum<Self> for HeliosPoint {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = Self::identity();
         for i in iter {
             res += i;
@@ -253,16 +253,16 @@ impl Sum<HeliosPoint> for HeliosPoint {
         res
     }
 }
-impl<'a> Sum<&'a HeliosPoint> for HeliosPoint {
-    fn sum<I: Iterator<Item = &'a HeliosPoint>>(iter: I) -> HeliosPoint {
-        HeliosPoint::sum(iter.cloned())
+impl<'a> Sum<&'a Self> for HeliosPoint {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        Self::sum(iter.copied())
     }
 }
 impl Mul<HelioseleneField> for HeliosPoint {
-    type Output = HeliosPoint;
+    type Output = Self;
 
-    fn mul(self, mut other: HelioseleneField) -> HeliosPoint {
-        let mut table = [HeliosPoint::identity(); 16];
+    fn mul(self, mut other: HelioseleneField) -> Self {
+        let mut table = [Self::identity(); 16];
         table[1] = self;
         for i in 2..16 {
             table[i] = table[i - 1] + self;
@@ -271,7 +271,7 @@ impl Mul<HelioseleneField> for HeliosPoint {
         let mut bits = 0;
         for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
             bits <<= 1;
-            let mut bit = u8_from_bool(bit.deref_mut());
+            let mut bit = u8_from_bool(&mut bit);
             bits |= bit;
             bit.zeroize();
             if ((i + 1) % 4) == 0 {
@@ -299,9 +299,9 @@ impl MulAssign<HelioseleneField> for HeliosPoint {
     }
 }
 impl Mul<&HelioseleneField> for HeliosPoint {
-    type Output = HeliosPoint;
+    type Output = Self;
 
-    fn mul(self, other: &HelioseleneField) -> HeliosPoint {
+    fn mul(self, other: &HelioseleneField) -> Self {
         self * *other
     }
 }
@@ -329,14 +329,14 @@ impl GroupEncoding for HeliosPoint {
                 &CtOption::new(Field25519::ONE, 1.into()),
                 is_identity,
             );
-            let point = y.map(|y| HeliosPoint {
+            let point = y.map(|y| Self {
                 x,
                 y,
                 z: Field25519::ONE,
             });
             let not_negative_zero = !(is_identity & sign);
             CtOption::conditional_select(
-                &CtOption::new(HeliosPoint::identity(), 0.into()),
+                &CtOption::new(Self::identity(), 0.into()),
                 &point,
                 not_negative_zero,
             )
@@ -344,7 +344,7 @@ impl GroupEncoding for HeliosPoint {
     }
 
     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-        HeliosPoint::from_bytes(bytes)
+        Self::from_bytes(bytes)
     }
 
     fn to_bytes(&self) -> Self::Repr {

@@ -30,30 +30,30 @@ impl<MOD: ResidueParams> Sub<Residue<MOD>> for &Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> Sub<&Residue<MOD>> for Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: ResidueParams> Sub<&Self> for Residue<MOD> {
+    type Output = Self;
 
-    fn sub(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        Residue::sub(&self, rhs)
+    fn sub(self, rhs: &Self) -> Self {
+        Self::sub(&self, rhs)
     }
 }
 
-impl<MOD: ResidueParams> Sub<Residue<MOD>> for Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: ResidueParams> Sub<Self> for Residue<MOD> {
+    type Output = Self;
 
-    fn sub(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        Residue::sub(&self, &rhs)
+    fn sub(self, rhs: Self) -> Self {
+        Self::sub(&self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> SubAssign<&Self> for Residue<MOD> {
     fn sub_assign(&mut self, rhs: &Self) {
-        *self = Residue::sub(self, rhs)
+        *self = Self::sub(self, rhs);
     }
 }
 
 impl<MOD: ResidueParams> SubAssign<Self> for Residue<MOD> {
     fn sub_assign(&mut self, rhs: Self) {
-        *self = Residue::sub(self, &rhs)
+        *self = Self::sub(self, &rhs);
     }
 }

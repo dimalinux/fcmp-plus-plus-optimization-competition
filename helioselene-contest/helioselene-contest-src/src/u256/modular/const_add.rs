@@ -4,7 +4,7 @@ use crate::u256::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Adds `rhs`.
-    pub(crate) const fn add(&self, rhs: &Residue<MOD>) -> Self {
+    pub(crate) const fn add(&self, rhs: &Self) -> Self {
         Self {
             montgomery_form: self
                 .montgomery_form
@@ -30,30 +30,30 @@ impl<MOD: ResidueParams> Add<Residue<MOD>> for &Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> Add<&Residue<MOD>> for Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: ResidueParams> Add<&Self> for Residue<MOD> {
+    type Output = Self;
 
-    fn add(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        Residue::add(&self, rhs)
+    fn add(self, rhs: &Self) -> Self {
+        Self::add(&self, rhs)
     }
 }
 
-impl<MOD: ResidueParams> Add<Residue<MOD>> for Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: ResidueParams> Add<Self> for Residue<MOD> {
+    type Output = Self;
 
-    fn add(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        Residue::add(&self, &rhs)
+    fn add(self, rhs: Self) -> Self {
+        Self::add(&self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> AddAssign<&Self> for Residue<MOD> {
     fn add_assign(&mut self, rhs: &Self) {
-        *self = Residue::add(self, rhs);
+        *self = Self::add(self, rhs);
     }
 }
 
 impl<MOD: ResidueParams> AddAssign<Self> for Residue<MOD> {
     fn add_assign(&mut self, rhs: Self) {
-        *self = Residue::add(self, &rhs);
+        *self = Self::add(self, &rhs);
     }
 }

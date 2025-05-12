@@ -16,7 +16,7 @@ use crate::{
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(crate) struct FieldModulus {}
+pub(crate) struct FieldModulus;
 impl ResidueParams for FieldModulus {
     /// MODULUS is 2^255 - 19 (an odd value)
     const MODULUS: U256 = U256::from_be_hex(MODULUS_HEX);
@@ -64,109 +64,109 @@ impl ConstantTimeEq for Field25519 {
 }
 impl ConditionallySelectable for Field25519 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Field25519(ResidueType::conditional_select(&a.0, &b.0, choice))
+        Self(ResidueType::conditional_select(&a.0, &b.0, choice))
     }
 }
 
-impl Add<Field25519> for Field25519 {
-    type Output = Field25519;
+impl Add<Self> for Field25519 {
+    type Output = Self;
 
-    fn add(self, other: Field25519) -> Self::Output {
+    fn add(self, other: Self) -> Self::Output {
         Self(ResidueType::add(&self.0, &other.0))
     }
 }
-impl AddAssign<Field25519> for Field25519 {
-    fn add_assign(&mut self, other: Field25519) {
+impl AddAssign<Self> for Field25519 {
+    fn add_assign(&mut self, other: Self) {
         self.0 = ResidueType::add(&self.0, &other.0);
     }
 }
-impl<'a> Add<&'a Field25519> for Field25519 {
-    type Output = Field25519;
+impl<'a> Add<&'a Self> for Field25519 {
+    type Output = Self;
 
-    fn add(self, other: &'a Field25519) -> Self::Output {
+    fn add(self, other: &'a Self) -> Self::Output {
         Self(ResidueType::add(&self.0, &other.0))
     }
 }
-impl<'a> AddAssign<&'a Field25519> for Field25519 {
-    fn add_assign(&mut self, other: &'a Field25519) {
+impl<'a> AddAssign<&'a Self> for Field25519 {
+    fn add_assign(&mut self, other: &'a Self) {
         self.0 = ResidueType::add(&self.0, &other.0);
     }
 }
-impl Sub<Field25519> for Field25519 {
-    type Output = Field25519;
+impl Sub<Self> for Field25519 {
+    type Output = Self;
 
-    fn sub(self, other: Field25519) -> Self::Output {
+    fn sub(self, other: Self) -> Self::Output {
         Self(ResidueType::sub(&self.0, &other.0))
     }
 }
-impl SubAssign<Field25519> for Field25519 {
-    fn sub_assign(&mut self, other: Field25519) {
+impl SubAssign<Self> for Field25519 {
+    fn sub_assign(&mut self, other: Self) {
         self.0 = ResidueType::sub(&self.0, &other.0);
     }
 }
-impl<'a> Sub<&'a Field25519> for Field25519 {
-    type Output = Field25519;
+impl<'a> Sub<&'a Self> for Field25519 {
+    type Output = Self;
 
-    fn sub(self, other: &'a Field25519) -> Self::Output {
+    fn sub(self, other: &'a Self) -> Self::Output {
         Self(ResidueType::sub(&self.0, &other.0))
     }
 }
-impl<'a> SubAssign<&'a Field25519> for Field25519 {
-    fn sub_assign(&mut self, other: &'a Field25519) {
+impl<'a> SubAssign<&'a Self> for Field25519 {
+    fn sub_assign(&mut self, other: &'a Self) {
         self.0 = ResidueType::sub(&self.0, &other.0);
     }
 }
-impl Mul<Field25519> for Field25519 {
-    type Output = Field25519;
+impl Mul<Self> for Field25519 {
+    type Output = Self;
 
-    fn mul(self, other: Field25519) -> Self::Output {
+    fn mul(self, other: Self) -> Self::Output {
         Self(ResidueType::mul(&self.0, &other.0))
     }
 }
-impl MulAssign<Field25519> for Field25519 {
-    fn mul_assign(&mut self, other: Field25519) {
+impl MulAssign<Self> for Field25519 {
+    fn mul_assign(&mut self, other: Self) {
         self.0 = ResidueType::mul(&self.0, &other.0);
     }
 }
-impl<'a> Mul<&'a Field25519> for Field25519 {
-    type Output = Field25519;
+impl<'a> Mul<&'a Self> for Field25519 {
+    type Output = Self;
 
-    fn mul(self, other: &'a Field25519) -> Self::Output {
+    fn mul(self, other: &'a Self) -> Self::Output {
         Self(ResidueType::mul(&self.0, &other.0))
     }
 }
-impl<'a> MulAssign<&'a Field25519> for Field25519 {
-    fn mul_assign(&mut self, other: &'a Field25519) {
+impl<'a> MulAssign<&'a Self> for Field25519 {
+    fn mul_assign(&mut self, other: &'a Self) {
         self.0 = ResidueType::mul(&self.0, &other.0);
     }
 }
 
 impl From<u8> for Field25519 {
-    fn from(a: u8) -> Field25519 {
-        Self(ResidueType::new(&U256::from_u64(a as u64)))
+    fn from(a: u8) -> Self {
+        Self(ResidueType::new(&U256::from_u64(u64::from(a))))
     }
 }
 
 impl From<u16> for Field25519 {
-    fn from(a: u16) -> Field25519 {
-        Self(ResidueType::new(&U256::from_u64(a as u64)))
+    fn from(a: u16) -> Self {
+        Self(ResidueType::new(&U256::from_u64(u64::from(a))))
     }
 }
 
 impl From<u32> for Field25519 {
-    fn from(a: u32) -> Field25519 {
-        Self(ResidueType::new(&U256::from_u64(a as u64)))
+    fn from(a: u32) -> Self {
+        Self(ResidueType::new(&U256::from_u64(u64::from(a))))
     }
 }
 
 impl From<u64> for Field25519 {
-    fn from(a: u64) -> Field25519 {
+    fn from(a: u64) -> Self {
         Self(ResidueType::new(&U256::from_u64(a)))
     }
 }
 
 impl From<u128> for Field25519 {
-    fn from(a: u128) -> Field25519 {
+    fn from(a: u128) -> Self {
         Self(ResidueType::new(&U256::from_u128(a)))
     }
 }
@@ -198,11 +198,11 @@ impl Field for Field25519 {
     }
 
     fn square(&self) -> Self {
-        Field25519(ResidueType::square(&self.0))
+        Self(ResidueType::square(&self.0))
     }
 
     fn double(&self) -> Self {
-        Field25519(ResidueType::add(&self.0, &self.0))
+        Self(ResidueType::add(&self.0, &self.0))
     }
 
     fn invert(&self) -> CtOption<Self> {
@@ -218,7 +218,7 @@ impl Field for Field25519 {
         CtOption::new(candidate, candidate.square().ct_eq(self))
     }
 
-    fn sqrt_ratio(u: &Field25519, v: &Field25519) -> (Choice, Field25519) {
+    fn sqrt_ratio(u: &Self, v: &Self) -> (Choice, Self) {
         let i = SQRT_M1;
 
         let u = *u;
@@ -248,7 +248,7 @@ impl PrimeField for Field25519 {
     const CAPACITY: u32 = 254;
     // This was calculated via the formula from the ff crate docs
     // Self::MULTIPLICATIVE_GENERATOR ** (2 ** Self::S)
-    const DELTA: Self = Field25519(ResidueType::new(&U256::from_u64(0x10)));
+    const DELTA: Self = Self(ResidueType::new(&U256::from_u64(0x10)));
     // Big endian representation of the modulus
     const MODULUS: &'static str = MODULUS_HEX;
     // This was calculated with the method from the ff crate docs
@@ -257,15 +257,15 @@ impl PrimeField for Field25519 {
     const NUM_BITS: u32 = 255;
     // This was calculated via the formula from the ff crate docs
     // Self::MULTIPLICATIVE_GENERATOR ** ((modulus - 1) >> Self::S)
-    const ROOT_OF_UNITY: Self = Field25519(ResidueType::new(&U256::from_be_hex(
+    const ROOT_OF_UNITY: Self = Self(ResidueType::new(&U256::from_be_hex(
         "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
     )));
     // Self::ROOT_OF_UNITY.invert()
-    const ROOT_OF_UNITY_INV: Self = Field25519(Self::ROOT_OF_UNITY.0.invert().0);
+    const ROOT_OF_UNITY_INV: Self = Self(Self::ROOT_OF_UNITY.0.invert().0);
     // This was set per the specification in the ff crate docs
     // The number of leading zero bits in the little-endian bit representation of (modulus - 1)
     const S: u32 = 2;
-    const TWO_INV: Self = Field25519(ResidueType::new(&U256::from_u64(2)).invert().0);
+    const TWO_INV: Self = Self(ResidueType::new(&U256::from_u64(2)).invert().0);
 
     fn from_repr(bytes: [u8; 32]) -> CtOption<Self> {
         let res = U256::from_le_bytes(bytes);
@@ -302,14 +302,15 @@ impl PrimeFieldBits for Field25519 {
 
 impl Field25519 {
     /// Perform an exponentiation.
-    pub fn pow(&self, other: Field25519) -> Field25519 {
-        let mut table = [Field25519::ONE; 16];
+    #[must_use]
+    pub fn pow(&self, other: Self) -> Self {
+        let mut table = [Self::ONE; 16];
         table[1] = *self;
         for i in 2..16 {
             table[i] = table[i - 1] * self;
         }
 
-        let mut res = Field25519::ONE;
+        let mut res = Self::ONE;
         let mut bits = 0;
         for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
             bits <<= 1;
@@ -351,8 +352,8 @@ impl Field25519 {
     }
 }
 
-impl Sum<Field25519> for Field25519 {
-    fn sum<I: Iterator<Item = Field25519>>(iter: I) -> Field25519 {
+impl Sum<Self> for Field25519 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = ResidueType::ZERO;
         for item in iter {
             res = ResidueType::add(&res, &item.0);
@@ -361,14 +362,14 @@ impl Sum<Field25519> for Field25519 {
     }
 }
 
-impl<'a> Sum<&'a Field25519> for Field25519 {
-    fn sum<I: Iterator<Item = &'a Field25519>>(iter: I) -> Field25519 {
+impl<'a> Sum<&'a Self> for Field25519 {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().sum()
     }
 }
 
-impl Product<Field25519> for Field25519 {
-    fn product<I: Iterator<Item = Field25519>>(iter: I) -> Field25519 {
+impl Product<Self> for Field25519 {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = ResidueType::ONE;
         for item in iter {
             res = ResidueType::mul(&res, &item.0);
@@ -377,8 +378,8 @@ impl Product<Field25519> for Field25519 {
     }
 }
 
-impl<'a> Product<&'a Field25519> for Field25519 {
-    fn product<I: Iterator<Item = &'a Field25519>>(iter: I) -> Field25519 {
+impl<'a> Product<&'a Self> for Field25519 {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().product()
     }
 }

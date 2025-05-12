@@ -2,11 +2,12 @@ use crate::u256::{ct_choice::CtChoice, U256};
 
 impl U256 {
     /// Negates based on `choice` by wrapping the integer.
-    pub(crate) const fn conditional_wrapping_neg(&self, choice: CtChoice) -> U256 {
+    pub(crate) const fn conditional_wrapping_neg(&self, choice: CtChoice) -> Self {
         Self::ct_select(self, &self.wrapping_neg(), choice)
     }
 
     /// Perform wrapping negation.
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn wrapping_neg(&self) -> Self {
         let mut carry = 1;
 

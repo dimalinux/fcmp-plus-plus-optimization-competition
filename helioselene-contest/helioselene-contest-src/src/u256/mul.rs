@@ -6,9 +6,9 @@ impl U256 {
     /// Compute "wide" multiplication, with a product twice the size of the input.
     ///
     /// Returns a tuple containing the `(lo, hi)` components of the product.
-    pub(crate) const fn mul_wide(&self, rhs: &U256) -> (U256, U256) {
-        let mut lo = U256::ZERO;
-        let mut hi = U256::ZERO;
+    pub(crate) const fn mul_wide(&self, rhs: &Self) -> (Self, Self) {
+        let mut lo = Self::ZERO;
+        let mut hi = Self::ZERO;
         let mut carry: u64;
 
         // Using schoolbook multiplication.
@@ -81,14 +81,15 @@ impl U256 {
     }
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
-    pub(crate) const fn square_wide(&self) -> (U256, U256) {
+    #[allow(clippy::cast_possible_truncation)]
+    pub(crate) const fn square_wide(&self) -> (Self, Self) {
         // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
         //
         // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
         // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
         const LIMBS: usize = U256::LIMBS;
-        let mut lo = U256::ZERO;
-        let mut hi = U256::ZERO;
+        let mut lo = Self::ZERO;
+        let mut hi = Self::ZERO;
 
         // Schoolbook multiplication, but only considering half of the multiplication grid
         let mut i = 1;

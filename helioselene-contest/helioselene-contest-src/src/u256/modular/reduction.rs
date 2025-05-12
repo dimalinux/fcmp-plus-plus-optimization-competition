@@ -2,6 +2,7 @@ use crate::u256::{word, U256};
 
 /// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 const fn muladdcarry(x: u64, y: u64, z: u64, w: u64) -> (u64, u64) {
     let res = (x as u128)
         .wrapping_mul(y as u128)

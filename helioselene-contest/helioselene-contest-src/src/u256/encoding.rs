@@ -108,6 +108,7 @@ impl U256 {
 
 /// Decode a single nibble of upper or lower hex
 #[inline(always)]
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 const fn decode_nibble(src: u8) -> u16 {
     let byte = src as i16;
     let mut ret: i16 = -1;
@@ -129,6 +130,7 @@ const fn decode_nibble(src: u8) -> u16 {
 /// Second element of the tuple is non-zero if the `bytes` values are not in the valid range
 /// (0-9, a-z, A-Z).
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 const fn decode_hex_byte(bytes: [u8; 2]) -> (u8, u16) {
     let hi = decode_nibble(bytes[0]);
     let lo = decode_nibble(bytes[1]);

@@ -43,30 +43,30 @@ impl<MOD: ResidueParams> Mul<Residue<MOD>> for &Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> Mul<&Residue<MOD>> for Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: ResidueParams> Mul<&Self> for Residue<MOD> {
+    type Output = Self;
 
-    fn mul(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        Residue::mul(&self, rhs)
+    fn mul(self, rhs: &Self) -> Self {
+        Self::mul(&self, rhs)
     }
 }
 
-impl<MOD: ResidueParams> Mul<Residue<MOD>> for Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: ResidueParams> Mul<Self> for Residue<MOD> {
+    type Output = Self;
 
-    fn mul(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        Residue::mul(&self, &rhs)
+    fn mul(self, rhs: Self) -> Self {
+        Self::mul(&self, &rhs)
     }
 }
 
 impl<MOD: ResidueParams> MulAssign<&Self> for Residue<MOD> {
-    fn mul_assign(&mut self, rhs: &Residue<MOD>) {
-        *self = Residue::mul(self, rhs);
+    fn mul_assign(&mut self, rhs: &Self) {
+        *self = Self::mul(self, rhs);
     }
 }
 
 impl<MOD: ResidueParams> MulAssign<Self> for Residue<MOD> {
     fn mul_assign(&mut self, rhs: Self) {
-        *self = Residue::mul(self, &rhs);
+        *self = Self::mul(self, &rhs);
     }
 }

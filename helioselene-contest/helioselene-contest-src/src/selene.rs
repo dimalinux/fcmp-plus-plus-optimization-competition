@@ -1,6 +1,6 @@
 use core::{
     iter::Sum,
-    ops::{Add, AddAssign, BitAnd, BitOr, DerefMut, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, BitAnd, BitOr, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 use group::{
@@ -65,7 +65,7 @@ impl ConstantTimeEq for SelenePoint {
 }
 
 impl PartialEq for SelenePoint {
-    fn eq(&self, other: &SelenePoint) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         // TODO: Does the contest use it? We could create a vartime eq method.
         self.ct_eq(other).into()
     }
@@ -75,7 +75,7 @@ impl Eq for SelenePoint {}
 
 impl ConditionallySelectable for SelenePoint {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        SelenePoint {
+        Self {
             x: HelioseleneField::conditional_select(&a.x, &b.x, choice),
             y: HelioseleneField::conditional_select(&a.y, &b.y, choice),
             z: HelioseleneField::conditional_select(&a.z, &b.z, choice),
@@ -83,7 +83,7 @@ impl ConditionallySelectable for SelenePoint {
     }
 }
 impl Add for SelenePoint {
-    type Output = SelenePoint;
+    type Output = Self;
 
     #[allow(non_snake_case)]
     fn add(self, other: Self) -> Self {
@@ -132,7 +132,7 @@ impl Add for SelenePoint {
         let t0 = Residue::mul(&t3, &t1);
         let Z3 = Residue::mul(&t5, &Z3);
         let Z3 = Residue::add(&Z3, &t0);
-        SelenePoint {
+        Self {
             x: HelioseleneField(X3),
             y: HelioseleneField(Y3),
             z: HelioseleneField(Z3),
@@ -140,27 +140,27 @@ impl Add for SelenePoint {
     }
 }
 impl AddAssign for SelenePoint {
-    fn add_assign(&mut self, other: SelenePoint) {
-        *self = SelenePoint::add(*self, other);
+    fn add_assign(&mut self, other: Self) {
+        *self = Self::add(*self, other);
     }
 }
-impl Add<&SelenePoint> for SelenePoint {
-    type Output = SelenePoint;
+impl Add<&Self> for SelenePoint {
+    type Output = Self;
 
-    fn add(self, other: &SelenePoint) -> SelenePoint {
-        SelenePoint::add(self, *other)
+    fn add(self, other: &Self) -> Self {
+        Self::add(self, *other)
     }
 }
-impl AddAssign<&SelenePoint> for SelenePoint {
-    fn add_assign(&mut self, other: &SelenePoint) {
-        *self = SelenePoint::add(*self, *other);
+impl AddAssign<&Self> for SelenePoint {
+    fn add_assign(&mut self, other: &Self) {
+        *self = Self::add(*self, *other);
     }
 }
 impl Neg for SelenePoint {
-    type Output = SelenePoint;
+    type Output = Self;
 
     fn neg(self) -> Self {
-        SelenePoint {
+        Self {
             x: self.x,
             y: self.y.neg(),
             z: self.z,
@@ -168,27 +168,27 @@ impl Neg for SelenePoint {
     }
 }
 impl Sub for SelenePoint {
-    type Output = SelenePoint;
+    type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        SelenePoint::add(self, other.neg())
+        Self::add(self, other.neg())
     }
 }
 impl SubAssign for SelenePoint {
-    fn sub_assign(&mut self, other: SelenePoint) {
-        *self = SelenePoint::add(*self, other.neg());
+    fn sub_assign(&mut self, other: Self) {
+        *self = Self::add(*self, other.neg());
     }
 }
-impl Sub<&SelenePoint> for SelenePoint {
-    type Output = SelenePoint;
+impl Sub<&Self> for SelenePoint {
+    type Output = Self;
 
-    fn sub(self, other: &SelenePoint) -> SelenePoint {
-        SelenePoint::add(self, other.neg())
+    fn sub(self, other: &Self) -> Self {
+        Self::add(self, other.neg())
     }
 }
-impl SubAssign<&SelenePoint> for SelenePoint {
-    fn sub_assign(&mut self, other: &SelenePoint) {
-        *self = SelenePoint::add(*self, other.neg())
+impl SubAssign<&Self> for SelenePoint {
+    fn sub_assign(&mut self, other: &Self) {
+        *self = Self::add(*self, other.neg());
     }
 }
 impl Group for SelenePoint {
@@ -207,7 +207,7 @@ impl Group for SelenePoint {
     }
 
     fn identity() -> Self {
-        SelenePoint {
+        Self {
             x: HelioseleneField::ZERO,
             y: HelioseleneField::ONE,
             z: HelioseleneField::ZERO,
@@ -247,8 +247,8 @@ impl Group for SelenePoint {
         Self::conditional_select(&res, &Self::identity(), self.is_identity())
     }
 }
-impl Sum<SelenePoint> for SelenePoint {
-    fn sum<I: Iterator<Item = SelenePoint>>(iter: I) -> SelenePoint {
+impl Sum<Self> for SelenePoint {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = Self::identity();
         for i in iter {
             res += i;
@@ -256,16 +256,16 @@ impl Sum<SelenePoint> for SelenePoint {
         res
     }
 }
-impl<'a> Sum<&'a SelenePoint> for SelenePoint {
-    fn sum<I: Iterator<Item = &'a SelenePoint>>(iter: I) -> SelenePoint {
-        SelenePoint::sum(iter.cloned())
+impl<'a> Sum<&'a Self> for SelenePoint {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        Self::sum(iter.copied())
     }
 }
 impl Mul<Field25519> for SelenePoint {
-    type Output = SelenePoint;
+    type Output = Self;
 
-    fn mul(self, mut other: Field25519) -> SelenePoint {
-        let mut table = [SelenePoint::identity(); 16];
+    fn mul(self, mut other: Field25519) -> Self {
+        let mut table = [Self::identity(); 16];
         table[1] = self;
         for i in 2..16 {
             table[i] = table[i - 1] + self;
@@ -274,7 +274,7 @@ impl Mul<Field25519> for SelenePoint {
         let mut bits = 0;
         for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
             bits <<= 1;
-            let mut bit = u8_from_bool(bit.deref_mut());
+            let mut bit = u8_from_bool(&mut bit);
             bits |= bit;
             bit.zeroize();
             if ((i + 1) % 4) == 0 {
@@ -302,9 +302,9 @@ impl MulAssign<Field25519> for SelenePoint {
     }
 }
 impl Mul<&Field25519> for SelenePoint {
-    type Output = SelenePoint;
+    type Output = Self;
 
-    fn mul(self, other: &Field25519) -> SelenePoint {
+    fn mul(self, other: &Field25519) -> Self {
         self * *other
     }
 }
@@ -332,14 +332,14 @@ impl GroupEncoding for SelenePoint {
                 &CtOption::new(HelioseleneField::ONE, 1.into()),
                 is_identity,
             );
-            let point = y.map(|y| SelenePoint {
+            let point = y.map(|y| Self {
                 x,
                 y,
                 z: HelioseleneField::ONE,
             });
             let not_negative_zero = !(is_identity & sign);
             CtOption::conditional_select(
-                &CtOption::new(SelenePoint::identity(), 0.into()),
+                &CtOption::new(Self::identity(), 0.into()),
                 &point,
                 not_negative_zero,
             )
@@ -347,7 +347,7 @@ impl GroupEncoding for SelenePoint {
     }
 
     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-        SelenePoint::from_bytes(bytes)
+        Self::from_bytes(bytes)
     }
 
     fn to_bytes(&self) -> Self::Repr {

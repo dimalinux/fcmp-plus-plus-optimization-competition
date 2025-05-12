@@ -46,6 +46,7 @@ impl U256 {
     /// Computes `self << shift` where `0 <= shift < WORD_BITS`,
     /// returning the result and the carry.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)] // TODO: verify that all these are safe
     pub(crate) const fn shl_limb(&self, n: usize) -> (Self, u64) {
         let mut limbs = [0; Self::LIMBS];
 
@@ -64,7 +65,7 @@ impl U256 {
             let hi = self.limbs[i - 1] >> rshift;
             limb |= nz.if_true(hi);
             limbs[i] = limb;
-            i -= 1
+            i -= 1;
         }
         limbs[0] = self.limbs[0] << lshift;
 

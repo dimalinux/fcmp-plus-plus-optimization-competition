@@ -79,9 +79,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
     pub(crate) const fn new(integer: &U256) -> Self {
         // TODO: make this check debug only?
         // A valid modulus must be odd
-        if MOD::MODULUS.ct_is_odd().to_u8() == 0 {
-            panic!("modulus must be odd");
-        }
+        assert!(MOD::MODULUS.ct_is_odd().to_u8() != 0, "modulus must be odd");
 
         Self::generate_residue(integer)
     }
@@ -110,7 +108,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
 
 impl<MOD: ResidueParams + Copy> ConditionallySelectable for Residue<MOD> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Residue {
+        Self {
             montgomery_form: U256::conditional_select(
                 &a.montgomery_form,
                 &b.montgomery_form,

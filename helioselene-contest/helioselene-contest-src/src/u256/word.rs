@@ -7,6 +7,7 @@ pub(crate) const WORD_BITS: usize = u64::BITS as usize; // TODO: remove?
 pub(crate) const WORD_BYTES: usize = WORD_BITS / 8;
 
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 pub(crate) const fn adc(lhs: u64, rhs: u64, carry: u64) -> (u64, u64) {
     let a = lhs as u128;
     let b = rhs as u128;
@@ -17,6 +18,7 @@ pub(crate) const fn adc(lhs: u64, rhs: u64, carry: u64) -> (u64, u64) {
 
 /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 pub(crate) const fn sbb(lhs: u64, rhs: u64, borrow: u64) -> (u64, u64) {
     let a = lhs as u128;
     let b = rhs as u128;
@@ -27,6 +29,7 @@ pub(crate) const fn sbb(lhs: u64, rhs: u64, borrow: u64) -> (u64, u64) {
 
 /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 pub(crate) const fn mac(lhs: u64, b: u64, c: u64, carry: u64) -> (u64, u64) {
     let a = lhs as u128;
     let b = b as u128;
@@ -44,6 +47,8 @@ pub(crate) const fn ct_select(a: u64, b: u64, c: CtChoice) -> u64 {
 
 /// Returns the truthy value if `self != 0` and the falsy value otherwise.
 #[inline]
+#[allow(clippy::cast_sign_loss)]
+#[allow(clippy::cast_possible_wrap)]
 pub(crate) const fn ct_is_nonzero(w: u64) -> CtChoice {
     // (x | x.wrapping_neg()) is 0 if and only if x == 0, otherwise
     // the MSB is set. We use sign-extension to convert the MSB value
@@ -85,6 +90,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cast_sign_loss)]
     fn test_ct_is_nonzero() {
         assert!(!ct_is_nonzero(0).is_true_vartime());
         assert!(ct_is_nonzero(1).is_true_vartime());

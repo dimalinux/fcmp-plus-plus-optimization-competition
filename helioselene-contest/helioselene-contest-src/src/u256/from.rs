@@ -13,6 +13,7 @@ impl U256 {
 
     /// Create a [`Uint`] from a `u128` (const-friendly)
     // TODO: replace with `const impl From<u128>` when stable
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn from_u128(n: u128) -> Self {
         Self {
             limbs: [n as u64, (n >> 64) as u64, 0, 0],

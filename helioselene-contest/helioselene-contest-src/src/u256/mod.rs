@@ -22,9 +22,6 @@ use subtle::{Choice, ConditionallySelectable};
 pub(crate) use traits::{Encoding, Zero};
 use zeroize::DefaultIsZeroes;
 
-/// Wide integer type: double the width of [`crate::u256::u64`].
-//pub(crate) type WideWord = u128;
-
 /// Stack-allocated 256-bit unsigned integer.
 #[derive(Default, Copy, Clone, Hash, PartialEq, Eq)]
 pub(crate) struct U256 {

@@ -43,7 +43,7 @@ impl U256 {
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_eq(lhs: &U256, rhs: &U256) -> CtChoice {
+    pub(crate) const fn ct_eq(lhs: &Self, rhs: &Self) -> CtChoice {
         let mut acc = lhs.limbs[0] ^ rhs.limbs[0];
         acc |= lhs.limbs[1] ^ rhs.limbs[1];
         acc |= lhs.limbs[2] ^ rhs.limbs[2];
@@ -85,6 +85,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cast_sign_loss)]
     fn ct_eq_high_bit_in_last_limb() {
         let a = U256::ZERO;
         let mut b = U256::ZERO;

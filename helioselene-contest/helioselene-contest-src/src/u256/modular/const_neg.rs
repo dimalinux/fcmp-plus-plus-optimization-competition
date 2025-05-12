@@ -13,7 +13,7 @@ impl<MOD: ResidueParams> Neg for Residue<MOD> {
     type Output = Self;
 
     fn neg(self) -> Self {
-        Residue::neg(&self)
+        Self::neg(&self)
     }
 }
 
