@@ -13,7 +13,6 @@ build:
 	$(CARGO_NEW) build --release --target wasm32v1-none --no-default-features
 	cd helioselene-contest-src && $(CARGO_NEW) build --tests
 
-
 .PHONY: test
 test:
 	$(CARGO_OLD) test --release
@@ -28,7 +27,8 @@ bench:
 .PHONY: cycles
 cycles:
 	cd ../../wasm-cycles && \
-		$(CARGO_NEW) run --release -- $(CURDIR) +1.84.1
+		$(CARGO_NEW) run --release -- $(CURDIR) +1.84.1 | \
+			$(CURDIR)/scripts/parse-cycles
 
 .PHONY: fmt
 fmt:
@@ -38,16 +38,24 @@ fmt:
 lint:
 	cd $(CONTEST_DIR) && $(CARGO_NEW) clippy --all-targets
 
-.PHONY: coverage
-coverage:
-	command -v grcov >/dev/null 2>&1 || cargo install grcov
-	rustup component add llvm-tools-preview
+.PHONY: test-coverage
+test-coverage:
 	rm -rf target/coverage
 	mkdir -p target/coverage
 	CARGO_INCREMENTAL=0 RUSTFLAGS=-Cinstrument-coverage LLVM_PROFILE_FILE=cargo-test-%p-%m.profraw cargo test
 	grcov . --binary-path ./target/debug/deps/ -s . -t cobertura,html --branch --ignore-not-existing --ignore '../*' --ignore '/*' -o target/coverage
 	rm -f cargo-test*\.profraw
 	@printf "\nCoverage is in:\nfile://$(PWD)/target/coverage/html/index.html\n"
+
+.PHONY: coverage-example
+coverage-example:
+	rm -rf target/coverage-example
+	mkdir -p target/coverage-example
+	CARGO_INCREMENTAL=0 RUSTFLAGS=-Cinstrument-coverage LLVM_PROFILE_FILE=cargo-runZ-%p-%m.profraw cargo run --release --example profile_ours
+	grcov . --binary-path ./target/release/deps/ -s . -t cobertura,html --branch --function-coverage --ignore-not-existing --ignore '../*' --ignore '/*' -o target/coverage-example
+	rm -f cargo-run*\.profraw
+	@printf "\nCoverage is in:\nfile://$(PWD)/target/coverage-example/html/index.html\n"
+
 
 # Warning: This reconfigures the kernel to allow profiling for all users and
 # programs on the system.
@@ -60,5 +68,13 @@ profile:
 
 .PHONY: flamegraph
 flamegraph:
-	cargo install flamegraph
 	cargo flamegraph --release --example profile_ours
+
+.PHONY: install-deps
+install-deps:
+	rustup install 1.69.0
+	rustup install 1.84.1
+	rustup +1.84.1 target add wasm32v1-none
+	command -v grcov >/dev/null 2>&1 || cargo install grcov
+	rustup component add llvm-tools-preview
+	cargo install flamegraph
