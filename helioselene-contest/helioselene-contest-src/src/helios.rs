@@ -221,25 +221,28 @@ impl Group for HeliosPoint {
 
     #[allow(non_snake_case)]
     fn double(&self) -> Self {
-        let X1 = self.x;
-        let Y1 = self.y;
-        let Z1 = self.z;
-        let w = (X1 - Z1) * (X1 + Z1);
-        let w = w.double() + w;
-        let s = (Y1 * Z1).double();
-        let ss = s.square();
-        let sss = s * ss;
-        let R = Y1 * s;
+        let X1 = self.x.0;
+        let Y1 = self.y.0;
+        let Z1 = self.z.0;
+        let w = ResidueType::mul(&ResidueType::sub(&X1, &Z1), &ResidueType::add(&X1, &Z1));
+        let w = ResidueType::add(&ResidueType::add(&w, &w), &w);
+        let s = ResidueType::double(&ResidueType::mul(&Y1, &Z1));
+        let ss = ResidueType::square(&s);
+        let sss = ResidueType::mul(&s, &ss);
+        let R = ResidueType::mul(&Y1, &s);
         let RR = R.square();
-        let B_ = (X1 * R).double();
-        let h = w.square() - B_.double();
-        let X3 = h * s;
-        let Y3 = w * (B_ - h) - RR.double();
+        let B_ = ResidueType::mul(&X1, &R).double();
+        let h = ResidueType::sub(&w.square(), &B_.double());
+        let X3 = ResidueType::mul(&h, &s);
+        let Y3 = ResidueType::sub(
+            &ResidueType::mul(&w, &(ResidueType::sub(&B_, &h))),
+            &RR.double(),
+        );
         let Z3 = sss;
         let res = Self {
-            x: X3,
-            y: Y3,
-            z: Z3,
+            x: Field25519(X3),
+            y: Field25519(Y3),
+            z: Field25519(Z3),
         };
         Self::conditional_select(&res, &Self::identity(), self.is_identity())
     }

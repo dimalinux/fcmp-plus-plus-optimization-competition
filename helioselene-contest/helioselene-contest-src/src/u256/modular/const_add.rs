@@ -12,6 +12,11 @@ impl<MOD: ResidueParams> Residue<MOD> {
             phantom: core::marker::PhantomData,
         }
     }
+
+    #[inline(always)]
+    pub(crate) const fn double(&self) -> Self {
+        Self::add(self, self)
+    }
 }
 
 impl<MOD: ResidueParams> Add<&Residue<MOD>> for &Residue<MOD> {
