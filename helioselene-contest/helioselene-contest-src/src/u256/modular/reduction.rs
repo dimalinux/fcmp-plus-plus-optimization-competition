@@ -18,35 +18,79 @@ pub(crate) const fn montgomery_reduction(
     mod_neg_inv: u64,
 ) -> U256 {
     let (mut lower, mut upper) = *lower_upper;
-
     let mut meta_carry = 0;
-    let mut new_sum;
 
-    let mut i = 0;
-    while i < U256::LIMBS {
-        let u = lower.limbs[i].wrapping_mul(mod_neg_inv);
+    // i = 0
+    let u = lower.limbs[0].wrapping_mul(mod_neg_inv);
+    let (carry, _) = muladdcarry(u, modulus.limbs[0], lower.limbs[0], 0);
 
-        let (mut carry, _) = muladdcarry(u, modulus.limbs[0], lower.limbs[i], 0);
-        let mut new_limb;
+    // j = 1
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[1], lower.limbs[1], carry);
+    lower.limbs[1] = new_limb;
+    // j = 2
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[2], lower.limbs[2], carry);
+    lower.limbs[2] = new_limb;
+    // j = 3
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[3], lower.limbs[3], carry);
+    lower.limbs[3] = new_limb;
 
-        let mut j = 1;
-        while j < (U256::LIMBS - i) {
-            (carry, new_limb) = muladdcarry(u, modulus.limbs[j], lower.limbs[i + j], carry);
-            lower.limbs[i + j] = new_limb;
-            j += 1;
-        }
-        while j < U256::LIMBS {
-            (carry, new_limb) =
-                muladdcarry(u, modulus.limbs[j], upper.limbs[i + j - U256::LIMBS], carry);
-            upper.limbs[i + j - U256::LIMBS] = new_limb;
-            j += 1;
-        }
+    let (new_sum, new_meta_carry) = word::adc(upper.limbs[0], carry, meta_carry);
+    upper.limbs[0] = new_sum;
+    meta_carry = new_meta_carry;
 
-        (new_sum, meta_carry) = word::adc(upper.limbs[i], carry, meta_carry);
-        upper.limbs[i] = new_sum;
+    // i = 1
+    let u = lower.limbs[1].wrapping_mul(mod_neg_inv);
+    let (carry, _) = muladdcarry(u, modulus.limbs[0], lower.limbs[1], 0);
 
-        i += 1;
-    }
+    // j = 1
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[1], lower.limbs[2], carry);
+    lower.limbs[2] = new_limb;
+    // j = 2
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[2], lower.limbs[3], carry);
+    lower.limbs[3] = new_limb;
+    // j = 3
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[3], upper.limbs[0], carry);
+    upper.limbs[0] = new_limb;
+
+    let (new_sum, new_meta_carry) = word::adc(upper.limbs[1], carry, meta_carry);
+    upper.limbs[1] = new_sum;
+    meta_carry = new_meta_carry;
+
+    // i = 2
+    let u = lower.limbs[2].wrapping_mul(mod_neg_inv);
+    let (carry, _) = muladdcarry(u, modulus.limbs[0], lower.limbs[2], 0);
+
+    // j = 1
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[1], lower.limbs[3], carry);
+    lower.limbs[3] = new_limb;
+    // j = 2
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[2], upper.limbs[0], carry);
+    upper.limbs[0] = new_limb;
+    // j = 3
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[3], upper.limbs[1], carry);
+    upper.limbs[1] = new_limb;
+
+    let (new_sum, new_meta_carry) = word::adc(upper.limbs[2], carry, meta_carry);
+    upper.limbs[2] = new_sum;
+    meta_carry = new_meta_carry;
+
+    // i = 3
+    let u = lower.limbs[3].wrapping_mul(mod_neg_inv);
+    let (carry, _) = muladdcarry(u, modulus.limbs[0], lower.limbs[3], 0);
+
+    // j = 1
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[1], upper.limbs[0], carry);
+    upper.limbs[0] = new_limb;
+    // j = 2
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[2], upper.limbs[1], carry);
+    upper.limbs[1] = new_limb;
+    // j = 3
+    let (carry, new_limb) = muladdcarry(u, modulus.limbs[3], upper.limbs[2], carry);
+    upper.limbs[2] = new_limb;
+
+    let (new_sum, new_meta_carry) = word::adc(upper.limbs[3], carry, meta_carry);
+    upper.limbs[3] = new_sum;
+    meta_carry = new_meta_carry;
 
     // Division is simply taking the upper half of the limbs
     // Final reduction (at this point, the value is at most 2 * modulus,
