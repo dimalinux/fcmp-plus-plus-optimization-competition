@@ -14,68 +14,28 @@ impl U256 {
         // Using schoolbook multiplication.
 
         // i = 0
-        carry = 0;
-        let (w, c) = word::mac(lo.limbs[0], self.limbs[0], rhs.limbs[0], carry);
-        lo.limbs[0] = w;
-        carry = c;
-        let (w, c) = word::mac(lo.limbs[1], self.limbs[0], rhs.limbs[1], carry);
-        lo.limbs[1] = w;
-        carry = c;
-        let (w, c) = word::mac(lo.limbs[2], self.limbs[0], rhs.limbs[2], carry);
-        lo.limbs[2] = w;
-        carry = c;
-        let (w, c) = word::mac(lo.limbs[3], self.limbs[0], rhs.limbs[3], carry);
-        lo.limbs[3] = w;
-        carry = c;
-        hi.limbs[0] = carry;
+        (lo.limbs[0], carry) = word::mac(lo.limbs[0], self.limbs[0], rhs.limbs[0], 0);
+        (lo.limbs[1], carry) = word::mac(lo.limbs[1], self.limbs[0], rhs.limbs[1], carry);
+        (lo.limbs[2], carry) = word::mac(lo.limbs[2], self.limbs[0], rhs.limbs[2], carry);
+        (lo.limbs[3], hi.limbs[0]) = word::mac(lo.limbs[3], self.limbs[0], rhs.limbs[3], carry);
 
         // i = 1
-        carry = 0;
-        let (w, c) = word::mac(lo.limbs[1], self.limbs[1], rhs.limbs[0], carry);
-        lo.limbs[1] = w;
-        carry = c;
-        let (w, c) = word::mac(lo.limbs[2], self.limbs[1], rhs.limbs[1], carry);
-        lo.limbs[2] = w;
-        carry = c;
-        let (w, c) = word::mac(lo.limbs[3], self.limbs[1], rhs.limbs[2], carry);
-        lo.limbs[3] = w;
-        carry = c;
-        let (w, c) = word::mac(hi.limbs[0], self.limbs[1], rhs.limbs[3], carry);
-        hi.limbs[0] = w;
-        carry = c;
-        hi.limbs[1] = carry;
+        (lo.limbs[1], carry) = word::mac(lo.limbs[1], self.limbs[1], rhs.limbs[0], 0);
+        (lo.limbs[2], carry) = word::mac(lo.limbs[2], self.limbs[1], rhs.limbs[1], carry);
+        (lo.limbs[3], carry) = word::mac(lo.limbs[3], self.limbs[1], rhs.limbs[2], carry);
+        (hi.limbs[0], hi.limbs[1]) = word::mac(hi.limbs[0], self.limbs[1], rhs.limbs[3], carry);
 
         // i = 2
-        carry = 0;
-        let (w, c) = word::mac(lo.limbs[2], self.limbs[2], rhs.limbs[0], carry);
-        lo.limbs[2] = w;
-        carry = c;
-        let (w, c) = word::mac(lo.limbs[3], self.limbs[2], rhs.limbs[1], carry);
-        lo.limbs[3] = w;
-        carry = c;
-        let (w, c) = word::mac(hi.limbs[0], self.limbs[2], rhs.limbs[2], carry);
-        hi.limbs[0] = w;
-        carry = c;
-        let (w, c) = word::mac(hi.limbs[1], self.limbs[2], rhs.limbs[3], carry);
-        hi.limbs[1] = w;
-        carry = c;
-        hi.limbs[2] = carry;
+        (lo.limbs[2], carry) = word::mac(lo.limbs[2], self.limbs[2], rhs.limbs[0], 0);
+        (lo.limbs[3], carry) = word::mac(lo.limbs[3], self.limbs[2], rhs.limbs[1], carry);
+        (hi.limbs[0], carry) = word::mac(hi.limbs[0], self.limbs[2], rhs.limbs[2], carry);
+        (hi.limbs[1], hi.limbs[2]) = word::mac(hi.limbs[1], self.limbs[2], rhs.limbs[3], carry);
 
         // i = 3
-        carry = 0;
-        let (w, c) = word::mac(lo.limbs[3], self.limbs[3], rhs.limbs[0], carry);
-        lo.limbs[3] = w;
-        carry = c;
-        let (w, c) = word::mac(hi.limbs[0], self.limbs[3], rhs.limbs[1], carry);
-        hi.limbs[0] = w;
-        carry = c;
-        let (w, c) = word::mac(hi.limbs[1], self.limbs[3], rhs.limbs[2], carry);
-        hi.limbs[1] = w;
-        carry = c;
-        let (w, c) = word::mac(hi.limbs[2], self.limbs[3], rhs.limbs[3], carry);
-        hi.limbs[2] = w;
-        carry = c;
-        hi.limbs[3] = carry;
+        (lo.limbs[3], carry) = word::mac(lo.limbs[3], self.limbs[3], rhs.limbs[0], 0);
+        (hi.limbs[0], carry) = word::mac(hi.limbs[0], self.limbs[3], rhs.limbs[1], carry);
+        (hi.limbs[1], carry) = word::mac(hi.limbs[1], self.limbs[3], rhs.limbs[2], carry);
+        (hi.limbs[2], hi.limbs[3]) = word::mac(hi.limbs[2], self.limbs[3], rhs.limbs[3], carry);
 
         (lo, hi)
     }
@@ -87,73 +47,64 @@ impl U256 {
         //
         // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
         // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
-        const LIMBS: usize = U256::LIMBS;
+
         let mut lo = Self::ZERO;
         let mut hi = Self::ZERO;
+        let mut carry: u64;
 
         // Schoolbook multiplication, but only considering half of the multiplication grid
-        let mut i = 1;
-        while i < LIMBS {
-            let mut j = 0;
-            let mut carry = 0;
 
-            while j < i {
-                let k = i + j;
+        // i = 1, j = 0
+        (lo.limbs[1], lo.limbs[2]) = word::mac(lo.limbs[1], self.limbs[1], self.limbs[0], 0);
 
-                if k >= LIMBS {
-                    let (n, c) =
-                        word::mac(hi.limbs[k - LIMBS], self.limbs[i], self.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = word::mac(lo.limbs[k], self.limbs[i], self.limbs[j], carry);
-                    lo.limbs[k] = n;
-                    carry = c;
-                }
+        // i = 2, j = 0
+        (lo.limbs[2], carry) = word::mac(lo.limbs[2], self.limbs[2], self.limbs[0], 0);
 
-                j += 1;
-            }
+        // i = 2, j = 1
+        (lo.limbs[3], hi.limbs[0]) = word::mac(lo.limbs[3], self.limbs[2], self.limbs[1], carry);
 
-            if (2 * i) < LIMBS {
-                lo.limbs[2 * i] = carry;
-            } else {
-                hi.limbs[2 * i - LIMBS] = carry;
-            }
+        // i = 3, j = 0
+        (lo.limbs[3], carry) = word::mac(lo.limbs[3], self.limbs[3], self.limbs[0], 0);
 
-            i += 1;
-        }
+        // i = 3, j = 1
+        (hi.limbs[0], carry) = word::mac(hi.limbs[0], self.limbs[3], self.limbs[1], carry);
+
+        // i = 3, j = 2
+        (hi.limbs[1], hi.limbs[2]) = word::mac(hi.limbs[1], self.limbs[3], self.limbs[2], carry);
 
         // Double the current result, this accounts for the other half of the multiplication grid.
         // TODO: The top word is empty so we can also use a special purpose shl.
         (lo, hi) = Self::shl_vartime_wide((lo, hi), 1);
 
-        // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
-        let mut carry = 0;
-        let mut i = 0;
-        while i < LIMBS {
-            if (i * 2) < LIMBS {
-                let (n, c) = word::mac(lo.limbs[i * 2], self.limbs[i], self.limbs[i], carry);
-                lo.limbs[i * 2] = n;
-                carry = c;
-            } else {
-                let (n, c) =
-                    word::mac(hi.limbs[i * 2 - LIMBS], self.limbs[i], self.limbs[i], carry);
-                hi.limbs[i * 2 - LIMBS] = n;
-                carry = c;
-            }
+        // Handle the diagonal
 
-            if (i * 2 + 1) < LIMBS {
-                let n = lo.limbs[i * 2 + 1] as u128 + carry as u128;
-                lo.limbs[i * 2 + 1] = n as u64;
-                carry = (n >> u64::BITS) as u64;
-            } else {
-                let n = hi.limbs[i * 2 + 1 - LIMBS] as u128 + carry as u128;
-                hi.limbs[i * 2 + 1 - LIMBS] = n as u64;
-                carry = (n >> u64::BITS) as u64;
-            }
+        // i = 0
+        (lo.limbs[0], carry) = word::mac(lo.limbs[0], self.limbs[0], self.limbs[0], 0);
 
-            i += 1;
-        }
+        let n = lo.limbs[1] as u128 + carry as u128;
+        lo.limbs[1] = n as u64;
+        carry = (n >> 64) as u64;
+
+        // i = 1
+        let (n, mut carry) = word::mac(lo.limbs[2], self.limbs[1], self.limbs[1], carry);
+        lo.limbs[2] = n;
+
+        let n = lo.limbs[3] as u128 + carry as u128;
+        lo.limbs[3] = n as u64;
+        carry = (n >> 64) as u64;
+
+        // i = 2
+        (hi.limbs[0], carry) = word::mac(hi.limbs[0], self.limbs[2], self.limbs[2], carry);
+
+        let n = hi.limbs[1] as u128 + carry as u128;
+        hi.limbs[1] = n as u64;
+        carry = (n >> 64) as u64;
+
+        // i = 3
+        (hi.limbs[2], carry) = word::mac(hi.limbs[2], self.limbs[3], self.limbs[3], carry);
+
+        let n = hi.limbs[3] as u128 + carry as u128;
+        hi.limbs[3] = n as u64;
 
         (lo, hi)
     }

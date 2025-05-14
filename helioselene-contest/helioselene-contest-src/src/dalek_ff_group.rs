@@ -313,13 +313,25 @@ impl Field25519 {
     /// Perform an exponentiation.
     #[must_use]
     pub fn pow(&self, other: Self) -> Self {
-        let mut table = [Self::ONE; 16];
-        table[1] = *self;
-        for i in 2..16 {
-            table[i] = table[i - 1] * self;
-        }
+        let mut table: [ResidueType; 16] = [ResidueType::default(); 16];
+        table[0] = ResidueType::ONE;
+        table[1] = self.0;
+        table[2] = ResidueType::mul(&table[1], &self.0);
+        table[3] = ResidueType::mul(&table[2], &self.0);
+        table[4] = ResidueType::mul(&table[3], &self.0);
+        table[5] = ResidueType::mul(&table[4], &self.0);
+        table[6] = ResidueType::mul(&table[5], &self.0);
+        table[7] = ResidueType::mul(&table[6], &self.0);
+        table[8] = ResidueType::mul(&table[7], &self.0);
+        table[9] = ResidueType::mul(&table[8], &self.0);
+        table[10] = ResidueType::mul(&table[9], &self.0);
+        table[11] = ResidueType::mul(&table[10], &self.0);
+        table[12] = ResidueType::mul(&table[11], &self.0);
+        table[13] = ResidueType::mul(&table[12], &self.0);
+        table[14] = ResidueType::mul(&table[13], &self.0);
+        table[15] = ResidueType::mul(&table[14], &self.0);
 
-        let mut res = Self::ONE;
+        let mut res = ResidueType::ONE;
         let mut bits = 0;
         for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
             bits <<= 1;
@@ -329,22 +341,93 @@ impl Field25519 {
 
             if ((i + 1) % 4) == 0 {
                 if i != 3 {
-                    for _ in 0..4 {
-                        res *= res;
-                    }
+                    res = ResidueType::square(&res);
+                    res = ResidueType::square(&res);
+                    res = ResidueType::square(&res);
+                    res = ResidueType::square(&res);
                 }
 
                 let mut factor = table[0];
-                for (j, candidate) in table[1..].iter().enumerate() {
-                    let j = j + 1;
-                    factor =
-                        Self::conditional_select(&factor, candidate, usize::from(bits).ct_eq(&j));
-                }
-                res *= factor;
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[1],
+                    usize::from(bits).ct_eq(&1),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[2],
+                    usize::from(bits).ct_eq(&2),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[3],
+                    usize::from(bits).ct_eq(&3),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[4],
+                    usize::from(bits).ct_eq(&4),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[5],
+                    usize::from(bits).ct_eq(&5),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[6],
+                    usize::from(bits).ct_eq(&6),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[7],
+                    usize::from(bits).ct_eq(&7),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[8],
+                    usize::from(bits).ct_eq(&8),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[9],
+                    usize::from(bits).ct_eq(&9),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[10],
+                    usize::from(bits).ct_eq(&10),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[11],
+                    usize::from(bits).ct_eq(&11),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[12],
+                    usize::from(bits).ct_eq(&12),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[13],
+                    usize::from(bits).ct_eq(&13),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[14],
+                    usize::from(bits).ct_eq(&14),
+                );
+                factor = ResidueType::conditional_select(
+                    &factor,
+                    &table[15],
+                    usize::from(bits).ct_eq(&15),
+                );
+                res = ResidueType::mul(&res, &factor);
                 bits = 0;
             }
         }
-        res
+        Self(res)
     }
 
     /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
