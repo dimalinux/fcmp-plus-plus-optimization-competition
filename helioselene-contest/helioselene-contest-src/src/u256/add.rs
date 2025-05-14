@@ -4,28 +4,23 @@ use super::{ct_choice::CtChoice, word, U256};
 
 impl U256 {
     /// Computes `a + b + carry`, returning the result along with the new carry.
-    #[inline(always)]
-    pub(crate) const fn adc(&self, rhs: &Self, mut carry: u64) -> (Self, u64) {
-        let mut limbs = [0; Self::LIMBS];
-        let mut i = 0;
+    #[inline]
+    pub(crate) const fn adc(&self, rhs: &Self, carry: u64) -> (Self, u64) {
+        let (w0, carry) = word::adc(self.limbs[0], rhs.limbs[0], carry);
+        let (w1, carry) = word::adc(self.limbs[1], rhs.limbs[1], carry);
+        let (w2, carry) = word::adc(self.limbs[2], rhs.limbs[2], carry);
+        let (w3, carry) = word::adc(self.limbs[3], rhs.limbs[3], carry);
 
-        while i < Self::LIMBS {
-            let (w, c) = word::adc(self.limbs[i], rhs.limbs[i], carry);
-            limbs[i] = w;
-            carry = c;
-            i += 1;
-        }
-
-        (Self { limbs }, carry)
-    }
-
-    /// Perform saturating addition, returning `MAX` on overflow.
-    pub(crate) const fn saturating_add(&self, rhs: &Self) -> Self {
-        let (res, overflow) = self.adc(rhs, 0);
-        Self::ct_select(&res, &Self::MAX, CtChoice::from_lsb(overflow))
+        (
+            Self {
+                limbs: [w0, w1, w2, w3],
+            },
+            carry,
+        )
     }
 
     /// Perform wrapping addition, discarding overflow.
+    #[inline(always)]
     pub(crate) const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, 0).0
     }

@@ -4,7 +4,6 @@ mod bit_ops;
 mod cmp;
 /// Implements modular arithmetic for constant moduli.
 mod ct_choice;
-mod div;
 mod encoding;
 mod from;
 mod inv_mod;
@@ -39,6 +38,7 @@ impl U256 {
     pub(crate) const LIMBS: usize = 4;
     // 4 u64 limbs = 256 bits
     /// Maximum value this [`Uint`] can express.
+    #[cfg(test)]
     pub(crate) const MAX: Self = Self {
         limbs: [u64::MAX; Self::LIMBS],
     };

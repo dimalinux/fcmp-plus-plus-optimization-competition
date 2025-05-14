@@ -4,6 +4,7 @@ use crate::u256::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams> Residue<MOD> {
     /// Adds `rhs`.
+    #[inline]
     pub(crate) const fn add(&self, rhs: &Self) -> Self {
         Self {
             montgomery_form: self
@@ -13,7 +14,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub(crate) const fn double(&self) -> Self {
         Self::add(self, self)
     }

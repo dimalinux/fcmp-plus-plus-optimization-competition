@@ -15,7 +15,7 @@ mod const_sub;
 use core::{fmt::Debug, marker::PhantomData};
 
 use reduction::montgomery_reduction;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use crate::u256::{Zero, U256};
 
@@ -82,18 +82,6 @@ impl<MOD: ResidueParams> Residue<MOD> {
         assert!(MOD::MODULUS.ct_is_odd().to_u8() != 0, "modulus must be odd");
 
         Self::generate_residue(integer)
-    }
-
-    /// Instantiates a new `Residue` that represents this `integer` mod `MOD` if the modulus is odd.
-    /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`Residue::new`], which can panic.
-    // TODO: remove this method when we can use `generic_const_exprs.` to ensure the modulus is
-    // always valid.
-    pub(crate) fn new_checked(integer: &U256) -> CtOption<Self> {
-        // A valid modulus must be odd.
-        CtOption::new(
-            Self::generate_residue(integer),
-            MOD::MODULUS.ct_is_odd().into(),
-        )
     }
 
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.

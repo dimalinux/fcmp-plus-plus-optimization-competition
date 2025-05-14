@@ -5,42 +5,29 @@ use crate::u256::{
 };
 
 impl U256 {
-    /// Calculate the number of bits needed to represent this number.
-    pub(crate) const fn bits_vartime(&self) -> usize {
-        let mut i = Self::LIMBS - 1;
-        while i > 0 && self.limbs[i] == 0 {
-            i -= 1;
-        }
-
-        let limb = self.limbs[i];
-        WORD_BITS * (i + 1) - (limb.leading_zeros() as usize)
-    }
-
     #[inline(always)]
     pub(crate) const fn bitand(&self, rhs: &Self) -> Self {
-        let mut limbs = [0; Self::LIMBS];
-        let mut i = 0;
-
-        while i < Self::LIMBS {
-            limbs[i] = self.limbs[i] & rhs.limbs[i];
-            i += 1;
+        Self {
+            limbs: [
+                self.limbs[0] & rhs.limbs[0],
+                self.limbs[1] & rhs.limbs[1],
+                self.limbs[2] & rhs.limbs[2],
+                self.limbs[3] & rhs.limbs[3],
+            ],
         }
-
-        Self { limbs }
     }
 
     /// Computes bitwise `a & b`.
     #[inline(always)]
     pub(crate) const fn bitor(&self, rhs: &Self) -> Self {
-        let mut limbs = [0; Self::LIMBS];
-        let mut i = 0;
-
-        while i < Self::LIMBS {
-            limbs[i] = self.limbs[i] | rhs.limbs[i];
-            i += 1;
+        Self {
+            limbs: [
+                self.limbs[0] | rhs.limbs[0],
+                self.limbs[1] | rhs.limbs[1],
+                self.limbs[2] | rhs.limbs[2],
+                self.limbs[3] | rhs.limbs[3],
+            ],
         }
-
-        Self { limbs }
     }
 
     /// Computes `self << shift` where `0 <= shift < WORD_BITS`,

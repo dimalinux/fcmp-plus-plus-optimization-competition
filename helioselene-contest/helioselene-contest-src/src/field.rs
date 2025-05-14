@@ -46,11 +46,13 @@ pub struct HelioseleneField(pub(crate) ResidueType);
 impl DefaultIsZeroes for HelioseleneField {}
 
 impl ConstantTimeEq for HelioseleneField {
+    #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
     }
 }
 impl ConditionallySelectable for HelioseleneField {
+    #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self(Residue::conditional_select(&a.0, &b.0, choice))
     }
@@ -58,11 +60,13 @@ impl ConditionallySelectable for HelioseleneField {
 impl Add<Self> for HelioseleneField {
     type Output = Self;
 
+    #[inline]
     fn add(self, other: Self) -> Self::Output {
         Self(ResidueType::add(&self.0, &other.0))
     }
 }
 impl AddAssign<Self> for HelioseleneField {
+    #[inline]
     fn add_assign(&mut self, other: Self) {
         self.0 = ResidueType::add(&self.0, &other.0);
     }
@@ -70,11 +74,13 @@ impl AddAssign<Self> for HelioseleneField {
 impl<'a> Add<&'a Self> for HelioseleneField {
     type Output = Self;
 
+    #[inline]
     fn add(self, other: &'a Self) -> Self::Output {
         Self(ResidueType::add(&self.0, &other.0))
     }
 }
 impl<'a> AddAssign<&'a Self> for HelioseleneField {
+    #[inline]
     fn add_assign(&mut self, other: &'a Self) {
         self.0 = ResidueType::add(&self.0, &other.0);
     }
@@ -82,11 +88,13 @@ impl<'a> AddAssign<&'a Self> for HelioseleneField {
 impl Sub<Self> for HelioseleneField {
     type Output = Self;
 
+    #[inline]
     fn sub(self, other: Self) -> Self::Output {
         Self(ResidueType::sub(&self.0, &other.0))
     }
 }
 impl SubAssign<Self> for HelioseleneField {
+    #[inline]
     fn sub_assign(&mut self, other: Self) {
         self.0 = ResidueType::sub(&self.0, &other.0);
     }
@@ -94,11 +102,13 @@ impl SubAssign<Self> for HelioseleneField {
 impl<'a> Sub<&'a Self> for HelioseleneField {
     type Output = Self;
 
+    #[inline]
     fn sub(self, other: &'a Self) -> Self::Output {
         Self(ResidueType::sub(&self.0, &other.0))
     }
 }
 impl<'a> SubAssign<&'a Self> for HelioseleneField {
+    #[inline]
     fn sub_assign(&mut self, other: &'a Self) {
         self.0 = ResidueType::sub(&self.0, &other.0);
     }
@@ -106,11 +116,13 @@ impl<'a> SubAssign<&'a Self> for HelioseleneField {
 impl Mul<Self> for HelioseleneField {
     type Output = Self;
 
+    #[inline]
     fn mul(self, other: Self) -> Self::Output {
         Self(ResidueType::mul(&self.0, &other.0))
     }
 }
 impl MulAssign<Self> for HelioseleneField {
+    #[inline]
     fn mul_assign(&mut self, other: Self) {
         self.0 = ResidueType::mul(&self.0, &other.0);
     }
@@ -118,11 +130,13 @@ impl MulAssign<Self> for HelioseleneField {
 impl<'a> Mul<&'a Self> for HelioseleneField {
     type Output = Self;
 
+    #[inline]
     fn mul(self, other: &'a Self) -> Self::Output {
         Self(ResidueType::mul(&self.0, &other.0))
     }
 }
 impl<'a> MulAssign<&'a Self> for HelioseleneField {
+    #[inline]
     fn mul_assign(&mut self, other: &'a Self) {
         self.0 = ResidueType::mul(&self.0, &other.0);
     }
@@ -155,6 +169,7 @@ impl From<u128> for HelioseleneField {
 impl Neg for HelioseleneField {
     type Output = Self;
 
+    #[inline]
     fn neg(self) -> Self {
         Self(self.0.neg())
     }
@@ -162,6 +177,7 @@ impl Neg for HelioseleneField {
 impl Neg for &HelioseleneField {
     type Output = HelioseleneField;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         (*self).neg()
     }
@@ -232,6 +248,7 @@ impl Field for HelioseleneField {
         Self(ResidueType::add(&self.0, &self.0))
     }
 
+    #[inline]
     fn invert(&self) -> CtOption<Self> {
         let res = self.0.invert();
         CtOption::new(Self(res.0), res.1.into())
@@ -242,13 +259,11 @@ impl Field for HelioseleneField {
     }
 
     fn sqrt(&self) -> CtOption<Self> {
-        const MOD_PLUS_ONE_DIV_FOUR: U256 = HelioseleneQ::MODULUS
-            .saturating_add(&U256::ONE)
-            .wrapping_div(&U256::from_u64(4));
-        // TODO: below is using checked on a constant
-        let res = self.pow(Self(
-            ResidueType::new_checked(&MOD_PLUS_ONE_DIV_FOUR).unwrap(),
+        // MODULUS + 1 / 4
+        const MOD_PLUS_ONE_DIV_FOUR: HelioseleneField = HelioseleneField(ResidueType::new(
+            &U256::from_be_hex("1fffffffffffffffffffffffffffffffefdfde0b2dd95ad61badb49c9e49f1e8"),
         ));
+        let res = self.pow(MOD_PLUS_ONE_DIV_FOUR);
         CtOption::new(res, res.square().ct_eq(self))
     }
 }

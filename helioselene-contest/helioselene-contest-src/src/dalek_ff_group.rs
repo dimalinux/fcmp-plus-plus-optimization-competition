@@ -119,11 +119,13 @@ impl<'a> SubAssign<&'a Self> for Field25519 {
 impl Mul<Self> for Field25519 {
     type Output = Self;
 
+    #[inline]
     fn mul(self, other: Self) -> Self::Output {
         Self(ResidueType::mul(&self.0, &other.0))
     }
 }
 impl MulAssign<Self> for Field25519 {
+    #[inline]
     fn mul_assign(&mut self, other: Self) {
         self.0 = ResidueType::mul(&self.0, &other.0);
     }
@@ -131,11 +133,13 @@ impl MulAssign<Self> for Field25519 {
 impl<'a> Mul<&'a Self> for Field25519 {
     type Output = Self;
 
+    #[inline]
     fn mul(self, other: &'a Self) -> Self::Output {
         Self(ResidueType::mul(&self.0, &other.0))
     }
 }
 impl<'a> MulAssign<&'a Self> for Field25519 {
+    #[inline]
     fn mul_assign(&mut self, other: &'a Self) {
         self.0 = ResidueType::mul(&self.0, &other.0);
     }
@@ -174,6 +178,7 @@ impl From<u128> for Field25519 {
 impl Neg for Field25519 {
     type Output = Self;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         Self(Residue::neg(&self.0))
     }
@@ -182,6 +187,7 @@ impl Neg for Field25519 {
 impl Neg for &Field25519 {
     type Output = Field25519;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         Field25519(Residue::neg(&self.0))
     }
@@ -197,14 +203,17 @@ impl Field for Field25519 {
         Self::reduce(&bytes)
     }
 
+    #[inline]
     fn square(&self) -> Self {
         Self(ResidueType::square(&self.0))
     }
 
+    #[inline]
     fn double(&self) -> Self {
         Self(ResidueType::add(&self.0, &self.0))
     }
 
+    #[inline]
     fn invert(&self) -> CtOption<Self> {
         let res = ResidueType::invert(&self.0);
         CtOption::new(Self(res.0), res.1.into())
@@ -212,10 +221,10 @@ impl Field for Field25519 {
 
     // RFC-8032 sqrt8k5
     fn sqrt(&self) -> CtOption<Self> {
-        let tv1 = self.pow(MOD_3_8);
-        let tv2 = tv1 * SQRT_M1;
-        let candidate = Self::conditional_select(&tv2, &tv1, tv1.square().ct_eq(self));
-        CtOption::new(candidate, candidate.square().ct_eq(self))
+        let tv1 = self.pow(MOD_3_8).0;
+        let tv2 = ResidueType::mul(&tv1, &SQRT_M1.0);
+        let candidate = ResidueType::conditional_select(&tv2, &tv1, tv1.square().ct_eq(&self.0));
+        CtOption::new(Self(candidate), candidate.square().ct_eq(&self.0))
     }
 
     fn sqrt_ratio(u: &Self, v: &Self) -> (Choice, Self) {
@@ -390,18 +399,6 @@ fn test_sqrt_m1() {
     const SQRT_M1_MAGIC: U256 =
         U256::from_be_hex("2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0");
     assert_eq!(SQRT_M1.0.retrieve(), SQRT_M1_MAGIC);
-
-    // Also test equivalence against the result of the formula from RFC-8032 (modp_sqrt_m1/sqrt8k5 z)
-    // 2 ** ((MODULUS - 1) // 4) % MODULUS
-    assert_eq!(
-        SQRT_M1,
-        Field25519::from(2u8).pow(Field25519(ResidueType::new(
-            &(Field25519::ZERO - Field25519::ONE)
-                .0
-                .retrieve()
-                .wrapping_div(&U256::from_u64(4))
-        )))
-    );
 }
 
 #[cfg(test)]
