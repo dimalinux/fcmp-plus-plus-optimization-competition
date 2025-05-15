@@ -1,4 +1,8 @@
-pub use crate::{helios::HeliosPoint, selene::SelenePoint};
+mod helios;
+mod selene;
+
+pub use helios::HeliosPoint;
+pub use selene::SelenePoint;
 
 #[cfg(test)]
 mod tests {

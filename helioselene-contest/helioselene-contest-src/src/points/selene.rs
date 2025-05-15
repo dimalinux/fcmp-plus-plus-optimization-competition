@@ -14,42 +14,47 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    dalek_ff_group::{Field25519, ResidueType},
-    field::HelioseleneField,
+    fields::HelioseleneQ,
     u256::{Residue, U256},
+    Field25519, HelioseleneField,
 };
 
-pub(crate) const G_X: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
-    "0000000000000000000000000000000000000000000000000000000000000003",
-)));
-pub(crate) const G_Y: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
-    "537b74d97ac0721cbd92668350205f0759003bddc586a5dcd243e639e3183ef4",
-)));
-const B: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
-    "22e8c739b0ea70b8be94a76b3ebb7b3b043f6f384113bf3522b49ee1edd73ad4",
+pub(crate) type ResidueType = Residue<HelioseleneQ>;
+
+pub(crate) const G_X: HelioseleneField = HelioseleneField(Residue::new(&U256::from_be_hex(
+    "0000000000000000000000000000000000000000000000000000000000000001",
 )));
 
-const B3: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
-    "68ba55ad12bf522a3bbdf641bc3271b10cbe4da8c33b3d9f681ddca5c985b07c",
+pub(crate) const G_Y: HelioseleneField = HelioseleneField(Residue::new(&U256::from_be_hex(
+    "7a19d927b85cca9257c93177455c825f938bb198c8f09b37741e0aa6a1d3fdd2",
 )));
 
-fn recover_y(x: Field25519) -> CtOption<Field25519> {
+pub(crate) const B: HelioseleneField = HelioseleneField(Residue::new(&U256::from_be_hex(
+    "70127713695876c17f51bba595ffe279f3944bdf06ae900e68de0983cb5a4558",
+)));
+
+/// B3 constant is the same as B + B + B
+pub(crate) const B3: HelioseleneField = HelioseleneField(Residue::new(&U256::from_be_hex(
+    "5037653a3c0964447df532f0c1ffa76e5bbdf343a540d97a5d2c77a66fbf40ca",
+)));
+
+fn recover_y(x: HelioseleneField) -> CtOption<HelioseleneField> {
     ((x.square() * x) - x - x - x + B).sqrt()
 }
 /// Point.
 #[derive(Clone, Copy, Debug, Zeroize)]
-pub struct HeliosPoint {
-    x: Field25519,
-    y: Field25519,
-    z: Field25519,
+pub struct SelenePoint {
+    x: HelioseleneField,
+    y: HelioseleneField,
+    z: HelioseleneField,
 }
 
-pub(crate) const G: HeliosPoint = HeliosPoint {
+const G: SelenePoint = SelenePoint {
     x: G_X,
     y: G_Y,
-    z: Field25519::ONE,
+    z: HelioseleneField::ONE,
 };
-impl ConstantTimeEq for HeliosPoint {
+impl ConstantTimeEq for SelenePoint {
     fn ct_eq(&self, other: &Self) -> Choice {
         let x1 = ResidueType::mul(&self.x.0, &other.z.0);
         let x2 = ResidueType::mul(&other.x.0, &self.z.0);
@@ -61,25 +66,25 @@ impl ConstantTimeEq for HeliosPoint {
     }
 }
 
-impl PartialEq for HeliosPoint {
-    // TODO: Does the contest use it? We could create a vartime eq method.
+impl PartialEq for SelenePoint {
     fn eq(&self, other: &Self) -> bool {
+        // TODO: Does the contest use it? We could create a vartime eq method.
         self.ct_eq(other).into()
     }
 }
 
-impl Eq for HeliosPoint {}
+impl Eq for SelenePoint {}
 
-impl ConditionallySelectable for HeliosPoint {
+impl ConditionallySelectable for SelenePoint {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self {
-            x: Field25519::conditional_select(&a.x, &b.x, choice),
-            y: Field25519::conditional_select(&a.y, &b.y, choice),
-            z: Field25519::conditional_select(&a.z, &b.z, choice),
+            x: HelioseleneField::conditional_select(&a.x, &b.x, choice),
+            y: HelioseleneField::conditional_select(&a.y, &b.y, choice),
+            z: HelioseleneField::conditional_select(&a.z, &b.z, choice),
         }
     }
 }
-impl Add for HeliosPoint {
+impl Add for SelenePoint {
     type Output = Self;
 
     #[allow(non_snake_case)]
@@ -130,30 +135,30 @@ impl Add for HeliosPoint {
         let Z3 = Residue::mul(&t5, &Z3);
         let Z3 = Residue::add(&Z3, &t0);
         Self {
-            x: Field25519(X3),
-            y: Field25519(Y3),
-            z: Field25519(Z3),
+            x: HelioseleneField(X3),
+            y: HelioseleneField(Y3),
+            z: HelioseleneField(Z3),
         }
     }
 }
-impl AddAssign for HeliosPoint {
+impl AddAssign for SelenePoint {
     fn add_assign(&mut self, other: Self) {
         *self = Self::add(*self, other);
     }
 }
-impl Add<&Self> for HeliosPoint {
+impl Add<&Self> for SelenePoint {
     type Output = Self;
 
     fn add(self, other: &Self) -> Self {
         Self::add(self, *other)
     }
 }
-impl AddAssign<&Self> for HeliosPoint {
+impl AddAssign<&Self> for SelenePoint {
     fn add_assign(&mut self, other: &Self) {
         *self = Self::add(*self, *other);
     }
 }
-impl Neg for HeliosPoint {
+impl Neg for SelenePoint {
     type Output = Self;
 
     fn neg(self) -> Self {
@@ -164,36 +169,36 @@ impl Neg for HeliosPoint {
         }
     }
 }
-impl Sub for HeliosPoint {
+impl Sub for SelenePoint {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
         Self::add(self, other.neg())
     }
 }
-impl SubAssign for HeliosPoint {
+impl SubAssign for SelenePoint {
     fn sub_assign(&mut self, other: Self) {
         *self = Self::add(*self, other.neg());
     }
 }
-impl Sub<&Self> for HeliosPoint {
+impl Sub<&Self> for SelenePoint {
     type Output = Self;
 
     fn sub(self, other: &Self) -> Self {
         Self::add(self, other.neg())
     }
 }
-impl SubAssign<&Self> for HeliosPoint {
+impl SubAssign<&Self> for SelenePoint {
     fn sub_assign(&mut self, other: &Self) {
         *self = Self::add(*self, other.neg());
     }
 }
-impl Group for HeliosPoint {
-    type Scalar = HelioseleneField;
+impl Group for SelenePoint {
+    type Scalar = Field25519;
 
     fn random(mut rng: impl RngCore) -> Self {
         loop {
-            let mut bytes = Field25519::random(&mut rng).to_repr();
+            let mut bytes = HelioseleneField::random(&mut rng).to_repr();
             let mut_ref: &mut [u8] = bytes.as_mut();
             mut_ref[31] |= u8::try_from(rng.next_u32() % 2).unwrap() << 7;
             let opt = Self::from_bytes(&bytes);
@@ -205,9 +210,9 @@ impl Group for HeliosPoint {
 
     fn identity() -> Self {
         Self {
-            x: Field25519::ZERO,
-            y: Field25519::ONE,
-            z: Field25519::ZERO,
+            x: HelioseleneField::ZERO,
+            y: HelioseleneField::ONE,
+            z: HelioseleneField::ZERO,
         }
     }
 
@@ -216,7 +221,7 @@ impl Group for HeliosPoint {
     }
 
     fn is_identity(&self) -> Choice {
-        self.x.ct_eq(&Field25519::ZERO)
+        self.x.ct_eq(&HelioseleneField::ZERO)
     }
 
     #[allow(non_snake_case)]
@@ -240,14 +245,14 @@ impl Group for HeliosPoint {
         );
         let Z3 = sss;
         let res = Self {
-            x: Field25519(X3),
-            y: Field25519(Y3),
-            z: Field25519(Z3),
+            x: HelioseleneField(X3),
+            y: HelioseleneField(Y3),
+            z: HelioseleneField(Z3),
         };
         Self::conditional_select(&res, &Self::identity(), self.is_identity())
     }
 }
-impl Sum<Self> for HeliosPoint {
+impl Sum<Self> for SelenePoint {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = Self::identity();
         for i in iter {
@@ -256,15 +261,15 @@ impl Sum<Self> for HeliosPoint {
         res
     }
 }
-impl<'a> Sum<&'a Self> for HeliosPoint {
+impl<'a> Sum<&'a Self> for SelenePoint {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         Self::sum(iter.copied())
     }
 }
-impl Mul<HelioseleneField> for HeliosPoint {
+impl Mul<Field25519> for SelenePoint {
     type Output = Self;
 
-    fn mul(self, mut other: HelioseleneField) -> Self {
+    fn mul(self, mut other: Field25519) -> Self {
         let mut table = [Self::identity(); 16];
         table[1] = self;
         for i in 2..16 {
@@ -296,32 +301,32 @@ impl Mul<HelioseleneField> for HeliosPoint {
         res
     }
 }
-impl MulAssign<HelioseleneField> for HeliosPoint {
-    fn mul_assign(&mut self, other: HelioseleneField) {
+impl MulAssign<Field25519> for SelenePoint {
+    fn mul_assign(&mut self, other: Field25519) {
         *self = *self * other;
     }
 }
-impl Mul<&HelioseleneField> for HeliosPoint {
+impl Mul<&Field25519> for SelenePoint {
     type Output = Self;
 
-    fn mul(self, other: &HelioseleneField) -> Self {
+    fn mul(self, other: &Field25519) -> Self {
         self * *other
     }
 }
-impl MulAssign<&HelioseleneField> for HeliosPoint {
-    fn mul_assign(&mut self, other: &HelioseleneField) {
+impl MulAssign<&Field25519> for SelenePoint {
+    fn mul_assign(&mut self, other: &Field25519) {
         *self *= *other;
     }
 }
-impl GroupEncoding for HeliosPoint {
-    type Repr = <Field25519 as PrimeField>::Repr;
+impl GroupEncoding for SelenePoint {
+    type Repr = <HelioseleneField as PrimeField>::Repr;
 
     fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
         let sign = Choice::from(bytes[31] >> 7);
         let mut bytes = *bytes;
         let mut_ref: &mut [u8] = bytes.as_mut();
         mut_ref[31] &= !(1 << 7);
-        Field25519::from_repr(bytes).and_then(|x| {
+        HelioseleneField::from_repr(bytes).and_then(|x| {
             let is_identity = x.is_zero();
             let y = recover_y(x).map(|mut y| {
                 y.conditional_negate(y.is_odd().ct_eq(&!sign));
@@ -329,13 +334,13 @@ impl GroupEncoding for HeliosPoint {
             });
             let y = CtOption::conditional_select(
                 &y,
-                &CtOption::new(Field25519::ONE, 1.into()),
+                &CtOption::new(HelioseleneField::ONE, 1.into()),
                 is_identity,
             );
             let point = y.map(|y| Self {
                 x,
                 y,
-                z: Field25519::ONE,
+                z: HelioseleneField::ONE,
             });
             let not_negative_zero = !(is_identity & sign);
             CtOption::conditional_select(
@@ -351,40 +356,43 @@ impl GroupEncoding for HeliosPoint {
     }
 
     fn to_bytes(&self) -> Self::Repr {
-        let Some(z) = Option::<Field25519>::from(self.z.invert()) else {
+        let Some(z) = Option::<HelioseleneField>::from(self.z.invert()) else {
             return [0; 32];
         };
         let x = self.x * z;
         let y = self.y * z;
         let mut bytes = x.to_repr();
         let mut_ref: &mut [u8] = bytes.as_mut();
-        let y_sign =
-            u8::conditional_select(&y.is_odd().unwrap_u8(), &0, x.ct_eq(&Field25519::ZERO));
+        let y_sign = u8::conditional_select(
+            &y.is_odd().unwrap_u8(),
+            &0,
+            x.ct_eq(&HelioseleneField::ZERO),
+        );
         mut_ref[31] |= y_sign << 7;
         bytes
     }
 }
-impl PrimeGroup for HeliosPoint {}
+impl PrimeGroup for SelenePoint {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_helios() {
-        ff_group_tests::group::test_prime_group_bits::<_, HeliosPoint>(&mut rand_core::OsRng);
+    fn test_selene() {
+        ff_group_tests::group::test_prime_group_bits::<_, SelenePoint>(&mut rand_core::OsRng);
     }
 
     #[test]
-    fn generator_helios() {
+    fn generator_selene() {
         assert_eq!(G.x, G_X);
         assert_eq!(G.y, G_Y);
-        assert_eq!(recover_y(G.x).unwrap(), -G.y);
+        assert_eq!(recover_y(G.x).unwrap(), G.y);
     }
 
     #[test]
     fn zero_x_is_invalid() {
-        assert!(Option::<Field25519>::from(recover_y(Field25519::ZERO)).is_none());
+        assert!(Option::<HelioseleneField>::from(recover_y(HelioseleneField::ZERO)).is_none());
     }
 
     #[test]
