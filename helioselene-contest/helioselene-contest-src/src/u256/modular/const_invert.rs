@@ -1,12 +1,15 @@
+//! Multiplicative inverses of integers in Montgomery form with a constant modulus.
+
 use core::marker::PhantomData;
 
 use crate::u256::{
-    ct_choice::CtChoice, modular::reduction::montgomery_reduction, Residue, ResidueParams,
+    ct_choice::CtChoice, modular::reduction::montgomery_reduction, MontyForm, MontyParams,
 };
 
-impl<MOD: ResidueParams> Residue<MOD> {
-    /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
-    /// I.e. `self * self^-1 = 1`.
+impl<MOD: MontyParams> MontyForm<MOD> {
+    /// Computes `self^-1` representing the multiplicative inverse of `self`,
+    /// i.e. `self * self^-1 = 1`.
+    ///
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub(crate) const fn invert(&self) -> (Self, CtChoice) {

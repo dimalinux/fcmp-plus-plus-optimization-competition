@@ -16,7 +16,7 @@ mod traits;
 mod word;
 
 use ::core::fmt;
-pub(crate) use modular::{Residue, ResidueParams};
+pub(crate) use modular::{MontyForm, MontyParams};
 use subtle::{Choice, ConditionallySelectable};
 pub(crate) use traits::{Encoding, Zero};
 use zeroize::DefaultIsZeroes;

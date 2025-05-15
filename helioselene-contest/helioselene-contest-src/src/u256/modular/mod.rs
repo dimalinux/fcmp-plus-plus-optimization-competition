@@ -1,16 +1,10 @@
-/// Implements `Residue`s, supporting modular arithmetic with a constant modulus.
-mod reduction;
-
-/// Additions between residues with a constant modulus
+//! Implements `ConstMontyForm`s, supporting modular arithmetic with a constant modulus.
 mod const_add;
-/// Multiplicative inverses of residues with a constant modulus
-mod const_inv;
-/// Multiplications between residues with a constant modulus
+mod const_invert;
 mod const_mul;
-/// Negations of residues with a constant modulus
 mod const_neg;
-/// Subtractions between residues with a constant modulus
 mod const_sub;
+mod reduction;
 
 use core::{fmt::Debug, marker::PhantomData};
 
@@ -20,9 +14,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 use crate::u256::{Zero, U256};
 
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
-///
-/// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
-pub(crate) trait ResidueParams: Copy + Debug + Default + Eq + Send + Sync + 'static {
+pub(crate) trait MontyParams: Copy + Debug + Default + Eq + Send + Sync + 'static {
     /// The constant modulus
     const MODULUS: U256;
     /// 2^256 mod MODULUS, used to reduce 512-bit values
@@ -39,19 +31,20 @@ pub(crate) trait ResidueParams: Copy + Debug + Default + Eq + Send + Sync + 'sta
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// A residue mod `MOD`, represented using `LIMBS` limbs. The modulus of this residue is constant, so it cannot be set at runtime.
-/// Internally, the value is stored in Montgomery form (multiplied by MOD::R) until it is retrieved.
-pub(crate) struct Residue<MOD>
-where
-    MOD: ResidueParams,
-{
+
+/// An integer in Montgomery form modulo `MOD`. The modulus is constant, so it
+/// cannot be set at runtime.
+///
+/// Internally, the value is stored in Montgomery form (multiplied by MOD::ONE)
+/// until it is retrieved.
+pub(crate) struct MontyForm<MOD: MontyParams> {
     montgomery_form: U256,
     phantom: PhantomData<MOD>,
 }
 
-impl<MOD: ResidueParams> zeroize::DefaultIsZeroes for Residue<MOD> {}
+impl<MOD: MontyParams> zeroize::DefaultIsZeroes for MontyForm<MOD> {}
 
-impl<MOD: ResidueParams> Residue<MOD> {
+impl<MOD: MontyParams> MontyForm<MOD> {
     /// The representation of 1 mod `MOD`.
     pub(crate) const ONE: Self = Self {
         montgomery_form: MOD::R,
@@ -63,8 +56,12 @@ impl<MOD: ResidueParams> Residue<MOD> {
         phantom: PhantomData,
     };
 
-    // Internal helper function to generate a residue; this lets us wrap the constructors more cleanly
-    const fn generate_residue(integer: &U256) -> Self {
+    /// Instantiates a new [`MontyForm`] that represents this `integer` mod `MOD`.
+    pub(crate) const fn new(integer: &U256) -> Self {
+        // TODO: make this check debug only?
+        // A valid modulus must be odd
+        assert!(MOD::MODULUS.ct_is_odd().to_u8() != 0, "modulus must be odd");
+
         let product = integer.mul_wide(&MOD::R2);
         let montgomery_form = montgomery_reduction(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
 
@@ -74,17 +71,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
         }
     }
 
-    /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
-    /// If the modulus represented by `MOD` is not odd, this function will panic; use [`new_checked`][`Residue::new_checked`] if you want to be able to detect an invalid modulus.
-    pub(crate) const fn new(integer: &U256) -> Self {
-        // TODO: make this check debug only?
-        // A valid modulus must be odd
-        assert!(MOD::MODULUS.ct_is_odd().to_u8() != 0, "modulus must be odd");
-
-        Self::generate_residue(integer)
-    }
-
-    /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
+    /// Convert the number back from the optimized representation.
     pub(crate) const fn retrieve(&self) -> U256 {
         montgomery_reduction(
             &(self.montgomery_form, U256::ZERO),
@@ -94,7 +81,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams + Copy> ConditionallySelectable for Residue<MOD> {
+impl<MOD: MontyParams + Copy> ConditionallySelectable for MontyForm<MOD> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self {
             montgomery_form: U256::conditional_select(
@@ -107,19 +94,19 @@ impl<MOD: ResidueParams + Copy> ConditionallySelectable for Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> ConstantTimeEq for Residue<MOD> {
+impl<MOD: MontyParams> ConstantTimeEq for MontyForm<MOD> {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
         U256::ct_eq(&self.montgomery_form, &other.montgomery_form).into()
     }
 }
 
-impl<MOD: ResidueParams> Default for Residue<MOD> {
+impl<MOD: MontyParams> Default for MontyForm<MOD> {
     fn default() -> Self {
         Self::ZERO
     }
 }
 
-impl<MOD: ResidueParams> Zero for Residue<MOD> {
+impl<MOD: MontyParams> Zero for MontyForm<MOD> {
     const ZERO: Self = Self::ZERO;
 }

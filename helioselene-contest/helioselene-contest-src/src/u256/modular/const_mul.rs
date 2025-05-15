@@ -1,11 +1,13 @@
+//! Multiplications between integers in Montgomery form with a constant modulus.
+
 use core::{
     marker::PhantomData,
     ops::{Mul, MulAssign},
 };
 
-use crate::u256::{modular::reduction::montgomery_reduction, Residue, ResidueParams};
+use crate::u256::{modular::reduction::montgomery_reduction, MontyForm, MontyParams};
 
-impl<MOD: ResidueParams> Residue<MOD> {
+impl<MOD: MontyParams> MontyForm<MOD> {
     /// Multiplies by `rhs`.
     pub(crate) const fn mul(&self, rhs: &Self) -> Self {
         let product = self.montgomery_form.mul_wide(&rhs.montgomery_form);
@@ -16,7 +18,7 @@ impl<MOD: ResidueParams> Residue<MOD> {
         }
     }
 
-    /// Computes the (reduced) square of a residue.
+    /// Computes the (reduced) square.
     pub(crate) const fn square(&self) -> Self {
         let product = self.montgomery_form.square_wide();
         let montgomery_form = montgomery_reduction(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
@@ -27,23 +29,23 @@ impl<MOD: ResidueParams> Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> Mul<&Residue<MOD>> for &Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: MontyParams> Mul<&MontyForm<MOD>> for &MontyForm<MOD> {
+    type Output = MontyForm<MOD>;
 
-    fn mul(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        Residue::mul(self, rhs)
+    fn mul(self, rhs: &MontyForm<MOD>) -> MontyForm<MOD> {
+        MontyForm::mul(self, rhs)
     }
 }
 
-impl<MOD: ResidueParams> Mul<Residue<MOD>> for &Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: MontyParams> Mul<MontyForm<MOD>> for &MontyForm<MOD> {
+    type Output = MontyForm<MOD>;
 
-    fn mul(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        Residue::mul(self, &rhs)
+    fn mul(self, rhs: MontyForm<MOD>) -> MontyForm<MOD> {
+        MontyForm::mul(self, &rhs)
     }
 }
 
-impl<MOD: ResidueParams> Mul<&Self> for Residue<MOD> {
+impl<MOD: MontyParams> Mul<&Self> for MontyForm<MOD> {
     type Output = Self;
 
     fn mul(self, rhs: &Self) -> Self {
@@ -51,7 +53,7 @@ impl<MOD: ResidueParams> Mul<&Self> for Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> Mul<Self> for Residue<MOD> {
+impl<MOD: MontyParams> Mul<Self> for MontyForm<MOD> {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self {
@@ -59,13 +61,13 @@ impl<MOD: ResidueParams> Mul<Self> for Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> MulAssign<&Self> for Residue<MOD> {
+impl<MOD: MontyParams> MulAssign<&Self> for MontyForm<MOD> {
     fn mul_assign(&mut self, rhs: &Self) {
         *self = Self::mul(self, rhs);
     }
 }
 
-impl<MOD: ResidueParams> MulAssign<Self> for Residue<MOD> {
+impl<MOD: MontyParams> MulAssign<Self> for MontyForm<MOD> {
     fn mul_assign(&mut self, rhs: Self) {
         *self = Self::mul(self, &rhs);
     }

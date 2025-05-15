@@ -15,23 +15,23 @@ use zeroize::Zeroize;
 use crate::{
     backend::u8_from_bool,
     fields::FieldModulus,
-    u256::{Residue, U256},
+    u256::{MontyForm, U256},
     Field25519, HelioseleneField,
 };
 
-pub(crate) type ResidueType = Residue<FieldModulus>;
+pub(crate) type MontyFormType = MontyForm<FieldModulus>;
 
-pub(crate) const G_X: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
+pub(crate) const G_X: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
     "0000000000000000000000000000000000000000000000000000000000000003",
 )));
-pub(crate) const G_Y: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
+pub(crate) const G_Y: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
     "537b74d97ac0721cbd92668350205f0759003bddc586a5dcd243e639e3183ef4",
 )));
-const B: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
+const B: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
     "22e8c739b0ea70b8be94a76b3ebb7b3b043f6f384113bf3522b49ee1edd73ad4",
 )));
 
-const B3: Field25519 = Field25519(Residue::new(&U256::from_be_hex(
+const B3: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
     "68ba55ad12bf522a3bbdf641bc3271b10cbe4da8c33b3d9f681ddca5c985b07c",
 )));
 
@@ -53,10 +53,10 @@ pub(crate) const G: HeliosPoint = HeliosPoint {
 };
 impl ConstantTimeEq for HeliosPoint {
     fn ct_eq(&self, other: &Self) -> Choice {
-        let x1 = ResidueType::mul(&self.x.0, &other.z.0);
-        let x2 = ResidueType::mul(&other.x.0, &self.z.0);
-        let y1 = ResidueType::mul(&self.y.0, &other.z.0);
-        let y2 = ResidueType::mul(&other.y.0, &self.z.0);
+        let x1 = MontyFormType::mul(&self.x.0, &other.z.0);
+        let x2 = MontyFormType::mul(&other.x.0, &self.z.0);
+        let y1 = MontyFormType::mul(&self.y.0, &other.z.0);
+        let y2 = MontyFormType::mul(&other.y.0, &self.z.0);
         let both_x_zero = Choice::bitand(self.x.is_zero(), other.x.is_zero());
         let x_and_y_eq = Choice::bitand(x1.ct_eq(&x2), y1.ct_eq(&y2));
         Choice::bitor(both_x_zero, x_and_y_eq)
@@ -92,45 +92,45 @@ impl Add for HeliosPoint {
         let X2 = &other.x.0;
         let Y2 = &other.y.0;
         let Z2 = &other.z.0;
-        const A: ResidueType = Residue::neg(&ResidueType::new(&U256::from_u64(3)));
-        let t0 = Residue::mul(X1, X2);
-        let t1 = Residue::mul(Y1, Y2);
-        let t2 = Residue::mul(Z1, Z2);
-        let t3 = Residue::mul(&Residue::add(X1, Y1), &Residue::add(X2, Y2));
-        let t4 = Residue::add(&t0, &t1);
-        let t3 = Residue::sub(&t3, &t4);
-        let t4 = Residue::add(X1, Z1);
-        let t5 = Residue::add(X2, Z2);
-        let t4 = Residue::mul(&t4, &t5);
-        let t5 = Residue::add(&t0, &t2);
-        let t4 = Residue::sub(&t4, &t5);
-        let t5 = Residue::add(Y1, Z1);
-        let X3 = Residue::add(Y2, Z2);
-        let t5 = Residue::mul(&t5, &X3);
-        let X3 = Residue::add(&t1, &t2);
-        let t5 = Residue::sub(&t5, &X3);
-        let Z3 = Residue::mul(&A, &t4);
-        let X3 = Residue::mul(&B3.0, &t2);
-        let Z3 = Residue::add(&X3, &Z3);
-        let X3 = Residue::sub(&t1, &Z3);
-        let Z3 = Residue::add(&t1, &Z3);
-        let Y3 = Residue::mul(&X3, &Z3);
-        let t1 = Residue::add(&t0, &t0);
-        let t1 = Residue::add(&t1, &t0);
-        let t2 = Residue::mul(&A, &t2);
-        let t4 = Residue::mul(&B3.0, &t4);
-        let t1 = Residue::add(&t1, &t2);
-        let t2 = Residue::sub(&t0, &t2);
-        let t2 = Residue::mul(&A, &t2);
-        let t4 = Residue::add(&t4, &t2);
-        let t0 = Residue::mul(&t1, &t4);
-        let Y3 = Residue::add(&Y3, &t0);
-        let t0 = Residue::mul(&t5, &t4);
-        let X3 = Residue::mul(&t3, &X3);
-        let X3 = Residue::sub(&X3, &t0);
-        let t0 = Residue::mul(&t3, &t1);
-        let Z3 = Residue::mul(&t5, &Z3);
-        let Z3 = Residue::add(&Z3, &t0);
+        const A: MontyFormType = MontyForm::neg(&MontyFormType::new(&U256::from_u64(3)));
+        let t0 = MontyForm::mul(X1, X2);
+        let t1 = MontyForm::mul(Y1, Y2);
+        let t2 = MontyForm::mul(Z1, Z2);
+        let t3 = MontyForm::mul(&MontyForm::add(X1, Y1), &MontyForm::add(X2, Y2));
+        let t4 = MontyForm::add(&t0, &t1);
+        let t3 = MontyForm::sub(&t3, &t4);
+        let t4 = MontyForm::add(X1, Z1);
+        let t5 = MontyForm::add(X2, Z2);
+        let t4 = MontyForm::mul(&t4, &t5);
+        let t5 = MontyForm::add(&t0, &t2);
+        let t4 = MontyForm::sub(&t4, &t5);
+        let t5 = MontyForm::add(Y1, Z1);
+        let X3 = MontyForm::add(Y2, Z2);
+        let t5 = MontyForm::mul(&t5, &X3);
+        let X3 = MontyForm::add(&t1, &t2);
+        let t5 = MontyForm::sub(&t5, &X3);
+        let Z3 = MontyForm::mul(&A, &t4);
+        let X3 = MontyForm::mul(&B3.0, &t2);
+        let Z3 = MontyForm::add(&X3, &Z3);
+        let X3 = MontyForm::sub(&t1, &Z3);
+        let Z3 = MontyForm::add(&t1, &Z3);
+        let Y3 = MontyForm::mul(&X3, &Z3);
+        let t1 = MontyForm::add(&t0, &t0);
+        let t1 = MontyForm::add(&t1, &t0);
+        let t2 = MontyForm::mul(&A, &t2);
+        let t4 = MontyForm::mul(&B3.0, &t4);
+        let t1 = MontyForm::add(&t1, &t2);
+        let t2 = MontyForm::sub(&t0, &t2);
+        let t2 = MontyForm::mul(&A, &t2);
+        let t4 = MontyForm::add(&t4, &t2);
+        let t0 = MontyForm::mul(&t1, &t4);
+        let Y3 = MontyForm::add(&Y3, &t0);
+        let t0 = MontyForm::mul(&t5, &t4);
+        let X3 = MontyForm::mul(&t3, &X3);
+        let X3 = MontyForm::sub(&X3, &t0);
+        let t0 = MontyForm::mul(&t3, &t1);
+        let Z3 = MontyForm::mul(&t5, &Z3);
+        let Z3 = MontyForm::add(&Z3, &t0);
         Self {
             x: Field25519(X3),
             y: Field25519(Y3),
@@ -226,18 +226,18 @@ impl Group for HeliosPoint {
         let X1 = self.x.0;
         let Y1 = self.y.0;
         let Z1 = self.z.0;
-        let w = ResidueType::mul(&ResidueType::sub(&X1, &Z1), &ResidueType::add(&X1, &Z1));
-        let w = ResidueType::add(&ResidueType::add(&w, &w), &w);
-        let s = ResidueType::double(&ResidueType::mul(&Y1, &Z1));
-        let ss = ResidueType::square(&s);
-        let sss = ResidueType::mul(&s, &ss);
-        let R = ResidueType::mul(&Y1, &s);
+        let w = MontyFormType::mul(&MontyFormType::sub(&X1, &Z1), &MontyFormType::add(&X1, &Z1));
+        let w = MontyFormType::add(&MontyFormType::add(&w, &w), &w);
+        let s = MontyFormType::double(&MontyFormType::mul(&Y1, &Z1));
+        let ss = MontyFormType::square(&s);
+        let sss = MontyFormType::mul(&s, &ss);
+        let R = MontyFormType::mul(&Y1, &s);
         let RR = R.square();
-        let B_ = ResidueType::mul(&X1, &R).double();
-        let h = ResidueType::sub(&w.square(), &B_.double());
-        let X3 = ResidueType::mul(&h, &s);
-        let Y3 = ResidueType::sub(
-            &ResidueType::mul(&w, &(ResidueType::sub(&B_, &h))),
+        let B_ = MontyFormType::mul(&X1, &R).double();
+        let h = MontyFormType::sub(&w.square(), &B_.double());
+        let X3 = MontyFormType::mul(&h, &s);
+        let Y3 = MontyFormType::sub(
+            &MontyFormType::mul(&w, &(MontyFormType::sub(&B_, &h))),
             &RR.double(),
         );
         let Z3 = sss;

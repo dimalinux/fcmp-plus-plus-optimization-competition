@@ -10,14 +10,14 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    u256::{Encoding, Residue, ResidueParams, U256},
+    u256::{Encoding, MontyForm, MontyParams, U256},
 };
 
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct FieldModulus;
-impl ResidueParams for FieldModulus {
+impl MontyParams for FieldModulus {
     /// MODULUS is 2^255 - 19 (an odd value)
     const MODULUS: U256 = U256::from_be_hex(MODULUS_HEX);
     /// MOD_NEG_INV is the modular multiplicative inverse of the least
@@ -32,28 +32,28 @@ impl ResidueParams for FieldModulus {
     /// TWO_TO_256_MOD_M is 2^256 mod MODULUS
     const TWO_TO_256_MOD_M: U256 = U256::from_u64(0x26);
 }
-pub(crate) type ResidueType = Residue<FieldModulus>;
+pub(crate) type MontyFormType = MontyForm<FieldModulus>;
 
 /// A constant-time implementation of the Ed25519 field.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
-pub struct Field25519(pub(crate) ResidueType);
+pub struct Field25519(pub(crate) MontyFormType);
 
 /// Square root of -1.
 /// Formula from RFC-8032 (modp_sqrt_m1/sqrt8k5 z)
 /// 2 ** ((MODULUS - 1) // 4) % MODULUS
-const SQRT_M1: Field25519 = Field25519(ResidueType::new(&U256::from_be_hex(
+const SQRT_M1: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
     "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
 )));
 
 /// Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
 /// (MODULUS + 3) / 8
-const MOD_3_8: Field25519 = Field25519(ResidueType::new(&U256::from_be_hex(
+const MOD_3_8: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
     "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
 )));
 
 /// Constant useful in sqrt_ratio_i (sqrt(u / v))
 /// MOD_3_8 - 1
-const MOD_5_8: Field25519 = Field25519(ResidueType::new(&U256::from_be_hex(
+const MOD_5_8: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
     "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd",
 )));
 
@@ -64,7 +64,7 @@ impl ConstantTimeEq for Field25519 {
 }
 impl ConditionallySelectable for Field25519 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(ResidueType::conditional_select(&a.0, &b.0, choice))
+        Self(MontyFormType::conditional_select(&a.0, &b.0, choice))
     }
 }
 
@@ -72,48 +72,48 @@ impl Add<Self> for Field25519 {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
-        Self(ResidueType::add(&self.0, &other.0))
+        Self(MontyFormType::add(&self.0, &other.0))
     }
 }
 impl AddAssign<Self> for Field25519 {
     fn add_assign(&mut self, other: Self) {
-        self.0 = ResidueType::add(&self.0, &other.0);
+        self.0 = MontyFormType::add(&self.0, &other.0);
     }
 }
 impl<'a> Add<&'a Self> for Field25519 {
     type Output = Self;
 
     fn add(self, other: &'a Self) -> Self::Output {
-        Self(ResidueType::add(&self.0, &other.0))
+        Self(MontyFormType::add(&self.0, &other.0))
     }
 }
 impl<'a> AddAssign<&'a Self> for Field25519 {
     fn add_assign(&mut self, other: &'a Self) {
-        self.0 = ResidueType::add(&self.0, &other.0);
+        self.0 = MontyFormType::add(&self.0, &other.0);
     }
 }
 impl Sub<Self> for Field25519 {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
-        Self(ResidueType::sub(&self.0, &other.0))
+        Self(MontyFormType::sub(&self.0, &other.0))
     }
 }
 impl SubAssign<Self> for Field25519 {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = ResidueType::sub(&self.0, &other.0);
+        self.0 = MontyFormType::sub(&self.0, &other.0);
     }
 }
 impl<'a> Sub<&'a Self> for Field25519 {
     type Output = Self;
 
     fn sub(self, other: &'a Self) -> Self::Output {
-        Self(ResidueType::sub(&self.0, &other.0))
+        Self(MontyFormType::sub(&self.0, &other.0))
     }
 }
 impl<'a> SubAssign<&'a Self> for Field25519 {
     fn sub_assign(&mut self, other: &'a Self) {
-        self.0 = ResidueType::sub(&self.0, &other.0);
+        self.0 = MontyFormType::sub(&self.0, &other.0);
     }
 }
 impl Mul<Self> for Field25519 {
@@ -121,13 +121,13 @@ impl Mul<Self> for Field25519 {
 
     #[inline]
     fn mul(self, other: Self) -> Self::Output {
-        Self(ResidueType::mul(&self.0, &other.0))
+        Self(MontyFormType::mul(&self.0, &other.0))
     }
 }
 impl MulAssign<Self> for Field25519 {
     #[inline]
     fn mul_assign(&mut self, other: Self) {
-        self.0 = ResidueType::mul(&self.0, &other.0);
+        self.0 = MontyFormType::mul(&self.0, &other.0);
     }
 }
 impl<'a> Mul<&'a Self> for Field25519 {
@@ -135,43 +135,43 @@ impl<'a> Mul<&'a Self> for Field25519 {
 
     #[inline]
     fn mul(self, other: &'a Self) -> Self::Output {
-        Self(ResidueType::mul(&self.0, &other.0))
+        Self(MontyFormType::mul(&self.0, &other.0))
     }
 }
 impl<'a> MulAssign<&'a Self> for Field25519 {
     #[inline]
     fn mul_assign(&mut self, other: &'a Self) {
-        self.0 = ResidueType::mul(&self.0, &other.0);
+        self.0 = MontyFormType::mul(&self.0, &other.0);
     }
 }
 
 impl From<u8> for Field25519 {
     fn from(a: u8) -> Self {
-        Self(ResidueType::new(&U256::from_u64(u64::from(a))))
+        Self(MontyFormType::new(&U256::from_u64(u64::from(a))))
     }
 }
 
 impl From<u16> for Field25519 {
     fn from(a: u16) -> Self {
-        Self(ResidueType::new(&U256::from_u64(u64::from(a))))
+        Self(MontyFormType::new(&U256::from_u64(u64::from(a))))
     }
 }
 
 impl From<u32> for Field25519 {
     fn from(a: u32) -> Self {
-        Self(ResidueType::new(&U256::from_u64(u64::from(a))))
+        Self(MontyFormType::new(&U256::from_u64(u64::from(a))))
     }
 }
 
 impl From<u64> for Field25519 {
     fn from(a: u64) -> Self {
-        Self(ResidueType::new(&U256::from_u64(a)))
+        Self(MontyFormType::new(&U256::from_u64(a)))
     }
 }
 
 impl From<u128> for Field25519 {
     fn from(a: u128) -> Self {
-        Self(ResidueType::new(&U256::from_u128(a)))
+        Self(MontyFormType::new(&U256::from_u128(a)))
     }
 }
 
@@ -180,7 +180,7 @@ impl Neg for Field25519 {
 
     #[inline]
     fn neg(self) -> Self::Output {
-        Self(Residue::neg(&self.0))
+        Self(MontyForm::neg(&self.0))
     }
 }
 
@@ -189,13 +189,13 @@ impl Neg for &Field25519 {
 
     #[inline]
     fn neg(self) -> Self::Output {
-        Field25519(Residue::neg(&self.0))
+        Field25519(MontyForm::neg(&self.0))
     }
 }
 
 impl Field for Field25519 {
-    const ONE: Self = Self(ResidueType::ONE);
-    const ZERO: Self = Self(ResidueType::ZERO);
+    const ONE: Self = Self(MontyFormType::ONE);
+    const ZERO: Self = Self(MontyFormType::ZERO);
 
     fn random(mut rng: impl RngCore) -> Self {
         let mut bytes = [0; 64];
@@ -205,25 +205,25 @@ impl Field for Field25519 {
 
     #[inline]
     fn square(&self) -> Self {
-        Self(ResidueType::square(&self.0))
+        Self(MontyFormType::square(&self.0))
     }
 
     #[inline]
     fn double(&self) -> Self {
-        Self(ResidueType::add(&self.0, &self.0))
+        Self(MontyFormType::add(&self.0, &self.0))
     }
 
     #[inline]
     fn invert(&self) -> CtOption<Self> {
-        let res = ResidueType::invert(&self.0);
+        let res = MontyFormType::invert(&self.0);
         CtOption::new(Self(res.0), res.1.into())
     }
 
     // RFC-8032 sqrt8k5
     fn sqrt(&self) -> CtOption<Self> {
         let tv1 = self.pow(MOD_3_8).0;
-        let tv2 = ResidueType::mul(&tv1, &SQRT_M1.0);
-        let candidate = ResidueType::conditional_select(&tv2, &tv1, tv1.square().ct_eq(&self.0));
+        let tv2 = MontyFormType::mul(&tv1, &SQRT_M1.0);
+        let candidate = MontyFormType::conditional_select(&tv2, &tv1, tv1.square().ct_eq(&self.0));
         CtOption::new(Self(candidate), candidate.square().ct_eq(&self.0))
     }
 
@@ -257,16 +257,16 @@ impl PrimeField for Field25519 {
     const CAPACITY: u32 = 254;
     // This was calculated via the formula from the ff crate docs
     // Self::MULTIPLICATIVE_GENERATOR ** (2 ** Self::S)
-    const DELTA: Self = Self(ResidueType::new(&U256::from_u64(0x10)));
+    const DELTA: Self = Self(MontyFormType::new(&U256::from_u64(0x10)));
     // Big endian representation of the modulus
     const MODULUS: &'static str = MODULUS_HEX;
     // This was calculated with the method from the ff crate docs
     // SageMath GF(modulus).primitive_element()
-    const MULTIPLICATIVE_GENERATOR: Self = Self(ResidueType::new(&U256::from_u64(2)));
+    const MULTIPLICATIVE_GENERATOR: Self = Self(MontyFormType::new(&U256::from_u64(2)));
     const NUM_BITS: u32 = 255;
     // This was calculated via the formula from the ff crate docs
     // Self::MULTIPLICATIVE_GENERATOR ** ((modulus - 1) >> Self::S)
-    const ROOT_OF_UNITY: Self = Self(ResidueType::new(&U256::from_be_hex(
+    const ROOT_OF_UNITY: Self = Self(MontyFormType::new(&U256::from_be_hex(
         "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
     )));
     // Self::ROOT_OF_UNITY.invert()
@@ -274,12 +274,12 @@ impl PrimeField for Field25519 {
     // This was set per the specification in the ff crate docs
     // The number of leading zero bits in the little-endian bit representation of (modulus - 1)
     const S: u32 = 2;
-    const TWO_INV: Self = Self(ResidueType::new(&U256::from_u64(2)).invert().0);
+    const TWO_INV: Self = Self(MontyFormType::new(&U256::from_u64(2)).invert().0);
 
     fn from_repr(bytes: [u8; 32]) -> CtOption<Self> {
         let res = U256::from_le_bytes(bytes);
         CtOption::new(
-            Self(ResidueType::new(&res)),
+            Self(MontyFormType::new(&res)),
             U256::ct_lt(&res, &FieldModulus::MODULUS).into(),
         )
     }
@@ -313,25 +313,25 @@ impl Field25519 {
     /// Perform an exponentiation.
     #[must_use]
     pub fn pow(&self, other: Self) -> Self {
-        let mut table: [ResidueType; 16] = [ResidueType::default(); 16];
-        table[0] = ResidueType::ONE;
+        let mut table: [MontyFormType; 16] = [MontyFormType::default(); 16];
+        table[0] = MontyFormType::ONE;
         table[1] = self.0;
-        table[2] = ResidueType::mul(&table[1], &self.0);
-        table[3] = ResidueType::mul(&table[2], &self.0);
-        table[4] = ResidueType::mul(&table[3], &self.0);
-        table[5] = ResidueType::mul(&table[4], &self.0);
-        table[6] = ResidueType::mul(&table[5], &self.0);
-        table[7] = ResidueType::mul(&table[6], &self.0);
-        table[8] = ResidueType::mul(&table[7], &self.0);
-        table[9] = ResidueType::mul(&table[8], &self.0);
-        table[10] = ResidueType::mul(&table[9], &self.0);
-        table[11] = ResidueType::mul(&table[10], &self.0);
-        table[12] = ResidueType::mul(&table[11], &self.0);
-        table[13] = ResidueType::mul(&table[12], &self.0);
-        table[14] = ResidueType::mul(&table[13], &self.0);
-        table[15] = ResidueType::mul(&table[14], &self.0);
+        table[2] = MontyFormType::mul(&table[1], &self.0);
+        table[3] = MontyFormType::mul(&table[2], &self.0);
+        table[4] = MontyFormType::mul(&table[3], &self.0);
+        table[5] = MontyFormType::mul(&table[4], &self.0);
+        table[6] = MontyFormType::mul(&table[5], &self.0);
+        table[7] = MontyFormType::mul(&table[6], &self.0);
+        table[8] = MontyFormType::mul(&table[7], &self.0);
+        table[9] = MontyFormType::mul(&table[8], &self.0);
+        table[10] = MontyFormType::mul(&table[9], &self.0);
+        table[11] = MontyFormType::mul(&table[10], &self.0);
+        table[12] = MontyFormType::mul(&table[11], &self.0);
+        table[13] = MontyFormType::mul(&table[12], &self.0);
+        table[14] = MontyFormType::mul(&table[13], &self.0);
+        table[15] = MontyFormType::mul(&table[14], &self.0);
 
-        let mut res = ResidueType::ONE;
+        let mut res = MontyFormType::ONE;
         let mut bits = 0;
         for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
             bits <<= 1;
@@ -341,89 +341,89 @@ impl Field25519 {
 
             if ((i + 1) % 4) == 0 {
                 if i != 3 {
-                    res = ResidueType::square(&res);
-                    res = ResidueType::square(&res);
-                    res = ResidueType::square(&res);
-                    res = ResidueType::square(&res);
+                    res = MontyFormType::square(&res);
+                    res = MontyFormType::square(&res);
+                    res = MontyFormType::square(&res);
+                    res = MontyFormType::square(&res);
                 }
 
                 let mut factor = table[0];
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[1],
                     usize::from(bits).ct_eq(&1),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[2],
                     usize::from(bits).ct_eq(&2),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[3],
                     usize::from(bits).ct_eq(&3),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[4],
                     usize::from(bits).ct_eq(&4),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[5],
                     usize::from(bits).ct_eq(&5),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[6],
                     usize::from(bits).ct_eq(&6),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[7],
                     usize::from(bits).ct_eq(&7),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[8],
                     usize::from(bits).ct_eq(&8),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[9],
                     usize::from(bits).ct_eq(&9),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[10],
                     usize::from(bits).ct_eq(&10),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[11],
                     usize::from(bits).ct_eq(&11),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[12],
                     usize::from(bits).ct_eq(&12),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[13],
                     usize::from(bits).ct_eq(&13),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[14],
                     usize::from(bits).ct_eq(&14),
                 );
-                factor = ResidueType::conditional_select(
+                factor = MontyFormType::conditional_select(
                     &factor,
                     &table[15],
                     usize::from(bits).ct_eq(&15),
                 );
-                res = ResidueType::mul(&res, &factor);
+                res = MontyFormType::mul(&res, &factor);
                 bits = 0;
             }
         }
@@ -436,19 +436,19 @@ impl Field25519 {
     pub(crate) fn reduce(bytes: &[u8; 64]) -> Self {
         // Do modulus on 512 bits using 256-bit math
         // val_512 mod M = (((2^256 mod M) * hi_256) mod M + (lo_256 mod M)) mod M
-        const TWO_TO_256_MOD_M: ResidueType = ResidueType::new(&FieldModulus::TWO_TO_256_MOD_M);
-        let lo = ResidueType::new(&U256::from_le_slice(&bytes[..32]));
-        let hi = ResidueType::new(&U256::from_le_slice(&bytes[32..64]));
-        let hi = ResidueType::mul(&TWO_TO_256_MOD_M, &hi);
-        Self(ResidueType::add(&hi, &lo))
+        const TWO_TO_256_MOD_M: MontyFormType = MontyFormType::new(&FieldModulus::TWO_TO_256_MOD_M);
+        let lo = MontyFormType::new(&U256::from_le_slice(&bytes[..32]));
+        let hi = MontyFormType::new(&U256::from_le_slice(&bytes[32..64]));
+        let hi = MontyFormType::mul(&TWO_TO_256_MOD_M, &hi);
+        Self(MontyFormType::add(&hi, &lo))
     }
 }
 
 impl Sum<Self> for Field25519 {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut res = ResidueType::ZERO;
+        let mut res = MontyFormType::ZERO;
         for item in iter {
-            res = ResidueType::add(&res, &item.0);
+            res = MontyFormType::add(&res, &item.0);
         }
         Self(res)
     }
@@ -462,9 +462,9 @@ impl<'a> Sum<&'a Self> for Field25519 {
 
 impl Product<Self> for Field25519 {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut res = ResidueType::ONE;
+        let mut res = MontyFormType::ONE;
         for item in iter {
-            res = ResidueType::mul(&res, &item.0);
+            res = MontyFormType::mul(&res, &item.0);
         }
         Self(res)
     }

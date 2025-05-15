@@ -1,8 +1,10 @@
+//! Additions between integers in Montgomery form with a constant modulus.
+
 use core::ops::{Add, AddAssign};
 
-use crate::u256::{Residue, ResidueParams};
+use crate::u256::{MontyForm, MontyParams};
 
-impl<MOD: ResidueParams> Residue<MOD> {
+impl<MOD: MontyParams> MontyForm<MOD> {
     /// Adds `rhs`.
     #[inline]
     pub(crate) const fn add(&self, rhs: &Self) -> Self {
@@ -20,23 +22,23 @@ impl<MOD: ResidueParams> Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> Add<&Residue<MOD>> for &Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: MontyParams> Add<&MontyForm<MOD>> for &MontyForm<MOD> {
+    type Output = MontyForm<MOD>;
 
-    fn add(self, rhs: &Residue<MOD>) -> Residue<MOD> {
-        Residue::add(self, rhs)
+    fn add(self, rhs: &MontyForm<MOD>) -> MontyForm<MOD> {
+        MontyForm::add(self, rhs)
     }
 }
 
-impl<MOD: ResidueParams> Add<Residue<MOD>> for &Residue<MOD> {
-    type Output = Residue<MOD>;
+impl<MOD: MontyParams> Add<MontyForm<MOD>> for &MontyForm<MOD> {
+    type Output = MontyForm<MOD>;
 
-    fn add(self, rhs: Residue<MOD>) -> Residue<MOD> {
-        Residue::add(self, &rhs)
+    fn add(self, rhs: MontyForm<MOD>) -> MontyForm<MOD> {
+        MontyForm::add(self, &rhs)
     }
 }
 
-impl<MOD: ResidueParams> Add<&Self> for Residue<MOD> {
+impl<MOD: MontyParams> Add<&Self> for MontyForm<MOD> {
     type Output = Self;
 
     fn add(self, rhs: &Self) -> Self {
@@ -44,7 +46,7 @@ impl<MOD: ResidueParams> Add<&Self> for Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> Add<Self> for Residue<MOD> {
+impl<MOD: MontyParams> Add<Self> for MontyForm<MOD> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
@@ -52,13 +54,13 @@ impl<MOD: ResidueParams> Add<Self> for Residue<MOD> {
     }
 }
 
-impl<MOD: ResidueParams> AddAssign<&Self> for Residue<MOD> {
+impl<MOD: MontyParams> AddAssign<&Self> for MontyForm<MOD> {
     fn add_assign(&mut self, rhs: &Self) {
         *self = Self::add(self, rhs);
     }
 }
 
-impl<MOD: ResidueParams> AddAssign<Self> for Residue<MOD> {
+impl<MOD: MontyParams> AddAssign<Self> for MontyForm<MOD> {
     fn add_assign(&mut self, rhs: Self) {
         *self = Self::add(self, &rhs);
     }
