@@ -1,6 +1,6 @@
 use crate::u256::{
     ct_choice::CtChoice,
-    word::{ct_is_nonzero, ct_select, WORD_BITS},
+    primitives::{ct_is_nonzero, ct_select, WORD_BITS},
     U256,
 };
 

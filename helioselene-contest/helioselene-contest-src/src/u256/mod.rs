@@ -10,10 +10,10 @@ mod inv_mod;
 mod modular;
 mod mul;
 mod neg;
+mod primitives;
 mod sub;
 mod sub_mod;
 mod traits;
-mod word;
 
 use ::core::fmt;
 pub(crate) use modular::{MontyForm, MontyParams};

@@ -4,7 +4,7 @@
 
 use subtle::{Choice, ConstantTimeEq};
 
-use crate::u256::{ct_choice::CtChoice, word, U256};
+use crate::u256::{ct_choice::CtChoice, primitives, U256};
 
 impl U256 {
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -14,7 +14,7 @@ impl U256 {
 
         let mut i = 0;
         while i < Self::LIMBS {
-            limbs[i] = word::ct_select(a.limbs[i], b.limbs[i], c);
+            limbs[i] = primitives::ct_select(a.limbs[i], b.limbs[i], c);
             i += 1;
         }
 
@@ -33,7 +33,7 @@ impl U256 {
     #[inline]
     pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
         let w = self.limbs[0] | self.limbs[1] | self.limbs[2] | self.limbs[3];
-        word::ct_is_nonzero(w)
+        primitives::ct_is_nonzero(w)
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
@@ -50,7 +50,7 @@ impl U256 {
         acc |= lhs.limbs[3] ^ rhs.limbs[3];
 
         // acc == 0 if and only if self == rhs
-        word::ct_is_nonzero(acc).not()
+        primitives::ct_is_nonzero(acc).not()
     }
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
@@ -59,7 +59,7 @@ impl U256 {
         // We could use the same approach as in Limb::ct_lt(),
         // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
         // there are no savings compared to just calling `sbb()` directly.
-        let (_res, borrow) = lhs.subtract_with_borrow(rhs, 0);
+        let (_res, borrow) = lhs.borrowing_sub(rhs, 0);
         CtChoice::from_mask(borrow)
     }
 }

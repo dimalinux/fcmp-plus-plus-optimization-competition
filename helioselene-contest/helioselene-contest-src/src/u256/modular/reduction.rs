@@ -1,6 +1,6 @@
 //! Modular reduction implementation.
 
-use crate::u256::{word, U256};
+use crate::u256::{primitives::carrying_add, U256};
 
 /// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
 #[inline(always)]
@@ -36,7 +36,7 @@ pub(crate) const fn montgomery_reduction(
     let (carry, new_limb) = muladdcarry(u, modulus.limbs[3], lower.limbs[3], carry);
     lower.limbs[3] = new_limb;
 
-    let (new_sum, new_meta_carry) = word::adc(upper.limbs[0], carry, meta_carry);
+    let (new_sum, new_meta_carry) = carrying_add(upper.limbs[0], carry, meta_carry);
     upper.limbs[0] = new_sum;
     meta_carry = new_meta_carry;
 
@@ -54,7 +54,7 @@ pub(crate) const fn montgomery_reduction(
     let (carry, new_limb) = muladdcarry(u, modulus.limbs[3], upper.limbs[0], carry);
     upper.limbs[0] = new_limb;
 
-    let (new_sum, new_meta_carry) = word::adc(upper.limbs[1], carry, meta_carry);
+    let (new_sum, new_meta_carry) = carrying_add(upper.limbs[1], carry, meta_carry);
     upper.limbs[1] = new_sum;
     meta_carry = new_meta_carry;
 
@@ -72,7 +72,7 @@ pub(crate) const fn montgomery_reduction(
     let (carry, new_limb) = muladdcarry(u, modulus.limbs[3], upper.limbs[1], carry);
     upper.limbs[1] = new_limb;
 
-    let (new_sum, new_meta_carry) = word::adc(upper.limbs[2], carry, meta_carry);
+    let (new_sum, new_meta_carry) = carrying_add(upper.limbs[2], carry, meta_carry);
     upper.limbs[2] = new_sum;
     meta_carry = new_meta_carry;
 
@@ -90,7 +90,7 @@ pub(crate) const fn montgomery_reduction(
     let (carry, new_limb) = muladdcarry(u, modulus.limbs[3], upper.limbs[2], carry);
     upper.limbs[2] = new_limb;
 
-    let (new_sum, new_meta_carry) = word::adc(upper.limbs[3], carry, meta_carry);
+    let (new_sum, new_meta_carry) = carrying_add(upper.limbs[3], carry, meta_carry);
     upper.limbs[3] = new_sum;
     meta_carry = new_meta_carry;
 

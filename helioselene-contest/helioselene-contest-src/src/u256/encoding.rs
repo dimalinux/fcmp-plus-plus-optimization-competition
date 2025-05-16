@@ -1,6 +1,6 @@
 //! Const-friendly decoding operations for [`Uint`]
 
-use crate::u256::{word::WORD_BYTES, Encoding, U256};
+use crate::u256::{primitives::WORD_BYTES, Encoding, U256};
 
 impl Encoding for U256 {
     type Repr = [u8; 32];
