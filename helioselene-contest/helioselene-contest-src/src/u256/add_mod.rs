@@ -11,13 +11,11 @@ impl U256 {
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
         let (w, borrow) = w.borrowing_sub(p, 0);
-        let (_, borrow) = borrowing_sub(carry, 0, borrow);
+        let (_, mask) = borrowing_sub(carry, 0, borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
         // modulus.
-        let mask = Self::new([borrow; Self::LIMBS]);
-
-        w.wrapping_add(&p.bitand(&mask))
+        w.wrapping_add(&p.bitand_limb(mask))
     }
 }

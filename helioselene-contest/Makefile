@@ -71,4 +71,13 @@ install-deps:
 	rustup install nightly # for formatting
 	command -v grcov >/dev/null 2>&1 || cargo install grcov
 	rustup component add llvm-tools-preview
+	cargo install cargo-binutils
+	cargo install cargo-show-asm --features disasm
 	cargo install flamegraph
+
+.PHONY: asm
+asm:
+	mkdir -p target/asm
+	cargo objdump --example profile_ours --release -- -d -C > target/asm/profile_ours.asm
+	cargo asm --disasm --example  profile_ours | grep helioselene
+	@echo "\nUse:\n    cargo asm --disasm --example  profile_ours NUMBER"

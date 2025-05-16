@@ -7,13 +7,11 @@ impl U256 {
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
     pub(crate) const fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
-        let (out, borrow) = self.borrowing_sub(rhs, 0);
+        let (out, mask) = self.borrowing_sub(rhs, 0);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Self::new([borrow; Self::LIMBS]);
-
-        out.wrapping_add(&p.bitand(&mask))
+        out.wrapping_add(&p.bitand_limb(mask))
     }
 
     /// Returns `(self..., carry) - (rhs...) mod (p...)`, where `carry <= 1`.
@@ -25,12 +23,10 @@ impl U256 {
         let (out, borrow) = self.borrowing_sub(rhs, 0);
 
         // The new `borrow = Word::MAX` iff `carry == 0` and `borrow == Word::MAX`.
-        let borrow = (!carry.wrapping_neg()) & borrow;
+        let mask = (!carry.wrapping_neg()) & borrow;
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Self::new([borrow; Self::LIMBS]);
-
-        out.wrapping_add(&p.bitand(&mask))
+        out.wrapping_add(&p.bitand_limb(mask))
     }
 }

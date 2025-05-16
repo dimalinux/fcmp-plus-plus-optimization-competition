@@ -6,13 +6,13 @@ use crate::u256::{
 
 impl U256 {
     #[inline(always)]
-    pub(crate) const fn bitand(&self, rhs: &Self) -> Self {
+    pub(crate) const fn bitand_limb(&self, rhs: u64) -> Self {
         Self {
             limbs: [
-                self.limbs[0] & rhs.limbs[0],
-                self.limbs[1] & rhs.limbs[1],
-                self.limbs[2] & rhs.limbs[2],
-                self.limbs[3] & rhs.limbs[3],
+                self.limbs[0] & rhs,
+                self.limbs[1] & rhs,
+                self.limbs[2] & rhs,
+                self.limbs[3] & rhs,
             ],
         }
     }
