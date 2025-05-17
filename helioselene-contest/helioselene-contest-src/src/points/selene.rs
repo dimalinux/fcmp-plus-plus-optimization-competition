@@ -84,11 +84,10 @@ impl ConditionallySelectable for SelenePoint {
         }
     }
 }
-impl Add for SelenePoint {
-    type Output = Self;
 
+impl SelenePoint {
     #[allow(non_snake_case)]
-    fn add(self, other: Self) -> Self {
+    const fn const_add(self, other: &Self) -> Self {
         let X1 = &self.x.0;
         let Y1 = &self.y.0;
         let Z1 = &self.z.0;
@@ -141,21 +140,30 @@ impl Add for SelenePoint {
         }
     }
 }
+
+impl Add for SelenePoint {
+    type Output = Self;
+
+    #[allow(non_snake_case)]
+    fn add(self, other: Self) -> Self {
+        Self::const_add(self, &other)
+    }
+}
 impl AddAssign for SelenePoint {
     fn add_assign(&mut self, other: Self) {
-        *self = Self::add(*self, other);
+        *self = Self::const_add(*self, &other);
     }
 }
 impl Add<&Self> for SelenePoint {
     type Output = Self;
 
     fn add(self, other: &Self) -> Self {
-        Self::add(self, *other)
+        Self::const_add(self, other)
     }
 }
 impl AddAssign<&Self> for SelenePoint {
     fn add_assign(&mut self, other: &Self) {
-        *self = Self::add(*self, *other);
+        *self = Self::const_add(*self, other);
     }
 }
 impl Neg for SelenePoint {
@@ -173,24 +181,24 @@ impl Sub for SelenePoint {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        Self::add(self, other.neg())
+        Self::const_add(self, &other.neg())
     }
 }
 impl SubAssign for SelenePoint {
     fn sub_assign(&mut self, other: Self) {
-        *self = Self::add(*self, other.neg());
+        *self = Self::const_add(*self, &other.neg());
     }
 }
 impl Sub<&Self> for SelenePoint {
     type Output = Self;
 
     fn sub(self, other: &Self) -> Self {
-        Self::add(self, other.neg())
+        Self::const_add(self, &other.neg())
     }
 }
 impl SubAssign<&Self> for SelenePoint {
     fn sub_assign(&mut self, other: &Self) {
-        *self = Self::add(*self, other.neg());
+        *self = Self::const_add(*self, &other.neg());
     }
 }
 impl Group for SelenePoint {
