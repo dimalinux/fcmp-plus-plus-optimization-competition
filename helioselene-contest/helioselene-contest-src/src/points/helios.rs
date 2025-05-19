@@ -36,8 +36,17 @@ const B3: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
 )));
 
 fn recover_y(x: Field25519) -> CtOption<Field25519> {
-    ((x.square() * x) - x - x - x + B).sqrt()
+    // ((x.square() * x) - x - x - x + B).sqrt()
+    let x = &x.0;
+    let mut v = MontyFormType::square(x);
+    v = MontyFormType::mul(&v, x);
+    v = MontyFormType::sub(&v, x);
+    v = MontyFormType::sub(&v, x);
+    v = MontyFormType::sub(&v, x);
+    v = MontyFormType::add(&v, &B.0);
+    Field25519(v).sqrt()
 }
+
 /// Point.
 #[derive(Clone, Copy, Debug, Zeroize)]
 pub struct HeliosPoint {

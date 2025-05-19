@@ -39,7 +39,15 @@ pub(crate) const B3: HelioseleneField = HelioseleneField(MontyForm::new(&U256::f
 )));
 
 fn recover_y(x: HelioseleneField) -> CtOption<HelioseleneField> {
-    ((x.square() * x) - x - x - x + B).sqrt()
+    // ((x.square() * x) - x - x - x + B).sqrt()
+    let x = &x.0;
+    let mut v = MontyFormType::square(x);
+    v = MontyFormType::mul(&v, x);
+    v = MontyFormType::sub(&v, x);
+    v = MontyFormType::sub(&v, x);
+    v = MontyFormType::sub(&v, x);
+    v = MontyFormType::add(&v, &B.0);
+    HelioseleneField(v).sqrt()
 }
 /// Point.
 #[derive(Clone, Copy, Debug, Zeroize)]
