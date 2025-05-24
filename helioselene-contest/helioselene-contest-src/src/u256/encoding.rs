@@ -104,6 +104,42 @@ impl U256 {
         out[16..24].copy_from_slice(&self.limbs[2].to_le_bytes());
         out[24..32].copy_from_slice(&self.limbs[3].to_le_bytes());
     }
+
+    pub(crate) const fn as_be_nibbles(&self) -> [u8; 64] {
+        let mut nibbles = [0u8; 64];
+        let mut n_pos: usize = 0;
+        let mut l_pos: isize = 3;
+
+        #[allow(clippy::cast_sign_loss)]
+        while l_pos >= 0 {
+            let limb = self.limbs[l_pos as usize];
+            l_pos -= 1;
+
+            let le_bytes = limb.to_le_bytes(); // no-op on almost all platforms
+
+            // MSB byte first, high nibble then low nibble
+            nibbles[n_pos] = le_bytes[7] >> 4;
+            nibbles[n_pos + 1] = le_bytes[7] & 0xf;
+            nibbles[n_pos + 2] = le_bytes[6] >> 4;
+            nibbles[n_pos + 3] = le_bytes[6] & 0xf;
+            nibbles[n_pos + 4] = le_bytes[5] >> 4;
+            nibbles[n_pos + 5] = le_bytes[5] & 0xf;
+            nibbles[n_pos + 6] = le_bytes[4] >> 4;
+            nibbles[n_pos + 7] = le_bytes[4] & 0xf;
+            nibbles[n_pos + 8] = le_bytes[3] >> 4;
+            nibbles[n_pos + 9] = le_bytes[3] & 0xf;
+            nibbles[n_pos + 10] = le_bytes[2] >> 4;
+            nibbles[n_pos + 11] = le_bytes[2] & 0xf;
+            nibbles[n_pos + 12] = le_bytes[1] >> 4;
+            nibbles[n_pos + 13] = le_bytes[1] & 0xf;
+            nibbles[n_pos + 14] = le_bytes[0] >> 4;
+            nibbles[n_pos + 15] = le_bytes[0] & 0xf;
+
+            n_pos += 16;
+        }
+
+        nibbles
+    }
 }
 
 /// Decode a single nibble of upper or lower hex
@@ -138,4 +174,20 @@ const fn decode_hex_byte(bytes: [u8; 2]) -> (u8, u16) {
     let err = byte >> 8;
     let result = byte as u8;
     (result, err)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::u256::U256;
+
+    #[test]
+    fn test_to_be_nibbles() {
+        const INPUT_BE_HEX: &str =
+            "7250e0f23084d4a131f3a6b4ab53db6f5307779669b4f539cf69ef7f86aa9ea5";
+        const EXPECTED_BE_NIBBLES: &str =
+            "070205000e000f02030008040d040a0103010f030a060b040a0b05030d0b060f050300070707090606090b040f0503090c0f06090e0f070f08060a0a090e0a05";
+        let input = U256::from_be_hex(INPUT_BE_HEX);
+        let output = input.as_be_nibbles();
+        assert_eq!(EXPECTED_BE_NIBBLES, hex::encode(output));
+    }
 }

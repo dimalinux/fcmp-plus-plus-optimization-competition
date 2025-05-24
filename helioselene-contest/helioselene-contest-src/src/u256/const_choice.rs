@@ -4,9 +4,9 @@ use subtle::Choice;
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
 // when `subtle` starts supporting const fns.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct CtChoice(u64);
+pub(crate) struct ConstChoice(u64);
 
-impl CtChoice {
+impl ConstChoice {
     /// The falsy value.
     pub(crate) const FALSY: Self = Self(0);
     /// The truthy value.
@@ -40,6 +40,15 @@ impl CtChoice {
         a ^ (self.0 & (a ^ b))
     }
 
+    /// Returns the truthy value if `x == y`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_u64_eq(x: u64, y: u64) -> Self {
+        let diff = x ^ y;
+        // (diff - 1) >> 63 yields 1 only when diff == 0
+        let eq_mask = (diff.wrapping_sub(1) >> (u64::BITS - 1)).wrapping_neg();
+        Self(eq_mask)
+    }
+
     /// Return `x` if `self` is truthy, otherwise return 0.
     #[inline(always)]
     pub(crate) const fn if_true(self, x: u64) -> u64 {
@@ -57,8 +66,8 @@ impl CtChoice {
     }
 }
 
-impl From<CtChoice> for Choice {
-    fn from(choice: CtChoice) -> Self {
+impl From<ConstChoice> for Choice {
+    fn from(choice: ConstChoice) -> Self {
         Self::from(choice.to_u8())
     }
 }
@@ -71,7 +80,18 @@ mod tests {
     fn select() {
         let a: u64 = 1;
         let b: u64 = 2;
-        assert_eq!(CtChoice::TRUTHY.select(a, b), b);
-        assert_eq!(CtChoice::FALSY.select(a, b), a);
+        assert_eq!(ConstChoice::TRUTHY.select(a, b), b);
+        assert_eq!(ConstChoice::FALSY.select(a, b), a);
+    }
+
+    #[test]
+    #[allow(clippy::cast_sign_loss)]
+    fn from_u64_eq() {
+        assert_eq!(ConstChoice::from_u64_eq(0, 0).0, ConstChoice::TRUTHY.0);
+        assert_eq!(ConstChoice::from_u64_eq(1, 2).0, ConstChoice::FALSY.0);
+
+        let v = i64::MIN as u64; // wrapping_neg of this value equal itself
+        assert_eq!(ConstChoice::from_u64_eq(v, v).0, ConstChoice::TRUTHY.0);
+        assert_eq!(ConstChoice::from_u64_eq(0, v).0, ConstChoice::FALSY.0);
     }
 }

@@ -1,5 +1,5 @@
 use crate::u256::{
-    ct_choice::CtChoice,
+    const_choice::ConstChoice,
     primitives::{ct_is_nonzero, ct_select, WORD_BITS},
     U256,
 };
@@ -106,9 +106,9 @@ impl U256 {
         (new_lower, upper)
     }
 
-    /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUTHY`] if the overflowing bit
-    /// was set, and [`CtChoice::FALSE`] otherwise.
-    pub(crate) const fn shr_1(&self) -> (Self, CtChoice) {
+    /// Computes `self >> 1` in constant-time, returning [`ConstChoice::TRUTHY`] if the overflowing bit
+    /// was set, and [`ConstChoice::FALSE`] otherwise.
+    pub(crate) const fn shr_1(&self) -> (Self, ConstChoice) {
         let mut shifted_bits = [0; Self::LIMBS];
         let mut i = 0;
         while i < Self::LIMBS {
@@ -138,7 +138,7 @@ impl U256 {
         );
         (
             Self::new(limbs),
-            CtChoice::from_lsb(carry_bits[0] >> (u64::BITS - 1)),
+            ConstChoice::from_lsb(carry_bits[0] >> (u64::BITS - 1)),
         )
     }
 

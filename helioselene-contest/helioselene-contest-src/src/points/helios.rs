@@ -4,7 +4,7 @@ use core::{
 };
 
 use group::{
-    ff::{Field, PrimeField, PrimeFieldBits},
+    ff::{Field, PrimeField},
     prime::PrimeGroup,
     Group, GroupEncoding,
 };
@@ -13,9 +13,8 @@ use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTi
 use zeroize::Zeroize;
 
 use crate::{
-    backend::u8_from_bool,
     fields::FieldModulus,
-    u256::{MontyForm, U256},
+    u256::{ConstChoice, MontyForm, U256},
     Field25519, HelioseleneField,
 };
 
@@ -87,6 +86,16 @@ impl ConditionallySelectable for HeliosPoint {
             x: Field25519::conditional_select(&a.x, &b.x, choice),
             y: Field25519::conditional_select(&a.y, &b.y, choice),
             z: Field25519::conditional_select(&a.z, &b.z, choice),
+        }
+    }
+}
+
+impl HeliosPoint {
+    const fn ct_select(a: &Self, b: &Self, c: ConstChoice) -> Self {
+        Self {
+            x: Field25519::ct_select(&a.x, &b.x, c),
+            y: Field25519::ct_select(&a.y, &b.y, c),
+            z: Field25519::ct_select(&a.z, &b.z, c),
         }
     }
 }
@@ -206,6 +215,49 @@ impl SubAssign<&Self> for HeliosPoint {
         *self = Self::const_add(*self, &other.neg());
     }
 }
+
+const IDENTITY: HeliosPoint = HeliosPoint {
+    x: Field25519::ZERO,
+    y: Field25519::ONE,
+    z: Field25519::ZERO,
+};
+
+impl HeliosPoint {
+    #[allow(non_snake_case)]
+    const fn const_double(&self) -> Self {
+        let X1 = self.x.0;
+        let Y1 = self.y.0;
+        let Z1 = self.z.0;
+        let w = MontyFormType::mul(&MontyFormType::sub(&X1, &Z1), &MontyFormType::add(&X1, &Z1));
+        let w = MontyFormType::add(&MontyFormType::add(&w, &w), &w);
+        let s = MontyFormType::double(&MontyFormType::mul(&Y1, &Z1));
+        let ss = MontyFormType::square(&s);
+        let sss = MontyFormType::mul(&s, &ss);
+        let R = MontyFormType::mul(&Y1, &s);
+        let RR = R.square();
+        let B_ = MontyFormType::mul(&X1, &R).double();
+        let h = MontyFormType::sub(&w.square(), &B_.double());
+        let X3 = MontyFormType::mul(&h, &s);
+        let Y3 = MontyFormType::sub(
+            &MontyFormType::mul(&w, &(MontyFormType::sub(&B_, &h))),
+            &RR.double(),
+        );
+        let Z3 = sss;
+        let res = Self {
+            x: Field25519(X3),
+            y: Field25519(Y3),
+            z: Field25519(Z3),
+        };
+        Self::ct_select(&res, &IDENTITY, self.const_is_identity())
+    }
+}
+
+impl HeliosPoint {
+    const fn const_is_identity(&self) -> ConstChoice {
+        self.x.c_ct_eq(&Field25519::ZERO)
+    }
+}
+
 impl Group for HeliosPoint {
     type Scalar = HelioseleneField;
 
@@ -222,11 +274,7 @@ impl Group for HeliosPoint {
     }
 
     fn identity() -> Self {
-        Self {
-            x: Field25519::ZERO,
-            y: Field25519::ONE,
-            z: Field25519::ZERO,
-        }
+        IDENTITY
     }
 
     fn generator() -> Self {
@@ -279,39 +327,55 @@ impl<'a> Sum<&'a Self> for HeliosPoint {
         Self::sum(iter.copied())
     }
 }
+
+impl HeliosPoint {
+    const fn const_mul(self, other: HelioseleneField) -> Self {
+        let mut table = [IDENTITY; 16];
+        table[1] = self;
+        let mut i = 2;
+        while i < 16 {
+            table[i] = Self::const_add(self, &table[i - 1]);
+            i += 1;
+        }
+
+        let mut res = IDENTITY;
+        let nibbles = other.0.retrieve().as_be_nibbles();
+        let mut i = 0;
+        #[allow(unused_assignments)]
+        while i < 64 {
+            let mut bits = nibbles[i];
+
+            if i > 0 {
+                res = res.const_double();
+                res = res.const_double();
+                res = res.const_double();
+                res = res.const_double();
+            }
+
+            i += 1;
+
+            let mut term = table[0];
+            let mut j: usize = 1;
+            while j < 16 {
+                let c = ConstChoice::from_u64_eq(bits as u64, j as u64);
+                term = Self::ct_select(&term, &table[j], c);
+                j += 1;
+            }
+            res = Self::const_add(res, &term);
+            bits = 0;
+        }
+        // TODO: How to handle this in a const function?
+        //nibbles.zeroize();
+        //other.zeroize();
+        res
+    }
+}
+
 impl Mul<HelioseleneField> for HeliosPoint {
     type Output = Self;
 
-    fn mul(self, mut other: HelioseleneField) -> Self {
-        let mut table = [Self::identity(); 16];
-        table[1] = self;
-        for i in 2..16 {
-            table[i] = table[i - 1] + self;
-        }
-        let mut res = Self::identity();
-        let mut bits = 0;
-        for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
-            bits <<= 1;
-            let mut bit = u8_from_bool(&mut bit);
-            bits |= bit;
-            bit.zeroize();
-            if ((i + 1) % 4) == 0 {
-                if i != 3 {
-                    for _ in 0..4 {
-                        res = res.double();
-                    }
-                }
-                let mut term = table[0];
-                for (j, candidate) in table[1..].iter().enumerate() {
-                    let j = j + 1;
-                    term = Self::conditional_select(&term, candidate, usize::from(bits).ct_eq(&j));
-                }
-                res += term;
-                bits = 0;
-            }
-        }
-        other.zeroize();
-        res
+    fn mul(self, other: HelioseleneField) -> Self {
+        Self::const_mul(self, other)
     }
 }
 impl MulAssign<HelioseleneField> for HeliosPoint {
@@ -409,4 +473,13 @@ mod tests {
     fn b3_value() {
         assert_eq!(B + B + B, B3);
     }
+
+    /*    #[test]
+    fn test_const_mul() {
+        let point = HeliosPoint::generator();
+        let scalar = HelioseleneField::from(2_u64);
+        let result = HeliosPoint::const_mul(point, scalar);
+        let expected = HeliosPoint::const_add(point, &point); // 2 * G
+        assert_eq!(result, expected);
+    }*/
 }

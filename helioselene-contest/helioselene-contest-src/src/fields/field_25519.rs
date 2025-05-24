@@ -10,7 +10,7 @@ use zeroize::Zeroize;
 
 use crate::{
     backend::u8_from_bool,
-    u256::{Encoding, MontyForm, MontyParams, U256},
+    u256::{ConstChoice, Encoding, MontyForm, MontyParams, U256},
 };
 
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
@@ -57,6 +57,13 @@ const MOD_5_8: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
     "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd",
 )));
 
+impl Field25519 {
+    #[inline]
+    pub(crate) const fn c_ct_eq(&self, other: &Self) -> ConstChoice {
+        self.0.c_ct_eq(&other.0)
+    }
+}
+
 impl ConstantTimeEq for Field25519 {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
@@ -65,6 +72,12 @@ impl ConstantTimeEq for Field25519 {
 impl ConditionallySelectable for Field25519 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self(MontyFormType::conditional_select(&a.0, &b.0, choice))
+    }
+}
+
+impl Field25519 {
+    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
+        Self(MontyFormType::ct_select(&a.0, &b.0, choice))
     }
 }
 

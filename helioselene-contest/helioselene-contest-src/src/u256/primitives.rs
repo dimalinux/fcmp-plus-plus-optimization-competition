@@ -1,7 +1,7 @@
 //! Big integers are represented as an array of smaller CPU word-size integers
 //! called "limbs".
 
-use crate::u256::ct_choice::CtChoice;
+use crate::u256::const_choice::ConstChoice;
 
 pub(crate) const WORD_BITS: usize = u64::BITS as usize; // TODO: remove?
 pub(crate) const WORD_BYTES: usize = WORD_BITS / 8;
@@ -49,7 +49,7 @@ pub(crate) const fn carrying_mul_add(lhs: u64, rhs: u64, addend: u64, carry: u64
 
 /// Return `b` if `c` is truthy, otherwise return `a`.
 #[inline]
-pub(crate) const fn ct_select(a: u64, b: u64, c: CtChoice) -> u64 {
+pub(crate) const fn ct_select(a: u64, b: u64, c: ConstChoice) -> u64 {
     c.select(a, b)
 }
 
@@ -57,12 +57,12 @@ pub(crate) const fn ct_select(a: u64, b: u64, c: CtChoice) -> u64 {
 #[inline]
 #[allow(clippy::cast_sign_loss)]
 #[allow(clippy::cast_possible_wrap)]
-pub(crate) const fn ct_is_nonzero(w: u64) -> CtChoice {
+pub(crate) const fn ct_is_nonzero(w: u64) -> ConstChoice {
     // (x | x.wrapping_neg()) is 0 if and only if x == 0, otherwise
     // the MSB is set. We use sign-extension to convert the MSB value
     // into truthy or falsy.
     let mask = ((w | w.wrapping_neg()) as i64 >> 63) as u64;
-    CtChoice::from_mask(mask)
+    ConstChoice::from_mask(mask)
 }
 
 #[cfg(test)]

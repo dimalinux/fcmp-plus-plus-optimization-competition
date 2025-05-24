@@ -11,7 +11,7 @@ use core::{fmt::Debug, marker::PhantomData};
 use reduction::montgomery_reduction;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
-use crate::u256::{Zero, U256};
+use crate::u256::{ConstChoice, Zero, U256};
 
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
 pub(crate) trait MontyParams: Copy + Debug + Default + Eq + Send + Sync + 'static {
@@ -91,6 +91,22 @@ impl<MOD: MontyParams + Copy> ConditionallySelectable for MontyForm<MOD> {
             ),
             phantom: PhantomData,
         }
+    }
+}
+
+impl<MOD: MontyParams + Copy> MontyForm<MOD> {
+    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
+        Self {
+            montgomery_form: U256::ct_select(&a.montgomery_form, &b.montgomery_form, choice),
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<MOD: MontyParams> MontyForm<MOD> {
+    #[inline]
+    pub(crate) const fn c_ct_eq(&self, other: &Self) -> ConstChoice {
+        U256::ct_eq(&self.montgomery_form, &other.montgomery_form)
     }
 }
 

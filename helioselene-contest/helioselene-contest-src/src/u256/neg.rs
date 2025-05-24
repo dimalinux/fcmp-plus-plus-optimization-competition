@@ -1,8 +1,8 @@
-use crate::u256::{ct_choice::CtChoice, U256};
+use crate::u256::{const_choice::ConstChoice, U256};
 
 impl U256 {
     /// Negates based on `choice` by wrapping the integer.
-    pub(crate) const fn conditional_wrapping_neg(&self, choice: CtChoice) -> Self {
+    pub(crate) const fn conditional_wrapping_neg(&self, choice: ConstChoice) -> Self {
         Self::ct_select(self, &self.wrapping_neg(), choice)
     }
 

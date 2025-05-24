@@ -3,7 +3,7 @@
 use core::marker::PhantomData;
 
 use crate::u256::{
-    ct_choice::CtChoice, modular::reduction::montgomery_reduction, MontyForm, MontyParams,
+    const_choice::ConstChoice, modular::reduction::montgomery_reduction, MontyForm, MontyParams,
 };
 
 impl<MOD: MontyParams> MontyForm<MOD> {
@@ -12,7 +12,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
     ///
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub(crate) const fn invert(&self) -> (Self, CtChoice) {
+    pub(crate) const fn invert(&self) -> (Self, ConstChoice) {
         // Compute the inverse in Montgomery form.
         let (inverse, is_some) = self.montgomery_form.inv_odd_mod(&MOD::MODULUS);
 

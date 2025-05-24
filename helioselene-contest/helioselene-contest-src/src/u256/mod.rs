@@ -3,7 +3,7 @@ mod add_mod;
 mod bit_ops;
 mod cmp;
 /// Implements modular arithmetic for constant moduli.
-mod ct_choice;
+mod const_choice;
 mod encoding;
 mod from;
 mod inv_mod;
@@ -20,6 +20,8 @@ pub(crate) use modular::{MontyForm, MontyParams};
 use subtle::{Choice, ConditionallySelectable};
 pub(crate) use traits::{Encoding, Zero};
 use zeroize::DefaultIsZeroes;
+
+pub(crate) use crate::u256::const_choice::ConstChoice;
 
 /// Stack-allocated 256-bit unsigned integer.
 #[derive(Default, Copy, Clone, Hash, PartialEq, Eq)]
