@@ -1,10 +1,10 @@
-use crate::u256::{const_choice::ConstChoice, U256};
+use crate::u256::{ct_choice::CtChoice, U256};
 
 impl U256 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     /// Returns `(inverse, CtChoice::TRUTHY)` if an inverse exists,
     /// otherwise `(undefined, CtChoice::FALSY)`.
-    pub(crate) const fn inv_odd_mod(&self, modulus: &Self) -> (Self, ConstChoice) {
+    pub(crate) const fn inv_odd_mod(&self, modulus: &Self) -> (Self, CtChoice) {
         debug_assert!(modulus.ct_is_odd().is_true_vartime());
 
         let mut a = *self;

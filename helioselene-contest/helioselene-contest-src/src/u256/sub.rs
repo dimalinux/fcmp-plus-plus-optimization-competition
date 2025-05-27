@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::u256::{const_choice::ConstChoice, primitives::borrowing_sub, U256};
+use crate::u256::{ct_choice::CtChoice, primitives::borrowing_sub, U256};
 
 impl U256 {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
@@ -24,10 +24,11 @@ impl U256 {
     pub(crate) const fn conditional_wrapping_sub(
         &self,
         rhs: &Self,
-        choice: ConstChoice,
-    ) -> (Self, ConstChoice) {
+        choice: CtChoice,
+    ) -> (Self, CtChoice) {
         let actual_rhs = Self::ct_select(&Self::ZERO, rhs, choice);
         let (res, borrow) = self.borrowing_sub(&actual_rhs, 0);
-        (res, ConstChoice::from_mask(borrow))
+
+        (res, CtChoice::from_mask(borrow))
     }
 }

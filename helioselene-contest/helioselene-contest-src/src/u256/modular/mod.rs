@@ -9,34 +9,37 @@ mod reduction;
 use core::{fmt::Debug, marker::PhantomData};
 
 use reduction::montgomery_reduction;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
-use crate::u256::{ConstChoice, Zero, U256};
+use crate::u256::{CtChoice, U256};
 
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
 pub(crate) trait MontyParams: Copy + Debug + Default + Eq + Send + Sync + 'static {
     /// The constant modulus
     const MODULUS: U256;
+
     /// 2^256 mod MODULUS, used to reduce 512-bit values
     const TWO_TO_256_MOD_M: U256;
+
     /// Parameter used in Montgomery reduction
     const R: U256;
+
     /// R^2, used to move into Montgomery form
     const R2: U256;
+
     /// R^3, used to perform a multiplicative inverse
     const R3: U256;
+
     /// The lowest limbs of -(MODULUS^-1) mod R
-    // We only need the LSB because during reduction this value is multiplied modulo 2**WORD_BITS.
+    /// We only need the LSB because during reduction this value is multiplied modulo 2**WORD_BITS.
     const MOD_NEG_INV: u64;
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 /// An integer in Montgomery form modulo `MOD`. The modulus is constant, so it
 /// cannot be set at runtime.
 ///
 /// Internally, the value is stored in Montgomery form (multiplied by MOD::ONE)
 /// until it is retrieved.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct MontyForm<MOD: MontyParams> {
     montgomery_form: U256,
     phantom: PhantomData<MOD>,
@@ -81,21 +84,8 @@ impl<MOD: MontyParams> MontyForm<MOD> {
     }
 }
 
-impl<MOD: MontyParams + Copy> ConditionallySelectable for MontyForm<MOD> {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self {
-            montgomery_form: U256::conditional_select(
-                &a.montgomery_form,
-                &b.montgomery_form,
-                choice,
-            ),
-            phantom: PhantomData,
-        }
-    }
-}
-
 impl<MOD: MontyParams + Copy> MontyForm<MOD> {
-    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
+    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: CtChoice) -> Self {
         Self {
             montgomery_form: U256::ct_select(&a.montgomery_form, &b.montgomery_form, choice),
             phantom: PhantomData,
@@ -105,15 +95,13 @@ impl<MOD: MontyParams + Copy> MontyForm<MOD> {
 
 impl<MOD: MontyParams> MontyForm<MOD> {
     #[inline]
-    pub(crate) const fn c_ct_eq(&self, other: &Self) -> ConstChoice {
+    pub(crate) const fn ct_eq(&self, other: &Self) -> CtChoice {
         U256::ct_eq(&self.montgomery_form, &other.montgomery_form)
     }
-}
 
-impl<MOD: MontyParams> ConstantTimeEq for MontyForm<MOD> {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
-        U256::ct_eq(&self.montgomery_form, &other.montgomery_form).into()
+    pub(crate) const fn ct_is_zero(&self) -> CtChoice {
+        self.montgomery_form.ct_is_zero()
     }
 }
 
@@ -121,8 +109,4 @@ impl<MOD: MontyParams> Default for MontyForm<MOD> {
     fn default() -> Self {
         Self::ZERO
     }
-}
-
-impl<MOD: MontyParams> Zero for MontyForm<MOD> {
-    const ZERO: Self = Self::ZERO;
 }

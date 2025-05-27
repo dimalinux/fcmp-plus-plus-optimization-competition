@@ -1,7 +1,7 @@
 //! Big integers are represented as an array of smaller CPU word-size integers
 //! called "limbs".
 
-use crate::u256::const_choice::ConstChoice;
+use crate::u256::ct_choice::CtChoice;
 
 pub(crate) const WORD_BITS: usize = u64::BITS as usize; // TODO: remove?
 pub(crate) const WORD_BYTES: usize = WORD_BITS / 8;
@@ -15,6 +15,7 @@ pub(crate) const fn carrying_add(lhs: u64, rhs: u64, carry: u64) -> (u64, u64) {
     let b = rhs as u128;
     let carry = carry as u128;
     let ret = a + b + carry;
+
     (ret as u64, (ret >> u64::BITS) as u64)
 }
 
@@ -26,6 +27,7 @@ pub(crate) const fn borrowing_sub(lhs: u64, rhs: u64, borrow: u64) -> (u64, u64)
     let b = rhs as u128;
     let borrow = (borrow >> (u64::BITS - 1)) as u128;
     let ret = a.wrapping_sub(b + borrow);
+
     (ret as u64, (ret >> u64::BITS) as u64)
 }
 
@@ -49,7 +51,7 @@ pub(crate) const fn carrying_mul_add(lhs: u64, rhs: u64, addend: u64, carry: u64
 
 /// Return `b` if `c` is truthy, otherwise return `a`.
 #[inline]
-pub(crate) const fn ct_select(a: u64, b: u64, c: ConstChoice) -> u64 {
+pub(crate) const fn ct_select(a: u64, b: u64, c: CtChoice) -> u64 {
     c.select(a, b)
 }
 
@@ -57,12 +59,22 @@ pub(crate) const fn ct_select(a: u64, b: u64, c: ConstChoice) -> u64 {
 #[inline]
 #[allow(clippy::cast_sign_loss)]
 #[allow(clippy::cast_possible_wrap)]
-pub(crate) const fn ct_is_nonzero(w: u64) -> ConstChoice {
+pub(crate) const fn ct_is_nonzero(w: u64) -> CtChoice {
     // (x | x.wrapping_neg()) is 0 if and only if x == 0, otherwise
     // the MSB is set. We use sign-extension to convert the MSB value
     // into truthy or falsy.
     let mask = ((w | w.wrapping_neg()) as i64 >> 63) as u64;
-    ConstChoice::from_mask(mask)
+    CtChoice::from_mask(mask)
+}
+
+#[inline]
+#[allow(clippy::cast_possible_wrap)]
+pub(crate) const fn ct_is_zero(w: u64) -> CtChoice {
+    // m is 1 if any bit is set, otherwise zero.
+    let m = (w | w.wrapping_neg()) >> 63;
+
+    // convert zero to truthy and 1 to falsy.
+    CtChoice::from_mask(m.wrapping_sub(1))
 }
 
 #[cfg(test)]
@@ -105,5 +117,15 @@ mod tests {
         assert!(ct_is_nonzero(2).is_true_vartime());
         assert!(ct_is_nonzero(i64::MIN as u64).is_true_vartime());
         assert!(ct_is_nonzero(u64::MAX).is_true_vartime());
+    }
+
+    #[test]
+    #[allow(clippy::cast_sign_loss)]
+    fn test_ct_is_zero() {
+        assert!(ct_is_zero(0).is_true_vartime());
+        assert!(!ct_is_zero(1).is_true_vartime());
+        assert!(!ct_is_zero(2).is_true_vartime());
+        assert!(!ct_is_zero(i64::MIN as u64).is_true_vartime());
+        assert!(!ct_is_zero(u64::MAX).is_true_vartime());
     }
 }

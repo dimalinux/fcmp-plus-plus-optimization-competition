@@ -5,18 +5,16 @@ use core::{
 
 use group::ff::{Field, FieldBits, PrimeField, PrimeFieldBits};
 use rand_core::RngCore;
-use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
 
-use crate::{
-    backend::u8_from_bool,
-    u256::{ConstChoice, Encoding, MontyForm, MontyParams, U256},
-};
+use crate::u256::{CtChoice, Encoding, MontyForm, MontyParams, U256};
 
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct FieldModulus;
+
 impl MontyParams for FieldModulus {
     /// MODULUS is 2^255 - 19 (an odd value)
     const MODULUS: U256 = U256::from_be_hex(MODULUS_HEX);
@@ -32,6 +30,7 @@ impl MontyParams for FieldModulus {
     /// TWO_TO_256_MOD_M is 2^256 mod MODULUS
     const TWO_TO_256_MOD_M: U256 = U256::from_u64(0x26);
 }
+
 pub(crate) type MontyFormType = MontyForm<FieldModulus>;
 
 /// A constant-time implementation of the Ed25519 field.
@@ -57,27 +56,29 @@ const MOD_5_8: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
     "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd",
 )));
 
-impl Field25519 {
-    #[inline]
-    pub(crate) const fn c_ct_eq(&self, other: &Self) -> ConstChoice {
-        self.0.c_ct_eq(&other.0)
-    }
-}
-
 impl ConstantTimeEq for Field25519 {
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.0.ct_eq(&other.0)
+        self.0.ct_eq(&other.0).into()
     }
 }
+
 impl ConditionallySelectable for Field25519 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(MontyFormType::conditional_select(&a.0, &b.0, choice))
+        // TODO: test if this is ever called
+        let c = CtChoice::from(choice);
+        Self(MontyFormType::ct_select(&a.0, &b.0, c))
     }
 }
 
 impl Field25519 {
-    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
+    #[inline]
+    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: CtChoice) -> Self {
         Self(MontyFormType::ct_select(&a.0, &b.0, choice))
+    }
+
+    #[inline]
+    pub(crate) const fn ct_is_zero(&self) -> CtChoice {
+        self.0.ct_is_zero()
     }
 }
 
@@ -88,11 +89,13 @@ impl Add<Self> for Field25519 {
         Self(MontyFormType::add(&self.0, &other.0))
     }
 }
+
 impl AddAssign<Self> for Field25519 {
     fn add_assign(&mut self, other: Self) {
         self.0 = MontyFormType::add(&self.0, &other.0);
     }
 }
+
 impl<'a> Add<&'a Self> for Field25519 {
     type Output = Self;
 
@@ -100,11 +103,13 @@ impl<'a> Add<&'a Self> for Field25519 {
         Self(MontyFormType::add(&self.0, &other.0))
     }
 }
+
 impl<'a> AddAssign<&'a Self> for Field25519 {
     fn add_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::add(&self.0, &other.0);
     }
 }
+
 impl Sub<Self> for Field25519 {
     type Output = Self;
 
@@ -112,11 +117,13 @@ impl Sub<Self> for Field25519 {
         Self(MontyFormType::sub(&self.0, &other.0))
     }
 }
+
 impl SubAssign<Self> for Field25519 {
     fn sub_assign(&mut self, other: Self) {
         self.0 = MontyFormType::sub(&self.0, &other.0);
     }
 }
+
 impl<'a> Sub<&'a Self> for Field25519 {
     type Output = Self;
 
@@ -124,11 +131,13 @@ impl<'a> Sub<&'a Self> for Field25519 {
         Self(MontyFormType::sub(&self.0, &other.0))
     }
 }
+
 impl<'a> SubAssign<&'a Self> for Field25519 {
     fn sub_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::sub(&self.0, &other.0);
     }
 }
+
 impl Mul<Self> for Field25519 {
     type Output = Self;
 
@@ -137,12 +146,14 @@ impl Mul<Self> for Field25519 {
         Self(MontyFormType::mul(&self.0, &other.0))
     }
 }
+
 impl MulAssign<Self> for Field25519 {
     #[inline]
     fn mul_assign(&mut self, other: Self) {
         self.0 = MontyFormType::mul(&self.0, &other.0);
     }
 }
+
 impl<'a> Mul<&'a Self> for Field25519 {
     type Output = Self;
 
@@ -151,6 +162,7 @@ impl<'a> Mul<&'a Self> for Field25519 {
         Self(MontyFormType::mul(&self.0, &other.0))
     }
 }
+
 impl<'a> MulAssign<&'a Self> for Field25519 {
     #[inline]
     fn mul_assign(&mut self, other: &'a Self) {
@@ -236,31 +248,41 @@ impl Field for Field25519 {
     fn sqrt(&self) -> CtOption<Self> {
         let tv1 = self.pow(MOD_3_8).0;
         let tv2 = MontyFormType::mul(&tv1, &SQRT_M1.0);
-        let candidate = MontyFormType::conditional_select(&tv2, &tv1, tv1.square().ct_eq(&self.0));
-        CtOption::new(Self(candidate), candidate.square().ct_eq(&self.0))
+        let candidate = MontyFormType::ct_select(&tv2, &tv1, tv1.square().ct_eq(&self.0));
+        let candidate_squared = candidate.square();
+        let sq_eq_self = candidate_squared.ct_eq(&self.0);
+        CtOption::new(Self(candidate), sq_eq_self.into())
     }
 
     fn sqrt_ratio(u: &Self, v: &Self) -> (Choice, Self) {
-        let i = SQRT_M1;
+        // NOTE: Used by tests, not by benchmarking.
+        let i = SQRT_M1.0;
 
-        let u = *u;
-        let v = *v;
+        let u = &u.0;
+        let v = &v.0;
 
-        let v3 = v.square() * v;
-        let v7 = v3.square() * v;
-        let mut r = (u * v3) * (u * v7).pow(MOD_5_8);
+        let v3 = MontyFormType::mul(&v.square(), &v);
+        let v7 = MontyFormType::mul(&v3.square(), &v);
+        let u_times_v3 = MontyFormType::mul(u, &v3);
+        let u_times_v7 = MontyFormType::mul(u, &v7);
+        let mut r = MontyFormType::mul(&u_times_v3, &Self(u_times_v7).pow(MOD_5_8).0);
 
-        let check = v * r.square();
+        let check = MontyFormType::mul(v, &r.square());
         let correct_sign = check.ct_eq(&u);
-        let flipped_sign = check.ct_eq(&(-u));
-        let flipped_sign_i = check.ct_eq(&((-u) * i));
+        let u_neg = MontyFormType::neg(u);
+        let flipped_sign = check.ct_eq(&u_neg);
+        let flipped_sign_i = check.ct_eq(&MontyFormType::mul(&u_neg, &i));
 
-        r.conditional_assign(&(r * i), flipped_sign | flipped_sign_i);
+        r = MontyFormType::ct_select(
+            &r,
+            &MontyFormType::mul(&r, &i),
+            flipped_sign.or(flipped_sign_i),
+        );
 
-        let r_is_negative = r.is_odd();
-        r.conditional_negate(r_is_negative);
+        let r_is_negative = r.retrieve().ct_is_odd();
+        r = MontyFormType::ct_select(&r, &r.neg(), r_is_negative);
 
-        (correct_sign | flipped_sign, r)
+        (correct_sign.or(flipped_sign).into(), Self(r))
     }
 }
 
@@ -302,7 +324,7 @@ impl PrimeField for Field25519 {
     }
 
     fn is_odd(&self) -> Choice {
-        self.0.retrieve().is_odd()
+        self.0.retrieve().is_odd().into()
     }
 
     fn from_u128(num: u128) -> Self {
@@ -325,8 +347,8 @@ impl PrimeFieldBits for Field25519 {
 impl Field25519 {
     /// Perform an exponentiation.
     #[must_use]
-    pub fn pow(&self, other: Self) -> Self {
-        let mut table: [MontyFormType; 16] = [MontyFormType::default(); 16];
+    const fn pow(&self, exponent: Self) -> Self {
+        let mut table: [MontyFormType; 16] = [MontyFormType::ZERO; 16];
         table[0] = MontyFormType::ONE;
         table[1] = self.0;
         table[2] = MontyFormType::mul(&table[1], &self.0);
@@ -345,101 +367,36 @@ impl Field25519 {
         table[15] = MontyFormType::mul(&table[14], &self.0);
 
         let mut res = MontyFormType::ONE;
-        let mut bits = 0;
-        for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
-            bits <<= 1;
-            let mut bit = u8_from_bool(&mut bit);
-            bits |= bit;
-            bit.zeroize();
+        let nibbles = exponent.0.retrieve().as_be_nibbles();
+        let mut i = 0;
+        while i < 64 {
+            let bits = nibbles[i] as u64;
+            i += 1;
 
-            if ((i + 1) % 4) == 0 {
-                if i != 3 {
-                    res = MontyFormType::square(&res);
-                    res = MontyFormType::square(&res);
-                    res = MontyFormType::square(&res);
-                    res = MontyFormType::square(&res);
-                }
+            res = MontyFormType::square(&res);
+            res = MontyFormType::square(&res);
+            res = MontyFormType::square(&res);
+            res = MontyFormType::square(&res);
 
-                let mut factor = table[0];
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[1],
-                    usize::from(bits).ct_eq(&1),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[2],
-                    usize::from(bits).ct_eq(&2),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[3],
-                    usize::from(bits).ct_eq(&3),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[4],
-                    usize::from(bits).ct_eq(&4),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[5],
-                    usize::from(bits).ct_eq(&5),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[6],
-                    usize::from(bits).ct_eq(&6),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[7],
-                    usize::from(bits).ct_eq(&7),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[8],
-                    usize::from(bits).ct_eq(&8),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[9],
-                    usize::from(bits).ct_eq(&9),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[10],
-                    usize::from(bits).ct_eq(&10),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[11],
-                    usize::from(bits).ct_eq(&11),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[12],
-                    usize::from(bits).ct_eq(&12),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[13],
-                    usize::from(bits).ct_eq(&13),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[14],
-                    usize::from(bits).ct_eq(&14),
-                );
-                factor = MontyFormType::conditional_select(
-                    &factor,
-                    &table[15],
-                    usize::from(bits).ct_eq(&15),
-                );
-                res = MontyFormType::mul(&res, &factor);
-                bits = 0;
-            }
+            let mut factor = table[0];
+            factor = MontyFormType::ct_select(&factor, &table[1], CtChoice::from_u64_eq(bits, 1));
+            factor = MontyFormType::ct_select(&factor, &table[2], CtChoice::from_u64_eq(bits, 2));
+            factor = MontyFormType::ct_select(&factor, &table[3], CtChoice::from_u64_eq(bits, 3));
+            factor = MontyFormType::ct_select(&factor, &table[4], CtChoice::from_u64_eq(bits, 4));
+            factor = MontyFormType::ct_select(&factor, &table[5], CtChoice::from_u64_eq(bits, 5));
+            factor = MontyFormType::ct_select(&factor, &table[6], CtChoice::from_u64_eq(bits, 6));
+            factor = MontyFormType::ct_select(&factor, &table[7], CtChoice::from_u64_eq(bits, 7));
+            factor = MontyFormType::ct_select(&factor, &table[8], CtChoice::from_u64_eq(bits, 8));
+            factor = MontyFormType::ct_select(&factor, &table[9], CtChoice::from_u64_eq(bits, 9));
+            factor = MontyFormType::ct_select(&factor, &table[10], CtChoice::from_u64_eq(bits, 10));
+            factor = MontyFormType::ct_select(&factor, &table[11], CtChoice::from_u64_eq(bits, 11));
+            factor = MontyFormType::ct_select(&factor, &table[12], CtChoice::from_u64_eq(bits, 12));
+            factor = MontyFormType::ct_select(&factor, &table[13], CtChoice::from_u64_eq(bits, 13));
+            factor = MontyFormType::ct_select(&factor, &table[14], CtChoice::from_u64_eq(bits, 14));
+            factor = MontyFormType::ct_select(&factor, &table[15], CtChoice::from_u64_eq(bits, 15));
+            res = MontyFormType::mul(&res, &factor);
         }
+
         Self(res)
     }
 

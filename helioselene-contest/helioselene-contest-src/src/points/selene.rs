@@ -1,10 +1,10 @@
 use core::{
     iter::Sum,
-    ops::{Add, AddAssign, BitAnd, BitOr, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 use group::{
-    ff::{Field, PrimeField, PrimeFieldBits},
+    ff::{Field, PrimeField},
     prime::PrimeGroup,
     Group, GroupEncoding,
 };
@@ -13,9 +13,8 @@ use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTi
 use zeroize::Zeroize;
 
 use crate::{
-    backend::u8_from_bool,
     fields::HelioseleneQ,
-    u256::{MontyForm, U256},
+    u256::{CtChoice, MontyForm, U256},
     Field25519, HelioseleneField,
 };
 
@@ -47,8 +46,10 @@ fn recover_y(x: HelioseleneField) -> CtOption<HelioseleneField> {
     v = MontyFormType::sub(&v, x);
     v = MontyFormType::sub(&v, x);
     v = MontyFormType::add(&v, &B.0);
+
     HelioseleneField(v).sqrt()
 }
+
 /// Point.
 #[derive(Clone, Copy, Debug, Zeroize)]
 pub struct SelenePoint {
@@ -62,22 +63,22 @@ const G: SelenePoint = SelenePoint {
     y: G_Y,
     z: HelioseleneField::ONE,
 };
+
 impl ConstantTimeEq for SelenePoint {
     fn ct_eq(&self, other: &Self) -> Choice {
         let x1 = MontyFormType::mul(&self.x.0, &other.z.0);
         let x2 = MontyFormType::mul(&other.x.0, &self.z.0);
         let y1 = MontyFormType::mul(&self.y.0, &other.z.0);
         let y2 = MontyFormType::mul(&other.y.0, &self.z.0);
-        let both_x_zero = Choice::bitand(self.x.is_zero(), other.x.is_zero());
-        let x_and_y_eq = Choice::bitand(x1.ct_eq(&x2), y1.ct_eq(&y2));
-        Choice::bitor(both_x_zero, x_and_y_eq)
+        let both_x_zero = self.x.ct_is_zero().and(other.x.ct_is_zero());
+        let x_and_y_eq = x1.ct_eq(&x2).and(y1.ct_eq(&y2));
+        both_x_zero.or(x_and_y_eq).into()
     }
 }
 
 impl PartialEq for SelenePoint {
     fn eq(&self, other: &Self) -> bool {
-        // TODO: Does the contest use it? We could create a vartime eq method.
-        self.ct_eq(other).into()
+        self.ct_eq(other).is_true_vartime()
     }
 }
 
@@ -85,11 +86,27 @@ impl Eq for SelenePoint {}
 
 impl ConditionallySelectable for SelenePoint {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        Self::ct_select(a, b, CtChoice::from(choice))
+    }
+}
+
+impl SelenePoint {
+    const fn ct_select(a: &Self, b: &Self, c: CtChoice) -> Self {
         Self {
-            x: HelioseleneField::conditional_select(&a.x, &b.x, choice),
-            y: HelioseleneField::conditional_select(&a.y, &b.y, choice),
-            z: HelioseleneField::conditional_select(&a.z, &b.z, choice),
+            x: HelioseleneField::ct_select(&a.x, &b.x, c),
+            y: HelioseleneField::ct_select(&a.y, &b.y, c),
+            z: HelioseleneField::ct_select(&a.z, &b.z, c),
         }
+    }
+
+    const fn ct_eq(&self, other: &Self) -> CtChoice {
+        let x1 = MontyFormType::mul(&self.x.0, &other.z.0);
+        let x2 = MontyFormType::mul(&other.x.0, &self.z.0);
+        let y1 = MontyFormType::mul(&self.y.0, &other.z.0);
+        let y2 = MontyFormType::mul(&other.y.0, &self.z.0);
+        let both_x_zero = self.x.ct_is_zero().and(other.x.ct_is_zero());
+        let x_and_y_eq = x1.ct_eq(&x2).and(y1.ct_eq(&y2));
+        both_x_zero.or(x_and_y_eq)
     }
 }
 
@@ -102,6 +119,7 @@ impl SelenePoint {
         let X2 = &other.x.0;
         let Y2 = &other.y.0;
         let Z2 = &other.z.0;
+
         const A: MontyFormType = MontyForm::neg(&MontyFormType::new(&U256::from_u64(3)));
         let t0 = MontyForm::mul(X1, X2);
         let t1 = MontyForm::mul(Y1, Y2);
@@ -141,6 +159,7 @@ impl SelenePoint {
         let t0 = MontyForm::mul(&t3, &t1);
         let Z3 = MontyForm::mul(&t5, &Z3);
         let Z3 = MontyForm::add(&Z3, &t0);
+
         Self {
             x: HelioseleneField(X3),
             y: HelioseleneField(Y3),
@@ -157,11 +176,13 @@ impl Add for SelenePoint {
         Self::const_add(self, &other)
     }
 }
+
 impl AddAssign for SelenePoint {
     fn add_assign(&mut self, other: Self) {
         *self = Self::const_add(*self, &other);
     }
 }
+
 impl Add<&Self> for SelenePoint {
     type Output = Self;
 
@@ -169,11 +190,13 @@ impl Add<&Self> for SelenePoint {
         Self::const_add(self, other)
     }
 }
+
 impl AddAssign<&Self> for SelenePoint {
     fn add_assign(&mut self, other: &Self) {
         *self = Self::const_add(*self, other);
     }
 }
+
 impl Neg for SelenePoint {
     type Output = Self;
 
@@ -185,6 +208,7 @@ impl Neg for SelenePoint {
         }
     }
 }
+
 impl Sub for SelenePoint {
     type Output = Self;
 
@@ -192,11 +216,13 @@ impl Sub for SelenePoint {
         Self::const_add(self, &other.neg())
     }
 }
+
 impl SubAssign for SelenePoint {
     fn sub_assign(&mut self, other: Self) {
         *self = Self::const_add(*self, &other.neg());
     }
 }
+
 impl Sub<&Self> for SelenePoint {
     type Output = Self;
 
@@ -204,11 +230,55 @@ impl Sub<&Self> for SelenePoint {
         Self::const_add(self, &other.neg())
     }
 }
+
 impl SubAssign<&Self> for SelenePoint {
     fn sub_assign(&mut self, other: &Self) {
         *self = Self::const_add(*self, &other.neg());
     }
 }
+
+const IDENTITY: SelenePoint = SelenePoint {
+    x: HelioseleneField::ZERO,
+    y: HelioseleneField::ONE,
+    z: HelioseleneField::ZERO,
+};
+
+impl SelenePoint {
+    #[allow(non_snake_case)]
+    const fn const_double(&self) -> Self {
+        let X1 = self.x.0;
+        let Y1 = self.y.0;
+        let Z1 = self.z.0;
+        let w = MontyFormType::mul(&MontyFormType::sub(&X1, &Z1), &MontyFormType::add(&X1, &Z1));
+        let w = MontyFormType::add(&MontyFormType::add(&w, &w), &w);
+        let s = MontyFormType::double(&MontyFormType::mul(&Y1, &Z1));
+        let ss = MontyFormType::square(&s);
+        let sss = MontyFormType::mul(&s, &ss);
+        let R = MontyFormType::mul(&Y1, &s);
+        let RR = R.square();
+        let B_ = MontyFormType::mul(&X1, &R).double();
+        let h = MontyFormType::sub(&w.square(), &B_.double());
+        let X3 = MontyFormType::mul(&h, &s);
+        let Y3 = MontyFormType::sub(
+            &MontyFormType::mul(&w, &(MontyFormType::sub(&B_, &h))),
+            &RR.double(),
+        );
+        let Z3 = sss;
+        let res = Self {
+            x: HelioseleneField(X3),
+            y: HelioseleneField(Y3),
+            z: HelioseleneField(Z3),
+        };
+
+        Self::ct_select(&res, &IDENTITY, self.is_identity())
+    }
+
+    #[inline]
+    const fn is_identity(&self) -> CtChoice {
+        self.x.ct_is_zero()
+    }
+}
+
 impl Group for SelenePoint {
     type Scalar = Field25519;
 
@@ -237,7 +307,7 @@ impl Group for SelenePoint {
     }
 
     fn is_identity(&self) -> Choice {
-        self.x.ct_eq(&HelioseleneField::ZERO)
+        self.x.ct_is_zero().into()
     }
 
     #[allow(non_snake_case)]
@@ -265,9 +335,11 @@ impl Group for SelenePoint {
             y: HelioseleneField(Y3),
             z: HelioseleneField(Z3),
         };
-        Self::conditional_select(&res, &Self::identity(), self.is_identity())
+
+        Self::ct_select(&res, &Self::identity(), self.is_identity())
     }
 }
+
 impl Sum<Self> for SelenePoint {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = Self::identity();
@@ -277,51 +349,73 @@ impl Sum<Self> for SelenePoint {
         res
     }
 }
+
 impl<'a> Sum<&'a Self> for SelenePoint {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         Self::sum(iter.copied())
     }
 }
-impl Mul<Field25519> for SelenePoint {
-    type Output = Self;
 
-    fn mul(self, mut other: Field25519) -> Self {
-        let mut table = [Self::identity(); 16];
+impl SelenePoint {
+    const fn const_mul(self, other: Field25519) -> Self {
+        let mut table = [IDENTITY; 16];
         table[1] = self;
-        for i in 2..16 {
-            table[i] = table[i - 1] + self;
+        let mut i = 2;
+        while i < 16 {
+            table[i] = Self::const_add(self, &table[i - 1]);
+            i += 1;
         }
-        let mut res = Self::identity();
-        let mut bits = 0;
-        for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
-            bits <<= 1;
-            let mut bit = u8_from_bool(&mut bit);
-            bits |= bit;
-            bit.zeroize();
-            if ((i + 1) % 4) == 0 {
-                if i != 3 {
-                    for _ in 0..4 {
-                        res = res.double();
-                    }
-                }
-                let mut term = table[0];
-                for (j, candidate) in table[1..].iter().enumerate() {
-                    let j = j + 1;
-                    term = Self::conditional_select(&term, candidate, usize::from(bits).ct_eq(&j));
-                }
-                res += term;
-                bits = 0;
+
+        let mut res = IDENTITY;
+        let nibbles = other.0.retrieve().as_be_nibbles();
+        let mut i = 0;
+
+        #[allow(unused_assignments)]
+        while i < 64 {
+            let mut bits = nibbles[i];
+
+            if i > 0 {
+                res = res.const_double();
+                res = res.const_double();
+                res = res.const_double();
+                res = res.const_double();
             }
+
+            i += 1;
+            let mut term = table[0];
+            let mut j: usize = 1;
+
+            while j < 16 {
+                let c = CtChoice::from_u64_eq(bits as u64, j as u64);
+                term = Self::ct_select(&term, &table[j], c);
+                j += 1;
+            }
+
+            res = Self::const_add(res, &term);
+            bits = 0;
         }
-        other.zeroize();
+
+        // TODO: How to handle this in a const function?
+        //nibbles.zeroize();
+        //other.zeroize();
         res
     }
 }
-impl MulAssign<Field25519> for SelenePoint {
-    fn mul_assign(&mut self, other: Field25519) {
-        *self = *self * other;
+
+impl Mul<Field25519> for SelenePoint {
+    type Output = Self;
+
+    fn mul(self, other: Field25519) -> Self {
+        Self::const_mul(self, other)
     }
 }
+
+impl MulAssign<Field25519> for SelenePoint {
+    fn mul_assign(&mut self, other: Field25519) {
+        *self = Self::const_mul(*self, other);
+    }
+}
+
 impl Mul<&Field25519> for SelenePoint {
     type Output = Self;
 
@@ -329,11 +423,13 @@ impl Mul<&Field25519> for SelenePoint {
         self * *other
     }
 }
+
 impl MulAssign<&Field25519> for SelenePoint {
     fn mul_assign(&mut self, other: &Field25519) {
         *self *= *other;
     }
 }
+
 impl GroupEncoding for SelenePoint {
     type Repr = <HelioseleneField as PrimeField>::Repr;
 
@@ -342,6 +438,7 @@ impl GroupEncoding for SelenePoint {
         let mut bytes = *bytes;
         let mut_ref: &mut [u8] = bytes.as_mut();
         mut_ref[31] &= !(1 << 7);
+
         HelioseleneField::from_repr(bytes).and_then(|x| {
             let is_identity = x.is_zero();
             let y = recover_y(x).map(|mut y| {
@@ -359,6 +456,7 @@ impl GroupEncoding for SelenePoint {
                 z: HelioseleneField::ONE,
             });
             let not_negative_zero = !(is_identity & sign);
+
             CtOption::conditional_select(
                 &CtOption::new(Self::identity(), 0.into()),
                 &point,
@@ -371,23 +469,24 @@ impl GroupEncoding for SelenePoint {
         Self::from_bytes(bytes)
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn to_bytes(&self) -> Self::Repr {
         let Some(z) = Option::<HelioseleneField>::from(self.z.invert()) else {
             return [0; 32];
         };
-        let x = self.x * z;
+        let x = self.x * z; // TODO: use const_mul directly
         let y = self.y * z;
         let mut bytes = x.to_repr();
         let mut_ref: &mut [u8] = bytes.as_mut();
-        let y_sign = u8::conditional_select(
-            &y.is_odd().unwrap_u8(),
-            &0,
-            x.ct_eq(&HelioseleneField::ZERO),
-        );
-        mut_ref[31] |= y_sign << 7;
+        let y_lsb = y.0.retrieve().least_significant_bit();
+        let x_is_zero = x.ct_is_zero();
+        let y_sign = x_is_zero.select(y_lsb, 0);
+        mut_ref[31] |= (y_sign << 7) as u8;
+
         bytes
     }
 }
+
 impl PrimeGroup for SelenePoint {}
 
 #[cfg(test)]
@@ -414,5 +513,14 @@ mod tests {
     #[test]
     fn b3_value() {
         assert_eq!(B + B + B, B3);
+    }
+
+    #[test]
+    fn test_const_mul() {
+        let point = SelenePoint::generator();
+        let scalar = Field25519::from(2_u64);
+        let result = SelenePoint::const_mul(point, scalar);
+        let expected = SelenePoint::const_add(point, &point); // 2 * G
+        assert_eq!(result, expected);
     }
 }

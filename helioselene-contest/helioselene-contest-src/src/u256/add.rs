@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use super::{const_choice::ConstChoice, U256};
+use super::{ct_choice::CtChoice, U256};
 use crate::u256::primitives::carrying_add;
 
 impl U256 {
@@ -31,10 +31,10 @@ impl U256 {
     pub(crate) const fn conditional_wrapping_add(
         &self,
         rhs: &Self,
-        choice: ConstChoice,
-    ) -> (Self, ConstChoice) {
+        choice: CtChoice,
+    ) -> (Self, CtChoice) {
         let actual_rhs = Self::ct_select(&Self::ZERO, rhs, choice);
         let (sum, carry) = self.carrying_add(&actual_rhs, 0);
-        (sum, ConstChoice::from_lsb(carry))
+        (sum, CtChoice::from_lsb(carry))
     }
 }

@@ -189,7 +189,6 @@
 
 extern crate alloc;
 
-mod backend;
 mod fields;
 mod points;
 mod u256;

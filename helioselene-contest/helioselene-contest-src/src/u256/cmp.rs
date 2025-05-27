@@ -1,15 +1,13 @@
 //! [`Uint`] comparisons.
 //!
-//! By default these are all constant-time and use the `subtle` crate.
+//! By default these are all constant-time.
 
-use subtle::{Choice, ConstantTimeEq};
-
-use crate::u256::{const_choice::ConstChoice, primitives, U256};
+use crate::u256::{ct_choice::CtChoice, primitives, U256};
 
 impl U256 {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn ct_select(a: &Self, b: &Self, c: ConstChoice) -> Self {
+    pub(crate) const fn ct_select(a: &Self, b: &Self, c: CtChoice) -> Self {
         Self {
             limbs: [
                 c.select(a.limbs[0], b.limbs[0]),
@@ -21,7 +19,7 @@ impl U256 {
     }
 
     #[inline]
-    pub(crate) const fn ct_swap(a: &Self, b: &Self, c: ConstChoice) -> (Self, Self) {
+    pub(crate) const fn ct_swap(a: &Self, b: &Self, c: CtChoice) -> (Self, Self) {
         let new_a = Self::ct_select(a, b, c);
         let new_b = Self::ct_select(b, a, c);
 
@@ -30,19 +28,19 @@ impl U256 {
 
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_is_nonzero(&self) -> ConstChoice {
+    pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
         let w = self.limbs[0] | self.limbs[1] | self.limbs[2] | self.limbs[3];
         primitives::ct_is_nonzero(w)
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
-    pub(crate) const fn ct_is_odd(&self) -> ConstChoice {
-        ConstChoice::from_lsb(self.limbs[0] & 1)
+    pub(crate) const fn ct_is_odd(&self) -> CtChoice {
+        CtChoice::from_lsb(self.limbs[0] & 1)
     }
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_eq(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub(crate) const fn ct_eq(lhs: &Self, rhs: &Self) -> CtChoice {
         let mut acc = lhs.limbs[0] ^ rhs.limbs[0];
         acc |= lhs.limbs[1] ^ rhs.limbs[1];
         acc |= lhs.limbs[2] ^ rhs.limbs[2];
@@ -52,21 +50,19 @@ impl U256 {
         primitives::ct_is_nonzero(acc).not()
     }
 
+    pub(crate) const fn ct_is_zero(&self) -> CtChoice {
+        let v = self.limbs[0] | self.limbs[1] | self.limbs[2] | self.limbs[3];
+        primitives::ct_is_zero(v)
+    }
+
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_lt(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub(crate) const fn ct_lt(lhs: &Self, rhs: &Self) -> CtChoice {
         // We could use the same approach as in Limb::ct_lt(),
         // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
         // there are no savings compared to just calling `sbb()` directly.
         let (_res, borrow) = lhs.borrowing_sub(rhs, 0);
-        ConstChoice::from_mask(borrow)
-    }
-}
-
-impl ConstantTimeEq for U256 {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
-        Self::ct_eq(self, other).into()
+        CtChoice::from_mask(borrow)
     }
 }
 

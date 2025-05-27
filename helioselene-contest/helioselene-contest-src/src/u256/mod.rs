@@ -2,8 +2,7 @@ mod add;
 mod add_mod;
 mod bit_ops;
 mod cmp;
-/// Implements modular arithmetic for constant moduli.
-mod const_choice;
+mod ct_choice;
 mod encoding;
 mod from;
 mod inv_mod;
@@ -17,11 +16,10 @@ mod traits;
 
 use ::core::fmt;
 pub(crate) use modular::{MontyForm, MontyParams};
-use subtle::{Choice, ConditionallySelectable};
-pub(crate) use traits::{Encoding, Zero};
+pub(crate) use traits::Encoding;
 use zeroize::DefaultIsZeroes;
 
-pub(crate) use crate::u256::const_choice::ConstChoice;
+pub(crate) use crate::u256::ct_choice::CtChoice;
 
 /// Stack-allocated 256-bit unsigned integer.
 #[derive(Default, Copy, Clone, Hash, PartialEq, Eq)]
@@ -35,10 +33,8 @@ impl U256 {
     pub(crate) const BITS: usize = 256;
     /// Total size of the represented integer in bytes.
     pub(crate) const BYTES: usize = 32;
-    // 256 bits / 8 bits per byte
     /// The number of limbs used on this platform.
     pub(crate) const LIMBS: usize = 4;
-    // 4 u64 limbs = 256 bits
     /// Maximum value this [`Uint`] can express.
     #[cfg(test)]
     pub(crate) const MAX: Self = Self {
@@ -55,26 +51,15 @@ impl U256 {
         Self { limbs }
     }
 
-    pub(crate) fn is_odd(&self) -> Choice {
-        Choice::from((self.limbs[0] & 1) as u8)
+    #[inline]
+    pub(crate) const fn least_significant_bit(&self) -> u64 {
+        self.limbs[0] & 1
     }
-}
 
-impl ConditionallySelectable for U256 {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self {
-            limbs: [
-                u64::conditional_select(&a.limbs[0], &b.limbs[0], choice),
-                u64::conditional_select(&a.limbs[1], &b.limbs[1], choice),
-                u64::conditional_select(&a.limbs[2], &b.limbs[2], choice),
-                u64::conditional_select(&a.limbs[3], &b.limbs[3], choice),
-            ],
-        }
+    #[inline]
+    pub(crate) const fn is_odd(&self) -> CtChoice {
+        CtChoice::from_lsb(self.limbs[0] & 1)
     }
-}
-
-impl Zero for U256 {
-    const ZERO: Self = Self::ZERO;
 }
 
 impl DefaultIsZeroes for U256 {}
@@ -96,6 +81,7 @@ impl fmt::LowerHex for U256 {
         for limb in self.limbs.iter().rev() {
             write!(f, "{:0width$x}", limb, width = Self::BYTES * 2)?;
         }
+
         Ok(())
     }
 }

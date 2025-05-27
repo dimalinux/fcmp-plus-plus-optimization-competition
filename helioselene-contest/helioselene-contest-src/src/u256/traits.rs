@@ -1,11 +1,4 @@
 //! Traits provided by this crate
-use subtle::ConstantTimeEq;
-
-/// Zero values.
-pub(crate) trait Zero: ConstantTimeEq + Sized {
-    /// The value `0`.
-    const ZERO: Self;
-}
 
 /// Encoding support.
 pub(crate) trait Encoding: Sized {

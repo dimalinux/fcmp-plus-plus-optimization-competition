@@ -6,12 +6,9 @@ use core::{
 use ff::{helpers::sqrt_ratio_generic, Field, FieldBits, PrimeField, PrimeFieldBits};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-use zeroize::{DefaultIsZeroes, Zeroize};
+use zeroize::DefaultIsZeroes;
 
-use crate::{
-    backend::u8_from_bool,
-    u256::{Encoding, MontyForm, MontyParams, U256},
-};
+use crate::u256::{CtChoice, Encoding, MontyForm, MontyParams, U256};
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
 
@@ -48,15 +45,34 @@ impl DefaultIsZeroes for HelioseleneField {}
 impl ConstantTimeEq for HelioseleneField {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.0.ct_eq(&other.0)
+        self.0.ct_eq(&other.0).into()
     }
 }
+
 impl ConditionallySelectable for HelioseleneField {
     #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(MontyForm::conditional_select(&a.0, &b.0, choice))
+        Self(MontyForm::ct_select(&a.0, &b.0, choice.into()))
     }
 }
+
+impl HelioseleneField {
+    #[inline]
+    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: CtChoice) -> Self {
+        Self(MontyFormType::ct_select(&a.0, &b.0, choice))
+    }
+
+    #[inline]
+    pub(crate) const fn ct_eq(&self, other: &Self) -> CtChoice {
+        self.0.ct_eq(&other.0)
+    }
+
+    #[inline]
+    pub(crate) const fn ct_is_zero(&self) -> CtChoice {
+        self.0.ct_is_zero()
+    }
+}
+
 impl Add<Self> for HelioseleneField {
     type Output = Self;
 
@@ -65,12 +81,14 @@ impl Add<Self> for HelioseleneField {
         Self(MontyFormType::add(&self.0, &other.0))
     }
 }
+
 impl AddAssign<Self> for HelioseleneField {
     #[inline]
     fn add_assign(&mut self, other: Self) {
         self.0 = MontyFormType::add(&self.0, &other.0);
     }
 }
+
 impl<'a> Add<&'a Self> for HelioseleneField {
     type Output = Self;
 
@@ -79,12 +97,14 @@ impl<'a> Add<&'a Self> for HelioseleneField {
         Self(MontyFormType::add(&self.0, &other.0))
     }
 }
+
 impl<'a> AddAssign<&'a Self> for HelioseleneField {
     #[inline]
     fn add_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::add(&self.0, &other.0);
     }
 }
+
 impl Sub<Self> for HelioseleneField {
     type Output = Self;
 
@@ -93,12 +113,14 @@ impl Sub<Self> for HelioseleneField {
         Self(MontyFormType::sub(&self.0, &other.0))
     }
 }
+
 impl SubAssign<Self> for HelioseleneField {
     #[inline]
     fn sub_assign(&mut self, other: Self) {
         self.0 = MontyFormType::sub(&self.0, &other.0);
     }
 }
+
 impl<'a> Sub<&'a Self> for HelioseleneField {
     type Output = Self;
 
@@ -107,12 +129,14 @@ impl<'a> Sub<&'a Self> for HelioseleneField {
         Self(MontyFormType::sub(&self.0, &other.0))
     }
 }
+
 impl<'a> SubAssign<&'a Self> for HelioseleneField {
     #[inline]
     fn sub_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::sub(&self.0, &other.0);
     }
 }
+
 impl Mul<Self> for HelioseleneField {
     type Output = Self;
 
@@ -121,12 +145,14 @@ impl Mul<Self> for HelioseleneField {
         Self(MontyFormType::mul(&self.0, &other.0))
     }
 }
+
 impl MulAssign<Self> for HelioseleneField {
     #[inline]
     fn mul_assign(&mut self, other: Self) {
         self.0 = MontyFormType::mul(&self.0, &other.0);
     }
 }
+
 impl<'a> Mul<&'a Self> for HelioseleneField {
     type Output = Self;
 
@@ -135,37 +161,44 @@ impl<'a> Mul<&'a Self> for HelioseleneField {
         Self(MontyFormType::mul(&self.0, &other.0))
     }
 }
+
 impl<'a> MulAssign<&'a Self> for HelioseleneField {
     #[inline]
     fn mul_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::mul(&self.0, &other.0);
     }
 }
+
 impl From<u8> for HelioseleneField {
     fn from(a: u8) -> Self {
         Self(MontyForm::new(&U256::from_u64(u64::from(a))))
     }
 }
+
 impl From<u16> for HelioseleneField {
     fn from(a: u16) -> Self {
         Self(MontyForm::new(&U256::from_u64(u64::from(a))))
     }
 }
+
 impl From<u32> for HelioseleneField {
     fn from(a: u32) -> Self {
         Self(MontyForm::new(&U256::from_u64(u64::from(a))))
     }
 }
+
 impl From<u64> for HelioseleneField {
     fn from(a: u64) -> Self {
         Self(MontyForm::new(&U256::from_u64(a)))
     }
 }
+
 impl From<u128> for HelioseleneField {
     fn from(a: u128) -> Self {
         Self(MontyForm::new(&U256::from_u128(a)))
     }
 }
+
 impl Neg for HelioseleneField {
     type Output = Self;
 
@@ -174,6 +207,7 @@ impl Neg for HelioseleneField {
         Self(self.0.neg())
     }
 }
+
 impl Neg for &HelioseleneField {
     type Output = HelioseleneField;
 
@@ -182,39 +216,61 @@ impl Neg for &HelioseleneField {
         (*self).neg()
     }
 }
+
 impl HelioseleneField {
     /// Perform exponentiation.
     #[must_use]
-    pub fn pow(&self, other: Self) -> Self {
-        let mut table = [Self(MontyForm::ONE); 16];
-        table[1] = *self;
-        for i in 2..16 {
-            table[i] = table[i - 1] * self;
+    pub const fn pow(&self, exponent: Self) -> Self {
+        let mut table: [MontyFormType; 16] = [MontyFormType::ZERO; 16];
+        table[0] = MontyFormType::ONE;
+        table[1] = self.0;
+        table[2] = MontyFormType::mul(&table[1], &self.0);
+        table[3] = MontyFormType::mul(&table[2], &self.0);
+        table[4] = MontyFormType::mul(&table[3], &self.0);
+        table[5] = MontyFormType::mul(&table[4], &self.0);
+        table[6] = MontyFormType::mul(&table[5], &self.0);
+        table[7] = MontyFormType::mul(&table[6], &self.0);
+        table[8] = MontyFormType::mul(&table[7], &self.0);
+        table[9] = MontyFormType::mul(&table[8], &self.0);
+        table[10] = MontyFormType::mul(&table[9], &self.0);
+        table[11] = MontyFormType::mul(&table[10], &self.0);
+        table[12] = MontyFormType::mul(&table[11], &self.0);
+        table[13] = MontyFormType::mul(&table[12], &self.0);
+        table[14] = MontyFormType::mul(&table[13], &self.0);
+        table[15] = MontyFormType::mul(&table[14], &self.0);
+
+        let mut res = MontyFormType::ONE;
+        let nibbles = exponent.0.retrieve().as_be_nibbles();
+        let mut i = 0;
+        while i < 64 {
+            let bits = nibbles[i] as u64;
+            i += 1;
+
+            res = MontyFormType::square(&res);
+            res = MontyFormType::square(&res);
+            res = MontyFormType::square(&res);
+            res = MontyFormType::square(&res);
+
+            let mut factor = table[0];
+            factor = MontyFormType::ct_select(&factor, &table[1], CtChoice::from_u64_eq(bits, 1));
+            factor = MontyFormType::ct_select(&factor, &table[2], CtChoice::from_u64_eq(bits, 2));
+            factor = MontyFormType::ct_select(&factor, &table[3], CtChoice::from_u64_eq(bits, 3));
+            factor = MontyFormType::ct_select(&factor, &table[4], CtChoice::from_u64_eq(bits, 4));
+            factor = MontyFormType::ct_select(&factor, &table[5], CtChoice::from_u64_eq(bits, 5));
+            factor = MontyFormType::ct_select(&factor, &table[6], CtChoice::from_u64_eq(bits, 6));
+            factor = MontyFormType::ct_select(&factor, &table[7], CtChoice::from_u64_eq(bits, 7));
+            factor = MontyFormType::ct_select(&factor, &table[8], CtChoice::from_u64_eq(bits, 8));
+            factor = MontyFormType::ct_select(&factor, &table[9], CtChoice::from_u64_eq(bits, 9));
+            factor = MontyFormType::ct_select(&factor, &table[10], CtChoice::from_u64_eq(bits, 10));
+            factor = MontyFormType::ct_select(&factor, &table[11], CtChoice::from_u64_eq(bits, 11));
+            factor = MontyFormType::ct_select(&factor, &table[12], CtChoice::from_u64_eq(bits, 12));
+            factor = MontyFormType::ct_select(&factor, &table[13], CtChoice::from_u64_eq(bits, 13));
+            factor = MontyFormType::ct_select(&factor, &table[14], CtChoice::from_u64_eq(bits, 14));
+            factor = MontyFormType::ct_select(&factor, &table[15], CtChoice::from_u64_eq(bits, 15));
+            res = MontyFormType::mul(&res, &factor);
         }
-        let mut res = Self(MontyForm::ONE);
-        let mut bits = 0;
-        for (i, mut bit) in other.to_le_bits().iter_mut().rev().enumerate() {
-            bits <<= 1;
-            let mut bit = u8_from_bool(&mut bit);
-            bits |= bit;
-            bit.zeroize();
-            if ((i + 1) % 4) == 0 {
-                if i != 3 {
-                    for _ in 0..4 {
-                        res *= res;
-                    }
-                }
-                let mut factor = table[0];
-                for (j, candidate) in table[1..].iter().enumerate() {
-                    let j = j + 1;
-                    factor =
-                        Self::conditional_select(&factor, candidate, usize::from(bits).ct_eq(&j));
-                }
-                res *= factor;
-                bits = 0;
-            }
-        }
-        res
+
+        Self(res)
     }
 
     /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
@@ -230,6 +286,7 @@ impl HelioseleneField {
         Self(MontyFormType::add(&hi, &lo))
     }
 }
+
 impl Field for HelioseleneField {
     const ONE: Self = Self(MontyForm::ONE);
     const ZERO: Self = Self(MontyForm::ZERO);
@@ -240,10 +297,12 @@ impl Field for HelioseleneField {
         Self::reduce(&bytes)
     }
 
+    #[inline]
     fn square(&self) -> Self {
         Self(MontyFormType::square(&self.0))
     }
 
+    #[inline]
     fn double(&self) -> Self {
         Self(MontyFormType::add(&self.0, &self.0))
     }
@@ -264,9 +323,10 @@ impl Field for HelioseleneField {
             &U256::from_be_hex("1fffffffffffffffffffffffffffffffefdfde0b2dd95ad61badb49c9e49f1e8"),
         ));
         let res = self.pow(MOD_PLUS_ONE_DIV_FOUR);
-        CtOption::new(res, res.square().ct_eq(self))
+        CtOption::new(res, res.square().ct_eq(self).into())
     }
 }
+
 impl PrimeField for HelioseleneField {
     type Repr = [u8; 32];
 
@@ -299,9 +359,10 @@ impl PrimeField for HelioseleneField {
     }
 
     fn is_odd(&self) -> Choice {
-        self.0.retrieve().is_odd()
+        self.0.retrieve().is_odd().into()
     }
 }
+
 impl PrimeFieldBits for HelioseleneField {
     type ReprBits = [u8; 32];
 
@@ -315,6 +376,7 @@ impl PrimeFieldBits for HelioseleneField {
         repr.into()
     }
 }
+
 impl Sum<Self> for HelioseleneField {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = MontyFormType::ZERO;
@@ -324,11 +386,13 @@ impl Sum<Self> for HelioseleneField {
         Self(res)
     }
 }
+
 impl<'a> Sum<&'a Self> for HelioseleneField {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().sum()
     }
 }
+
 impl Product<Self> for HelioseleneField {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = MontyFormType::ONE;
@@ -338,6 +402,7 @@ impl Product<Self> for HelioseleneField {
         Self(res)
     }
 }
+
 impl<'a> Product<&'a Self> for HelioseleneField {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().product()
