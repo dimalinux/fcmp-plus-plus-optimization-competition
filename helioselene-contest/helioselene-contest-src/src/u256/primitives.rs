@@ -31,7 +31,7 @@ pub(crate) const fn borrowing_sub(lhs: u64, rhs: u64, borrow: u64) -> (u64, u64)
     (ret as u64, (ret >> u64::BITS) as u64)
 }
 
-/// Computes `self + (b * c) + carry`, returning the result along with the new carry.
+/// Computes `(lhs * rhs) + addend + carry`, returning the result along with the new carry.
 #[inline(always)]
 #[allow(clippy::cast_possible_truncation)]
 pub(crate) const fn carrying_mul_add(lhs: u64, rhs: u64, addend: u64, carry: u64) -> (u64, u64) {
@@ -43,7 +43,7 @@ pub(crate) const fn carrying_mul_add(lhs: u64, rhs: u64, addend: u64, carry: u64
 
     let (lo, c) = lo.overflowing_add(carry);
 
-    // Even if all the arguments are `Word::MAX` we can't overflow `hi`.
+    // Even if all the arguments are `u64::MAX` we can't overflow `hi`.
     let hi = hi.wrapping_add(c as u64);
 
     (lo, hi)

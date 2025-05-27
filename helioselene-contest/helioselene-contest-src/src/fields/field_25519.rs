@@ -261,14 +261,14 @@ impl Field for Field25519 {
         let u = &u.0;
         let v = &v.0;
 
-        let v3 = MontyFormType::mul(&v.square(), &v);
-        let v7 = MontyFormType::mul(&v3.square(), &v);
+        let v3 = MontyFormType::mul(&v.square(), v);
+        let v7 = MontyFormType::mul(&v3.square(), v);
         let u_times_v3 = MontyFormType::mul(u, &v3);
         let u_times_v7 = MontyFormType::mul(u, &v7);
         let mut r = MontyFormType::mul(&u_times_v3, &Self(u_times_v7).pow(MOD_5_8).0);
 
         let check = MontyFormType::mul(v, &r.square());
-        let correct_sign = check.ct_eq(&u);
+        let correct_sign = check.ct_eq(u);
         let u_neg = MontyFormType::neg(u);
         let flipped_sign = check.ct_eq(&u_neg);
         let flipped_sign_i = check.ct_eq(&MontyFormType::mul(&u_neg, &i));

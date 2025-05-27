@@ -312,31 +312,7 @@ impl Group for SelenePoint {
 
     #[allow(non_snake_case)]
     fn double(&self) -> Self {
-        let X1 = self.x.0;
-        let Y1 = self.y.0;
-        let Z1 = self.z.0;
-        let w = MontyFormType::mul(&MontyFormType::sub(&X1, &Z1), &MontyFormType::add(&X1, &Z1));
-        let w = MontyFormType::add(&MontyFormType::add(&w, &w), &w);
-        let s = MontyFormType::double(&MontyFormType::mul(&Y1, &Z1));
-        let ss = MontyFormType::square(&s);
-        let sss = MontyFormType::mul(&s, &ss);
-        let R = MontyFormType::mul(&Y1, &s);
-        let RR = R.square();
-        let B_ = MontyFormType::mul(&X1, &R).double();
-        let h = MontyFormType::sub(&w.square(), &B_.double());
-        let X3 = MontyFormType::mul(&h, &s);
-        let Y3 = MontyFormType::sub(
-            &MontyFormType::mul(&w, &(MontyFormType::sub(&B_, &h))),
-            &RR.double(),
-        );
-        let Z3 = sss;
-        let res = Self {
-            x: HelioseleneField(X3),
-            y: HelioseleneField(Y3),
-            z: HelioseleneField(Z3),
-        };
-
-        Self::ct_select(&res, &Self::identity(), self.is_identity())
+        Self::const_double(self)
     }
 }
 
