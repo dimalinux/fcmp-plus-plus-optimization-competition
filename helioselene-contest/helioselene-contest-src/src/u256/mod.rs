@@ -1,5 +1,4 @@
 mod add;
-mod add_mod;
 mod bit_ops;
 mod cmp;
 mod ct_choice;
@@ -11,7 +10,6 @@ mod mul;
 mod neg;
 mod primitives;
 mod sub;
-mod sub_mod;
 mod traits;
 
 use ::core::fmt;

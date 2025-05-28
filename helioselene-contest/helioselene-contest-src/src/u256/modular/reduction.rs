@@ -86,7 +86,15 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         // Division is simply taking the upper half of the limbs
         // Final reduction (at this point, the value is at most 2 * modulus,
         // so `meta_carry` is either 0 or 1)
+        debug_assert!(meta_carry <= 1);
 
-        upper.sub_mod_with_carry(meta_carry, &MOD::MODULUS, &MOD::MODULUS)
+        let (out, borrow) = upper.borrowing_sub(&MOD::MODULUS, 0);
+
+        // The new `borrow = u64::MAX` iff `carry == 0` and `borrow == u64::MAX`.
+        let mask = (!meta_carry.wrapping_neg()) & borrow;
+
+        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
+        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
+        out.wrapping_add(&MOD::MODULUS.bitand_limb(mask))
     }
 }

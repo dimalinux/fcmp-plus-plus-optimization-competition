@@ -7,10 +7,17 @@ use super::{MontyForm, MontyParams};
 impl<MOD: MontyParams> MontyForm<MOD> {
     /// Subtracts `rhs`.
     pub(crate) const fn sub(&self, rhs: &Self) -> Self {
+        let lhs = &self.montgomery_form;
+        let rhs = &rhs.montgomery_form;
+
+        let (mut res, mask) = lhs.borrowing_sub(rhs, 0);
+
+        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
+        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
+        res = res.wrapping_add(&MOD::MODULUS.bitand_limb(mask));
+
         Self {
-            montgomery_form: self
-                .montgomery_form
-                .sub_mod(&rhs.montgomery_form, &MOD::MODULUS),
+            montgomery_form: res,
             phantom: core::marker::PhantomData,
         }
     }
