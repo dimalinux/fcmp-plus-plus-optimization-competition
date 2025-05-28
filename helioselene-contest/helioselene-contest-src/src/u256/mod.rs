@@ -13,7 +13,7 @@ mod sub;
 mod traits;
 
 use ::core::fmt;
-pub(crate) use modular::{MontyForm, MontyParams};
+pub(crate) use modular::{pow::FixedExponent, MontyForm, MontyParams};
 pub(crate) use traits::Encoding;
 use zeroize::DefaultIsZeroes;
 

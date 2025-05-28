@@ -8,7 +8,7 @@ use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::DefaultIsZeroes;
 
-use crate::u256::{CtChoice, Encoding, MontyForm, MontyParams, U256};
+use crate::u256::{CtChoice, Encoding, FixedExponent, MontyForm, MontyParams, U256};
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
 
@@ -60,11 +60,6 @@ impl HelioseleneField {
     #[inline]
     pub(crate) const fn ct_select(a: &Self, b: &Self, choice: CtChoice) -> Self {
         Self(MontyFormType::ct_select(&a.0, &b.0, choice))
-    }
-
-    #[inline]
-    pub(crate) const fn ct_eq(&self, other: &Self) -> CtChoice {
-        self.0.ct_eq(&other.0)
     }
 
     #[inline]
@@ -220,57 +215,9 @@ impl Neg for &HelioseleneField {
 impl HelioseleneField {
     /// Perform exponentiation.
     #[must_use]
+    #[inline]
     pub const fn pow(&self, exponent: Self) -> Self {
-        let mut table: [MontyFormType; 16] = [MontyFormType::ZERO; 16];
-        table[0] = MontyFormType::ONE;
-        table[1] = self.0;
-        table[2] = MontyFormType::mul(&table[1], &self.0);
-        table[3] = MontyFormType::mul(&table[2], &self.0);
-        table[4] = MontyFormType::mul(&table[3], &self.0);
-        table[5] = MontyFormType::mul(&table[4], &self.0);
-        table[6] = MontyFormType::mul(&table[5], &self.0);
-        table[7] = MontyFormType::mul(&table[6], &self.0);
-        table[8] = MontyFormType::mul(&table[7], &self.0);
-        table[9] = MontyFormType::mul(&table[8], &self.0);
-        table[10] = MontyFormType::mul(&table[9], &self.0);
-        table[11] = MontyFormType::mul(&table[10], &self.0);
-        table[12] = MontyFormType::mul(&table[11], &self.0);
-        table[13] = MontyFormType::mul(&table[12], &self.0);
-        table[14] = MontyFormType::mul(&table[13], &self.0);
-        table[15] = MontyFormType::mul(&table[14], &self.0);
-
-        let mut res = MontyFormType::ONE;
-        let nibbles = exponent.0.retrieve().as_be_nibbles();
-        let mut i = 0;
-        while i < 64 {
-            let bits = nibbles[i] as u64;
-            i += 1;
-
-            res = MontyFormType::square(&res);
-            res = MontyFormType::square(&res);
-            res = MontyFormType::square(&res);
-            res = MontyFormType::square(&res);
-
-            let mut factor = table[0];
-            factor = MontyFormType::ct_select(&factor, &table[1], CtChoice::from_u64_eq(bits, 1));
-            factor = MontyFormType::ct_select(&factor, &table[2], CtChoice::from_u64_eq(bits, 2));
-            factor = MontyFormType::ct_select(&factor, &table[3], CtChoice::from_u64_eq(bits, 3));
-            factor = MontyFormType::ct_select(&factor, &table[4], CtChoice::from_u64_eq(bits, 4));
-            factor = MontyFormType::ct_select(&factor, &table[5], CtChoice::from_u64_eq(bits, 5));
-            factor = MontyFormType::ct_select(&factor, &table[6], CtChoice::from_u64_eq(bits, 6));
-            factor = MontyFormType::ct_select(&factor, &table[7], CtChoice::from_u64_eq(bits, 7));
-            factor = MontyFormType::ct_select(&factor, &table[8], CtChoice::from_u64_eq(bits, 8));
-            factor = MontyFormType::ct_select(&factor, &table[9], CtChoice::from_u64_eq(bits, 9));
-            factor = MontyFormType::ct_select(&factor, &table[10], CtChoice::from_u64_eq(bits, 10));
-            factor = MontyFormType::ct_select(&factor, &table[11], CtChoice::from_u64_eq(bits, 11));
-            factor = MontyFormType::ct_select(&factor, &table[12], CtChoice::from_u64_eq(bits, 12));
-            factor = MontyFormType::ct_select(&factor, &table[13], CtChoice::from_u64_eq(bits, 13));
-            factor = MontyFormType::ct_select(&factor, &table[14], CtChoice::from_u64_eq(bits, 14));
-            factor = MontyFormType::ct_select(&factor, &table[15], CtChoice::from_u64_eq(bits, 15));
-            res = MontyFormType::mul(&res, &factor);
-        }
-
-        Self(res)
+        Self(MontyFormType::pow(self.0, exponent.0))
     }
 
     /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
@@ -319,11 +266,17 @@ impl Field for HelioseleneField {
 
     fn sqrt(&self) -> CtOption<Self> {
         // MODULUS + 1 / 4
-        const MOD_PLUS_ONE_DIV_FOUR: HelioseleneField = HelioseleneField(MontyFormType::new(
-            &U256::from_be_hex("1fffffffffffffffffffffffffffffffefdfde0b2dd95ad61badb49c9e49f1e8"),
-        ));
-        let res = self.pow(MOD_PLUS_ONE_DIV_FOUR);
-        CtOption::new(res, res.square().ct_eq(self).into())
+        struct ModPlusOneDivFour;
+        impl FixedExponent for ModPlusOneDivFour {
+            const EXPONENT: U256 = MontyFormType::new(&U256::from_be_hex(
+                "1fffffffffffffffffffffffffffffffefdfde0b2dd95ad61badb49c9e49f1e8",
+            ))
+            .retrieve();
+        }
+
+        let res = self.0.pow_fixed::<ModPlusOneDivFour>();
+        let res_square = MontyFormType::square(&res);
+        CtOption::new(Self(res), res_square.ct_eq(&self.0).into())
     }
 }
 

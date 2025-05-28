@@ -256,18 +256,14 @@ impl HeliosPoint {
             &RR.double(),
         );
         let Z3 = sss;
-        let res = Self {
-            x: Field25519(X3),
-            y: Field25519(Y3),
-            z: Field25519(Z3),
-        };
 
-        Self::ct_select(&res, &IDENTITY, self.is_identity())
-    }
+        let is_identity = self.x.ct_is_zero();
 
-    #[inline]
-    const fn is_identity(&self) -> CtChoice {
-        self.x.ct_is_zero()
+        Self {
+            x: Field25519(MontyFormType::ct_select(&X3, &IDENTITY.x.0, is_identity)),
+            y: Field25519(MontyFormType::ct_select(&Y3, &IDENTITY.y.0, is_identity)),
+            z: Field25519(MontyFormType::ct_select(&Z3, &IDENTITY.z.0, is_identity)),
+        }
     }
 }
 

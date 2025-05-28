@@ -264,18 +264,14 @@ impl SelenePoint {
             &RR.double(),
         );
         let Z3 = sss;
-        let res = Self {
-            x: HelioseleneField(X3),
-            y: HelioseleneField(Y3),
-            z: HelioseleneField(Z3),
-        };
 
-        Self::ct_select(&res, &IDENTITY, self.is_identity())
-    }
+        let is_identity = self.x.ct_is_zero();
 
-    #[inline]
-    const fn is_identity(&self) -> CtChoice {
-        self.x.ct_is_zero()
+        Self {
+            x: HelioseleneField(MontyFormType::ct_select(&X3, &IDENTITY.x.0, is_identity)),
+            y: HelioseleneField(MontyFormType::ct_select(&Y3, &IDENTITY.y.0, is_identity)),
+            z: HelioseleneField(MontyFormType::ct_select(&Z3, &IDENTITY.z.0, is_identity)),
+        }
     }
 }
 

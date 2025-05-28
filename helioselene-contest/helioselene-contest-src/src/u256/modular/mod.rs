@@ -4,6 +4,7 @@ mod const_invert;
 mod const_mul;
 mod const_neg;
 mod const_sub;
+pub(crate) mod pow;
 mod reduction;
 
 use core::{fmt::Debug, marker::PhantomData};

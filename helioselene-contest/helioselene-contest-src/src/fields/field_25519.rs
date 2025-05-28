@@ -8,7 +8,7 @@ use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
 
-use crate::u256::{CtChoice, Encoding, MontyForm, MontyParams, U256};
+use crate::u256::{CtChoice, Encoding, FixedExponent, MontyForm, MontyParams, U256};
 
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
 
@@ -44,28 +44,24 @@ const SQRT_M1: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
     "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
 )));
 
-trait FixedExponent {
-    /// The exponent used when taking the power of a field element.
-    const EXPONENT: Field25519;
-    const EXPONENT_NIBLES: [u8; 64] = Self::EXPONENT.0.retrieve().as_be_nibbles();
-}
-
 /// Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
 /// (MODULUS + 3) / 8
 struct FixedExpMod3_8;
 impl FixedExponent for FixedExpMod3_8 {
-    const EXPONENT: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
+    const EXPONENT: U256 = MontyFormType::new(&U256::from_be_hex(
         "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
-    )));
+    ))
+    .retrieve();
 }
 
 /// Constant useful in sqrt_ratio_i (sqrt(u / v))
 /// MOD_3_8 - 1
 struct FixedExpMod5_8;
 impl FixedExponent for FixedExpMod5_8 {
-    const EXPONENT: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
+    const EXPONENT: U256 = MontyFormType::new(&U256::from_be_hex(
         "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd",
-    )));
+    ))
+    .retrieve();
 }
 
 impl ConstantTimeEq for Field25519 {
@@ -258,7 +254,7 @@ impl Field for Field25519 {
 
     // RFC-8032 sqrt8k5
     fn sqrt(&self) -> CtOption<Self> {
-        let tv1 = self.pow::<FixedExpMod3_8>().0;
+        let tv1 = self.0.pow_fixed::<FixedExpMod3_8>();
         let tv2 = MontyFormType::mul(&tv1, &SQRT_M1.0);
         let candidate = MontyFormType::ct_select(&tv2, &tv1, tv1.square().ct_eq(&self.0));
         let candidate_squared = candidate.square();
@@ -277,7 +273,7 @@ impl Field for Field25519 {
         let v7 = MontyFormType::mul(&v3.square(), v);
         let u_times_v3 = MontyFormType::mul(u, &v3);
         let u_times_v7 = MontyFormType::mul(u, &v7);
-        let mut r = MontyFormType::mul(&u_times_v3, &Self(u_times_v7).pow::<FixedExpMod5_8>().0);
+        let mut r = MontyFormType::mul(&u_times_v3, &u_times_v7.pow_fixed::<FixedExpMod5_8>());
 
         let check = MontyFormType::mul(v, &r.square());
         let correct_sign = check.ct_eq(u);
@@ -353,62 +349,6 @@ impl PrimeFieldBits for Field25519 {
 
     fn char_le_bits() -> FieldBits<Self::ReprBits> {
         FieldModulus::MODULUS.to_le_bytes().into()
-    }
-}
-
-impl Field25519 {
-    /// Perform an exponentiation.
-    #[must_use]
-    const fn pow<EXP: FixedExponent>(&self) -> Self {
-        let mut table: [MontyFormType; 16] = [MontyFormType::ZERO; 16];
-        table[0] = MontyFormType::ONE;
-        table[1] = self.0;
-        table[2] = MontyFormType::mul(&table[1], &self.0);
-        table[3] = MontyFormType::mul(&table[2], &self.0);
-        table[4] = MontyFormType::mul(&table[3], &self.0);
-        table[5] = MontyFormType::mul(&table[4], &self.0);
-        table[6] = MontyFormType::mul(&table[5], &self.0);
-        table[7] = MontyFormType::mul(&table[6], &self.0);
-        table[8] = MontyFormType::mul(&table[7], &self.0);
-        table[9] = MontyFormType::mul(&table[8], &self.0);
-        table[10] = MontyFormType::mul(&table[9], &self.0);
-        table[11] = MontyFormType::mul(&table[10], &self.0);
-        table[12] = MontyFormType::mul(&table[11], &self.0);
-        table[13] = MontyFormType::mul(&table[12], &self.0);
-        table[14] = MontyFormType::mul(&table[13], &self.0);
-        table[15] = MontyFormType::mul(&table[14], &self.0);
-
-        let mut res = MontyFormType::ONE;
-        let mut i = 0;
-        while i < 64 {
-            let bits = EXP::EXPONENT_NIBLES[i] as u64;
-            i += 1;
-
-            res = MontyFormType::square(&res);
-            res = MontyFormType::square(&res);
-            res = MontyFormType::square(&res);
-            res = MontyFormType::square(&res);
-
-            let mut factor = table[0];
-            factor = MontyFormType::ct_select(&factor, &table[1], CtChoice::from_u64_eq(bits, 1));
-            factor = MontyFormType::ct_select(&factor, &table[2], CtChoice::from_u64_eq(bits, 2));
-            factor = MontyFormType::ct_select(&factor, &table[3], CtChoice::from_u64_eq(bits, 3));
-            factor = MontyFormType::ct_select(&factor, &table[4], CtChoice::from_u64_eq(bits, 4));
-            factor = MontyFormType::ct_select(&factor, &table[5], CtChoice::from_u64_eq(bits, 5));
-            factor = MontyFormType::ct_select(&factor, &table[6], CtChoice::from_u64_eq(bits, 6));
-            factor = MontyFormType::ct_select(&factor, &table[7], CtChoice::from_u64_eq(bits, 7));
-            factor = MontyFormType::ct_select(&factor, &table[8], CtChoice::from_u64_eq(bits, 8));
-            factor = MontyFormType::ct_select(&factor, &table[9], CtChoice::from_u64_eq(bits, 9));
-            factor = MontyFormType::ct_select(&factor, &table[10], CtChoice::from_u64_eq(bits, 10));
-            factor = MontyFormType::ct_select(&factor, &table[11], CtChoice::from_u64_eq(bits, 11));
-            factor = MontyFormType::ct_select(&factor, &table[12], CtChoice::from_u64_eq(bits, 12));
-            factor = MontyFormType::ct_select(&factor, &table[13], CtChoice::from_u64_eq(bits, 13));
-            factor = MontyFormType::ct_select(&factor, &table[14], CtChoice::from_u64_eq(bits, 14));
-            factor = MontyFormType::ct_select(&factor, &table[15], CtChoice::from_u64_eq(bits, 15));
-            res = MontyFormType::mul(&res, &factor);
-        }
-
-        Self(res)
     }
 }
 
