@@ -1,17 +1,9 @@
 //! Modular reduction implementation.
 
-use crate::u256::{primitives::carrying_add, MontyForm, MontyParams, U256};
-
-/// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
-#[inline(always)]
-#[allow(clippy::cast_possible_truncation)]
-const fn muladdcarry(x: u64, y: u64, z: u64, w: u64) -> (u64, u64) {
-    let res = (x as u128)
-        .wrapping_mul(y as u128)
-        .wrapping_add(z as u128)
-        .wrapping_add(w as u128);
-    ((res >> u64::BITS) as u64, res as u64)
-}
+use crate::u256::{
+    primitives::{carrying_add, carrying_mul_add},
+    MontyForm, MontyParams, U256,
+};
 
 impl<MOD: MontyParams> MontyForm<MOD> {
     /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
@@ -21,16 +13,16 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 
         // i = 0
         let u = lower.limbs[0].wrapping_mul(MOD::MOD_NEG_INV);
-        let (carry, _) = muladdcarry(u, MOD::MODULUS.limbs[0], lower.limbs[0], 0);
+        let (_, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[0], lower.limbs[0], 0);
 
         // j = 1
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[1], lower.limbs[1], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[1], lower.limbs[1], carry);
         lower.limbs[1] = new_limb;
         // j = 2
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[2], lower.limbs[2], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[2], lower.limbs[2], carry);
         lower.limbs[2] = new_limb;
         // j = 3
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[3], lower.limbs[3], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[3], lower.limbs[3], carry);
         lower.limbs[3] = new_limb;
 
         let (new_sum, new_meta_carry) = carrying_add(upper.limbs[0], carry, meta_carry);
@@ -39,16 +31,16 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 
         // i = 1
         let u = lower.limbs[1].wrapping_mul(MOD::MOD_NEG_INV);
-        let (carry, _) = muladdcarry(u, MOD::MODULUS.limbs[0], lower.limbs[1], 0);
+        let (_, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[0], lower.limbs[1], 0);
 
         // j = 1
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[1], lower.limbs[2], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[1], lower.limbs[2], carry);
         lower.limbs[2] = new_limb;
         // j = 2
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[2], lower.limbs[3], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[2], lower.limbs[3], carry);
         lower.limbs[3] = new_limb;
         // j = 3
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[3], upper.limbs[0], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[3], upper.limbs[0], carry);
         upper.limbs[0] = new_limb;
 
         let (new_sum, new_meta_carry) = carrying_add(upper.limbs[1], carry, meta_carry);
@@ -57,16 +49,16 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 
         // i = 2
         let u = lower.limbs[2].wrapping_mul(MOD::MOD_NEG_INV);
-        let (carry, _) = muladdcarry(u, MOD::MODULUS.limbs[0], lower.limbs[2], 0);
+        let (_, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[0], lower.limbs[2], 0);
 
         // j = 1
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[1], lower.limbs[3], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[1], lower.limbs[3], carry);
         lower.limbs[3] = new_limb;
         // j = 2
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[2], upper.limbs[0], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[2], upper.limbs[0], carry);
         upper.limbs[0] = new_limb;
         // j = 3
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[3], upper.limbs[1], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[3], upper.limbs[1], carry);
         upper.limbs[1] = new_limb;
 
         let (new_sum, new_meta_carry) = carrying_add(upper.limbs[2], carry, meta_carry);
@@ -75,16 +67,16 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 
         // i = 3
         let u = lower.limbs[3].wrapping_mul(MOD::MOD_NEG_INV);
-        let (carry, _) = muladdcarry(u, MOD::MODULUS.limbs[0], lower.limbs[3], 0);
+        let (_, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[0], lower.limbs[3], 0);
 
         // j = 1
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[1], upper.limbs[0], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[1], upper.limbs[0], carry);
         upper.limbs[0] = new_limb;
         // j = 2
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[2], upper.limbs[1], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[2], upper.limbs[1], carry);
         upper.limbs[1] = new_limb;
         // j = 3
-        let (carry, new_limb) = muladdcarry(u, MOD::MODULUS.limbs[3], upper.limbs[2], carry);
+        let (new_limb, carry) = carrying_mul_add(u, MOD::MODULUS.limbs[3], upper.limbs[2], carry);
         upper.limbs[2] = new_limb;
 
         let (new_sum, new_meta_carry) = carrying_add(upper.limbs[3], carry, meta_carry);

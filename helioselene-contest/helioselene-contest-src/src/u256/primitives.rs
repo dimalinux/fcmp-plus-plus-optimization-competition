@@ -38,15 +38,12 @@ pub(crate) const fn carrying_mul_add(lhs: u64, rhs: u64, addend: u64, carry: u64
     let lhs = lhs as u128;
     let rhs = rhs as u128;
     let addend = addend as u128;
-    let ret = (lhs * rhs) + addend;
-    let (lo, hi) = (ret as u64, (ret >> u64::BITS) as u64);
+    let carry = carry as u128;
 
-    let (lo, c) = lo.overflowing_add(carry);
+    let ret = (lhs * rhs) + addend + carry;
 
-    // Even if all the arguments are `u64::MAX` we can't overflow `hi`.
-    let hi = hi.wrapping_add(c as u64);
-
-    (lo, hi)
+    // (lo, hi)
+    (ret as u64, (ret >> u64::BITS) as u64)
 }
 
 /// Return `b` if `c` is truthy, otherwise return `a`.
