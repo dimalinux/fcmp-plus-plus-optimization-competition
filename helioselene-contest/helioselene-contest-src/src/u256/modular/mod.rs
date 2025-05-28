@@ -8,8 +8,6 @@ mod reduction;
 
 use core::{fmt::Debug, marker::PhantomData};
 
-use reduction::montgomery_reduction;
-
 use crate::u256::{CtChoice, U256};
 
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
@@ -66,7 +64,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         assert!(MOD::MODULUS.ct_is_odd().to_u8() != 0, "modulus must be odd");
 
         let product = integer.mul_wide(&MOD::R2);
-        let montgomery_form = montgomery_reduction(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
+        let montgomery_form = Self::montgomery_reduction(&product);
 
         Self {
             montgomery_form,
@@ -76,11 +74,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 
     /// Convert the number back from the optimized representation.
     pub(crate) const fn retrieve(&self) -> U256 {
-        montgomery_reduction(
-            &(self.montgomery_form, U256::ZERO),
-            &MOD::MODULUS,
-            MOD::MOD_NEG_INV,
-        )
+        Self::montgomery_reduction(&(self.montgomery_form, U256::ZERO))
     }
 }
 

@@ -22,7 +22,7 @@ impl U256 {
 
         let (out, borrow) = self.borrowing_sub(rhs, 0);
 
-        // The new `borrow = Word::MAX` iff `carry == 0` and `borrow == Word::MAX`.
+        // The new `borrow = u64::MAX` iff `carry == 0` and `borrow == u64::MAX`.
         let mask = (!carry.wrapping_neg()) & borrow;
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise

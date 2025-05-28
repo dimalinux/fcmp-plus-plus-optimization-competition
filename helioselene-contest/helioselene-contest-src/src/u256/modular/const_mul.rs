@@ -5,13 +5,13 @@ use core::{
     ops::{Mul, MulAssign},
 };
 
-use crate::u256::{modular::reduction::montgomery_reduction, MontyForm, MontyParams};
+use crate::u256::{MontyForm, MontyParams};
 
 impl<MOD: MontyParams> MontyForm<MOD> {
     /// Multiplies by `rhs`.
     pub(crate) const fn mul(&self, rhs: &Self) -> Self {
         let product = self.montgomery_form.mul_wide(&rhs.montgomery_form);
-        let montgomery_form = montgomery_reduction(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
+        let montgomery_form = Self::montgomery_reduction(&product);
         Self {
             montgomery_form,
             phantom: PhantomData,
@@ -21,7 +21,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
     /// Computes the (reduced) square.
     pub(crate) const fn square(&self) -> Self {
         let product = self.montgomery_form.square_wide();
-        let montgomery_form = montgomery_reduction(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
+        let montgomery_form = Self::montgomery_reduction(&product);
         Self {
             montgomery_form,
             phantom: PhantomData,

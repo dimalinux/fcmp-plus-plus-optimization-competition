@@ -2,9 +2,7 @@
 
 use core::marker::PhantomData;
 
-use crate::u256::{
-    ct_choice::CtChoice, modular::reduction::montgomery_reduction, MontyForm, MontyParams,
-};
+use crate::u256::{ct_choice::CtChoice, MontyForm, MontyParams};
 
 impl<MOD: MontyParams> MontyForm<MOD> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
@@ -17,8 +15,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         let (inverse, is_some) = self.montgomery_form.inv_odd_mod(&MOD::MODULUS);
 
         // Multiply with R3 and reduce in Montgomery form.
-        let montgomery_form =
-            montgomery_reduction(&inverse.mul_wide(&MOD::R3), &MOD::MODULUS, MOD::MOD_NEG_INV);
+        let montgomery_form = Self::montgomery_reduction(&inverse.mul_wide(&MOD::R3));
 
         let value = Self {
             montgomery_form,

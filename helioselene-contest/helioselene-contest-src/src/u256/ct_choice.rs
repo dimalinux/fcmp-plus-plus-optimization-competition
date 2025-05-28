@@ -11,7 +11,7 @@ impl CtChoice {
     /// The truthy value.
     pub(crate) const TRUTHY: Self = Self(u64::MAX);
 
-    /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
+    /// Returns the truthy value if `value == u64::MAX`, and the falsy value if `value == 0`.
     /// Panics for other values.
     #[inline]
     pub(crate) const fn from_mask(value: u64) -> Self {
