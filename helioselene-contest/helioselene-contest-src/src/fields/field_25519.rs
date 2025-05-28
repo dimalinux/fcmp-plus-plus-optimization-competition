@@ -44,17 +44,29 @@ const SQRT_M1: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
     "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
 )));
 
+trait FixedExponent {
+    /// The exponent used when taking the power of a field element.
+    const EXPONENT: Field25519;
+    const EXPONENT_NIBLES: [u8; 64] = Self::EXPONENT.0.retrieve().as_be_nibbles();
+}
+
 /// Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
 /// (MODULUS + 3) / 8
-const MOD_3_8: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
-    "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
-)));
+struct FixedExpMod3_8;
+impl FixedExponent for FixedExpMod3_8 {
+    const EXPONENT: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
+        "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
+    )));
+}
 
 /// Constant useful in sqrt_ratio_i (sqrt(u / v))
 /// MOD_3_8 - 1
-const MOD_5_8: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
-    "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd",
-)));
+struct FixedExpMod5_8;
+impl FixedExponent for FixedExpMod5_8 {
+    const EXPONENT: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
+        "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd",
+    )));
+}
 
 impl ConstantTimeEq for Field25519 {
     fn ct_eq(&self, other: &Self) -> Choice {
@@ -246,7 +258,7 @@ impl Field for Field25519 {
 
     // RFC-8032 sqrt8k5
     fn sqrt(&self) -> CtOption<Self> {
-        let tv1 = self.pow(MOD_3_8).0;
+        let tv1 = self.pow::<FixedExpMod3_8>().0;
         let tv2 = MontyFormType::mul(&tv1, &SQRT_M1.0);
         let candidate = MontyFormType::ct_select(&tv2, &tv1, tv1.square().ct_eq(&self.0));
         let candidate_squared = candidate.square();
@@ -265,7 +277,7 @@ impl Field for Field25519 {
         let v7 = MontyFormType::mul(&v3.square(), v);
         let u_times_v3 = MontyFormType::mul(u, &v3);
         let u_times_v7 = MontyFormType::mul(u, &v7);
-        let mut r = MontyFormType::mul(&u_times_v3, &Self(u_times_v7).pow(MOD_5_8).0);
+        let mut r = MontyFormType::mul(&u_times_v3, &Self(u_times_v7).pow::<FixedExpMod5_8>().0);
 
         let check = MontyFormType::mul(v, &r.square());
         let correct_sign = check.ct_eq(u);
@@ -347,7 +359,7 @@ impl PrimeFieldBits for Field25519 {
 impl Field25519 {
     /// Perform an exponentiation.
     #[must_use]
-    const fn pow(&self, exponent: Self) -> Self {
+    const fn pow<EXP: FixedExponent>(&self) -> Self {
         let mut table: [MontyFormType; 16] = [MontyFormType::ZERO; 16];
         table[0] = MontyFormType::ONE;
         table[1] = self.0;
@@ -367,10 +379,9 @@ impl Field25519 {
         table[15] = MontyFormType::mul(&table[14], &self.0);
 
         let mut res = MontyFormType::ONE;
-        let nibbles = exponent.0.retrieve().as_be_nibbles();
         let mut i = 0;
         while i < 64 {
-            let bits = nibbles[i] as u64;
+            let bits = EXP::EXPONENT_NIBLES[i] as u64;
             i += 1;
 
             res = MontyFormType::square(&res);
@@ -399,7 +410,9 @@ impl Field25519 {
 
         Self(res)
     }
+}
 
+impl Field25519 {
     /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
     /// While taking the modulus of 512 bits produces negligible bias (method used
     /// below), there may be better algorithms with zero bias.
