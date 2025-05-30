@@ -3,9 +3,9 @@ mod add;
 mod invert;
 mod mul;
 mod neg;
-mod sub;
 pub(crate) mod pow;
 mod reduction;
+mod sub;
 
 use core::{fmt::Debug, marker::PhantomData};
 
