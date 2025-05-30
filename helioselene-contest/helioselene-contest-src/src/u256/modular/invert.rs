@@ -70,7 +70,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         let (inverse, is_some) = self.inv_odd_mod();
 
         // Multiply with R3 and reduce in Montgomery form.
-        let montgomery_form = Self::montgomery_reduction(&inverse.mul_wide(&MOD::R3));
+        let montgomery_form = Self::montgomery_reduction(&Self::mul_wide(&inverse, &MOD::R3));
 
         let value = Self {
             montgomery_form,

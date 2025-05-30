@@ -60,11 +60,10 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 
     /// Instantiates a new [`MontyForm`] that represents this `integer` mod `MOD`.
     pub(crate) const fn new(integer: &U256) -> Self {
-        // TODO: make this check debug only?
         // A valid modulus must be odd
-        assert!(MOD::MODULUS.ct_is_odd().to_u8() != 0, "modulus must be odd");
+        debug_assert!(MOD::MODULUS.ct_is_odd().is_true_vartime());
 
-        let product = integer.mul_wide(&MOD::R2);
+        let product = Self::mul_wide(integer, &MOD::R2);
         let montgomery_form = Self::montgomery_reduction(&product);
 
         Self {

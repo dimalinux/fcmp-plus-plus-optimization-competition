@@ -5,7 +5,6 @@ mod ct_choice;
 mod encoding;
 mod from;
 mod modular;
-mod mul;
 mod neg;
 mod primitives;
 mod sub;

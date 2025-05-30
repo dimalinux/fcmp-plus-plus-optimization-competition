@@ -7,7 +7,7 @@ use crate::u256::{
 
 impl<MOD: MontyParams> MontyForm<MOD> {
     /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
-    pub(crate) const fn montgomery_reduction(lower_upper: &(U256, U256)) -> U256 {
+    pub(super) const fn montgomery_reduction(lower_upper: &(U256, U256)) -> U256 {
         let (mut lower, mut upper) = *lower_upper;
         let mut meta_carry = 0;
 

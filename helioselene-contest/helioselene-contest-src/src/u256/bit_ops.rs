@@ -86,6 +86,7 @@ impl U256 {
         new_lower
     }
 
+    // TODO: code below is never called with any `n` other than 1. (simplify?)
     /// Computes a left shift on a wide input as `(lo, hi)`.
     ///
     /// NOTE: this operation is variable time with respect to `n` *ONLY*.
