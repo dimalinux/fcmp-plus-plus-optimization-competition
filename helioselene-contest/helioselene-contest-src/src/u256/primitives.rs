@@ -46,12 +46,6 @@ pub(crate) const fn carrying_mul_add(lhs: u64, rhs: u64, addend: u64, carry: u64
     (ret as u64, (ret >> u64::BITS) as u64)
 }
 
-/// Return `b` if `c` is truthy, otherwise return `a`.
-#[inline]
-pub(crate) const fn ct_select(a: u64, b: u64, c: CtChoice) -> u64 {
-    c.select(a, b)
-}
-
 /// Returns the truthy value if `self != 0` and the falsy value otherwise.
 #[inline]
 #[allow(clippy::cast_sign_loss)]

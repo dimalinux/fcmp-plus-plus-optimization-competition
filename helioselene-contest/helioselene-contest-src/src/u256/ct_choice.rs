@@ -58,12 +58,6 @@ impl CtChoice {
         Self(eq_mask)
     }
 
-    /// Return `x` if `self` is truthy, otherwise return 0.
-    #[inline]
-    pub(crate) const fn if_true(self, x: u64) -> u64 {
-        x & self.0
-    }
-
     pub(crate) const fn is_true_vartime(self) -> bool {
         self.0 == Self::TRUTHY.0
     }
