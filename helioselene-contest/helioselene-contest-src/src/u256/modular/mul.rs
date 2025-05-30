@@ -28,41 +28,39 @@ impl<MOD: MontyParams> MontyForm<MOD> {
     ///
     /// Returns a tuple containing the `(lo, hi)` components of the product.
     pub(super) const fn mul_wide(lhs: &U256, rhs: &U256) -> (U256, U256) {
-        let mut lo = U256::ZERO;
-        let mut hi = U256::ZERO;
+        let mut lo = [0u64; 4];
+        let mut hi = [0u64; 4];
+        let rhs = rhs.limbs;
+        let lhs = lhs.limbs;
         let mut carry: u64;
 
         // Using schoolbook multiplication.
 
         // i = 0
-        (lo.limbs[0], carry) = carrying_mul_add(rhs.limbs[0], lhs.limbs[0], lo.limbs[0], 0);
-        (lo.limbs[1], carry) = carrying_mul_add(rhs.limbs[1], lhs.limbs[0], lo.limbs[1], carry);
-        (lo.limbs[2], carry) = carrying_mul_add(rhs.limbs[2], lhs.limbs[0], lo.limbs[2], carry);
-        (lo.limbs[3], hi.limbs[0]) =
-            carrying_mul_add(rhs.limbs[3], lhs.limbs[0], lo.limbs[3], carry);
+        (lo[0], carry) = carrying_mul_add(rhs[0], lhs[0], 0, 0);
+        (lo[1], carry) = carrying_mul_add(rhs[1], lhs[0], 0, carry);
+        (lo[2], carry) = carrying_mul_add(rhs[2], lhs[0], 0, carry);
+        (lo[3], hi[0]) = carrying_mul_add(rhs[3], lhs[0], 0, carry);
 
         // i = 1
-        (lo.limbs[1], carry) = carrying_mul_add(rhs.limbs[0], lhs.limbs[1], lo.limbs[1], 0);
-        (lo.limbs[2], carry) = carrying_mul_add(rhs.limbs[1], lhs.limbs[1], lo.limbs[2], carry);
-        (lo.limbs[3], carry) = carrying_mul_add(rhs.limbs[2], lhs.limbs[1], lo.limbs[3], carry);
-        (hi.limbs[0], hi.limbs[1]) =
-            carrying_mul_add(rhs.limbs[3], lhs.limbs[1], hi.limbs[0], carry);
+        (lo[1], carry) = carrying_mul_add(rhs[0], lhs[1], lo[1], 0);
+        (lo[2], carry) = carrying_mul_add(rhs[1], lhs[1], lo[2], carry);
+        (lo[3], carry) = carrying_mul_add(rhs[2], lhs[1], lo[3], carry);
+        (hi[0], hi[1]) = carrying_mul_add(rhs[3], lhs[1], hi[0], carry);
 
         // i = 2
-        (lo.limbs[2], carry) = carrying_mul_add(rhs.limbs[0], lhs.limbs[2], lo.limbs[2], 0);
-        (lo.limbs[3], carry) = carrying_mul_add(rhs.limbs[1], lhs.limbs[2], lo.limbs[3], carry);
-        (hi.limbs[0], carry) = carrying_mul_add(rhs.limbs[2], lhs.limbs[2], hi.limbs[0], carry);
-        (hi.limbs[1], hi.limbs[2]) =
-            carrying_mul_add(rhs.limbs[3], lhs.limbs[2], hi.limbs[1], carry);
+        (lo[2], carry) = carrying_mul_add(rhs[0], lhs[2], lo[2], 0);
+        (lo[3], carry) = carrying_mul_add(rhs[1], lhs[2], lo[3], carry);
+        (hi[0], carry) = carrying_mul_add(rhs[2], lhs[2], hi[0], carry);
+        (hi[1], hi[2]) = carrying_mul_add(rhs[3], lhs[2], hi[1], carry);
 
         // i = 3
-        (lo.limbs[3], carry) = carrying_mul_add(rhs.limbs[0], lhs.limbs[3], lo.limbs[3], 0);
-        (hi.limbs[0], carry) = carrying_mul_add(rhs.limbs[1], lhs.limbs[3], hi.limbs[0], carry);
-        (hi.limbs[1], carry) = carrying_mul_add(rhs.limbs[2], lhs.limbs[3], hi.limbs[1], carry);
-        (hi.limbs[2], hi.limbs[3]) =
-            carrying_mul_add(rhs.limbs[3], lhs.limbs[3], hi.limbs[2], carry);
+        (lo[3], carry) = carrying_mul_add(rhs[0], lhs[3], lo[3], 0);
+        (hi[0], carry) = carrying_mul_add(rhs[1], lhs[3], hi[0], carry);
+        (hi[1], carry) = carrying_mul_add(rhs[2], lhs[3], hi[1], carry);
+        (hi[2], hi[3]) = carrying_mul_add(rhs[3], lhs[3], hi[2], carry);
 
-        (lo, hi)
+        (U256::new(lo), U256::new(hi))
     }
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
