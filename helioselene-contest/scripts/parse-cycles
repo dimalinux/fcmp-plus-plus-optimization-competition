@@ -10,16 +10,28 @@ def parse_cycles(output):
     pattern = re.compile(r'(\w+)_contest passed \(\d+ cases, (\d+) cycles\)\n(\w+)_ref passed \(\d+ cases, (\d+) cycles\)')
     matches = pattern.findall(output)
 
+    total_contest_cycles = 0
+    total_ref_cycles = 0
+
     for contest_entry, contest_cycles, ref_entry, ref_cycles in matches:
         if contest_entry != ref_entry:
             raise ValueError(f"Mismatch between contest entry '{contest_entry}' and ref entry '{ref_entry}'")
 
         contest_cycles = int(contest_cycles)
+        total_contest_cycles += contest_cycles
+
         ref_cycles = int(ref_cycles)
+        total_ref_cycles += ref_cycles
+
         cycles_saved = ref_cycles - contest_cycles
         percentage_saved = (cycles_saved / ref_cycles) * 100
 
         print(f"{contest_entry}: {contest_cycles}/{ref_cycles} ({percentage_saved:.2f}%)")
+
+    if matches:
+        cycles_saved = total_ref_cycles - total_contest_cycles
+        percentage_saved = (cycles_saved / total_ref_cycles) * 100
+        print(f"\ntotal: {total_contest_cycles}/{total_ref_cycles} ({percentage_saved:.2f}%)")
 
 # Example usage
 if __name__ == '__main__':
