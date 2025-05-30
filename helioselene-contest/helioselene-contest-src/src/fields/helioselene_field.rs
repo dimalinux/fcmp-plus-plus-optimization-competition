@@ -254,10 +254,9 @@ impl Field for HelioseleneField {
         Self(MontyFormType::add(&self.0, &self.0))
     }
 
-    #[inline]
     fn invert(&self) -> CtOption<Self> {
-        let res = self.0.invert();
-        CtOption::new(Self(res.0), res.1.into())
+        let (field, choice) = self.0.invert();
+        CtOption::new(Self(field), choice.into())
     }
 
     fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {

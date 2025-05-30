@@ -4,7 +4,6 @@ mod cmp;
 mod ct_choice;
 mod encoding;
 mod from;
-mod inv_mod;
 mod modular;
 mod mul;
 mod neg;
