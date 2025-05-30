@@ -1,9 +1,9 @@
 //! Implements `ConstMontyForm`s, supporting modular arithmetic with a constant modulus.
-mod const_add;
-mod const_invert;
-mod const_mul;
-mod const_neg;
-mod const_sub;
+mod add;
+mod invert;
+mod mul;
+mod neg;
+mod sub;
 pub(crate) mod pow;
 mod reduction;
 
