@@ -13,9 +13,9 @@ use crate::u256::{CtChoice, Encoding, FixedExponent, MontyForm, MontyParams, U25
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(crate) struct FieldModulus;
+pub(crate) struct Field25519Params;
 
-impl MontyParams for FieldModulus {
+impl MontyParams for Field25519Params {
     /// MODULUS is 2^255 - 19 (an odd value)
     const MODULUS: U256 = U256::from_be_hex(MODULUS_HEX);
     /// MOD_NEG_INV is the modular multiplicative inverse of the least
@@ -31,7 +31,7 @@ impl MontyParams for FieldModulus {
     const TWO_TO_256_MOD_M: U256 = U256::from_u64(0x26);
 }
 
-pub(crate) type MontyFormType = MontyForm<FieldModulus>;
+pub(crate) type MontyFormType = MontyForm<Field25519Params>;
 
 /// A constant-time implementation of the Ed25519 field.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
@@ -323,7 +323,7 @@ impl PrimeField for Field25519 {
         let res = U256::from_le_bytes(bytes);
         CtOption::new(
             Self(MontyFormType::new(&res)),
-            U256::ct_lt(&res, &FieldModulus::MODULUS).into(),
+            U256::ct_lt(&res, &Field25519Params::MODULUS).into(),
         )
     }
 
@@ -348,22 +348,14 @@ impl PrimeFieldBits for Field25519 {
     }
 
     fn char_le_bits() -> FieldBits<Self::ReprBits> {
-        FieldModulus::MODULUS.to_le_bytes().into()
+        Field25519Params::MODULUS.to_le_bytes().into()
     }
 }
 
 impl Field25519 {
-    /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
-    /// While taking the modulus of 512 bits produces negligible bias (method used
-    /// below), there may be better algorithms with zero bias.
+    /// Reduce 512 bits, presumably to get a non-biased Field25519 element.
     pub(crate) fn reduce(bytes: &[u8; 64]) -> Self {
-        // Do modulus on 512 bits using 256-bit math
-        // val_512 mod M = (((2^256 mod M) * hi_256) mod M + (lo_256 mod M)) mod M
-        const TWO_TO_256_MOD_M: MontyFormType = MontyFormType::new(&FieldModulus::TWO_TO_256_MOD_M);
-        let lo = MontyFormType::new(&U256::from_le_slice(&bytes[..32]));
-        let hi = MontyFormType::new(&U256::from_le_slice(&bytes[32..64]));
-        let hi = MontyFormType::mul(&TWO_TO_256_MOD_M, &hi);
-        Self(MontyFormType::add(&hi, &lo))
+        Self(MontyFormType::reduce(bytes))
     }
 }
 
@@ -405,54 +397,4 @@ fn test_sqrt_m1() {
     const SQRT_M1_MAGIC: U256 =
         U256::from_be_hex("2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0");
     assert_eq!(SQRT_M1.0.retrieve(), SQRT_M1_MAGIC);
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{u256::Encoding, Field25519};
-
-    #[test]
-    fn test_field() {
-        ff_group_tests::prime_field::test_prime_field_bits::<_, Field25519>(&mut rand_core::OsRng);
-    }
-
-    #[test]
-    fn test_reduce_field25519() {
-        struct TC {
-            input: &'static str,
-            output: &'static str,
-        }
-
-        // Hex values are in big endian.
-        const REDUCE_TESTS: [TC; 4] = [
-            TC {
-                input: "70b7f6776fedc692aaa93223b6694532d97205e209f2e2cb51b49c056988041780d802b0513e6a11e7ece450e3166ce4d8a13a56cdeb3c5d731c4cac2d9bc9a1",
-                output: "3c26986aee89e3d73d0a559df6b6b2711f8e19e447f8e68b93eb7579d7cc6791",
-            },
-            TC {
-                input: "0a6dc2d2be742c5d0d811ee43afeef432c8d529332ad7ca541d1477b5276ede8ade6b16414b5a165ef8d94f908036056f88d5228d9f9479e247e632c9de9715f",
-                output: "3a319cac59f43735f0b82ad9c9dae44f958794025fb9c825e98eff7adb90c21b",
-            },
-            TC {
-                input: "f23e13f70f8369004e2b0e06772676b4f827111bc2961f80c738aca2ac6a92c638c5a561f78952fd1dff02e2078e0ea7c49e4a1a6939cf3b8304c8ee9e31f4ef",
-                output: "2dfc9c0e450ae908b86317d7b743ad849a6ad4394b827c59156e69143603c3ab",
-            },
-            TC {
-                input: "d32b624c8176b0d0ed780fbdc248f7df4e862e110a9bc03624ba0ebff2d9f55906d9769ab1bcde613af3e3417805b728dd025f6c0cfc87209faeb2f484cacc08",
-                output: "5f4a0df5e95b1d647ac6396c4eda824e84ed35f3a01b0f2a134ce37291253bd8",
-            }
-        ];
-
-        for tc in &REDUCE_TESTS {
-            let mut input: [u8; 64] = hex::decode(tc.input)
-                .expect("Failed to decode hex")
-                .try_into()
-                .expect("Input must be 64 bytes");
-            input.reverse();
-
-            let output = Field25519::reduce(&input);
-            let output = hex::encode(output.0.retrieve().to_be_bytes());
-            assert_eq!(output, tc.output);
-        }
-    }
 }

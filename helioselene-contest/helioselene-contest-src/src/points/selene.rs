@@ -13,12 +13,12 @@ use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTi
 use zeroize::Zeroize;
 
 use crate::{
-    fields::HelioseleneQ,
+    fields::HelioseleneParams,
     u256::{CtChoice, MontyForm, U256},
     Field25519, HelioseleneField,
 };
 
-pub(crate) type MontyFormType = MontyForm<HelioseleneQ>;
+pub(crate) type MontyFormType = MontyForm<HelioseleneParams>;
 
 pub(crate) const G_X: HelioseleneField = HelioseleneField(MontyForm::new(&U256::from_be_hex(
     "0000000000000000000000000000000000000000000000000000000000000001",

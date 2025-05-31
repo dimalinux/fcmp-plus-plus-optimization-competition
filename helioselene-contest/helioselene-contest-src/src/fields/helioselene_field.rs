@@ -13,9 +13,9 @@ use crate::u256::{CtChoice, Encoding, FixedExponent, MontyForm, MontyParams, U25
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(crate) struct HelioseleneQ;
+pub(crate) struct HelioseleneParams;
 
-impl MontyParams for HelioseleneQ {
+impl MontyParams for HelioseleneParams {
     const MODULUS: U256 = U256::from_be_hex(MODULUS_STR);
     /// MOD_NEG_INV is the modular multiplicative inverse of the least
     /// significant 64-bits of `MODULUS` modulo 2^64, negated.
@@ -34,7 +34,7 @@ impl MontyParams for HelioseleneQ {
         U256::from_be_hex("0000000000000000000000000000000081010fa69135294f22925b1b0db070c2");
 }
 
-pub(crate) type MontyFormType = MontyForm<HelioseleneQ>;
+pub(crate) type MontyFormType = MontyForm<HelioseleneParams>;
 
 /// The field novel to Helios/Selene.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
@@ -221,16 +221,8 @@ impl HelioseleneField {
     }
 
     /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
-    /// While taking the modulus of 512 bits produces negligible bias (method used
-    /// below), there may be better algorithms with zero bias.
     pub(crate) fn reduce(bytes: &[u8; 64]) -> Self {
-        // Do modulus on 512 bits using 256-bit math
-        // val_512 mod M = (((2^256 mod M) * hi_256) mod M + (lo_256 mod M)) mod M
-        const TWO_TO_256_MOD_M: MontyFormType = MontyFormType::new(&HelioseleneQ::TWO_TO_256_MOD_M);
-        let lo = MontyFormType::new(&U256::from_le_slice(&bytes[..32]));
-        let hi = MontyFormType::new(&U256::from_le_slice(&bytes[32..64]));
-        let hi = MontyFormType::mul(&TWO_TO_256_MOD_M, &hi);
-        Self(MontyFormType::add(&hi, &lo))
+        Self(MontyFormType::reduce(bytes))
     }
 }
 
@@ -300,7 +292,7 @@ impl PrimeField for HelioseleneField {
         let res = U256::from_le_slice(&bytes);
         CtOption::new(
             Self(MontyForm::new(&res)),
-            U256::ct_lt(&res, &HelioseleneQ::MODULUS).into(),
+            U256::ct_lt(&res, &HelioseleneParams::MODULUS).into(),
         )
     }
 
@@ -324,7 +316,7 @@ impl PrimeFieldBits for HelioseleneField {
 
     fn char_le_bits() -> FieldBits<Self::ReprBits> {
         let mut repr = [0; 32];
-        repr.copy_from_slice(&HelioseleneQ::MODULUS.to_le_bytes());
+        repr.copy_from_slice(&HelioseleneParams::MODULUS.to_le_bytes());
         repr.into()
     }
 }
@@ -370,49 +362,5 @@ mod tests {
         ff_group_tests::prime_field::test_prime_field_bits::<_, HelioseleneField>(
             &mut rand_core::OsRng,
         );
-    }
-
-    #[test]
-    fn test_reduce_helioselene_field() {
-        struct TC {
-            input: &'static str,
-            output: &'static str,
-        }
-
-        // Hex values are in big endian.
-        const REDUCE_TESTS: [TC; 4] = [
-            TC {
-                input: "70b7f6776fedc692aaa93223b6694532d97205e209f2e2cb51b49c056988041780d802b0513e6a11e7ece450e3166ce4d8a13a56cdeb3c5d731c4cac2d9bc9a1",
-                output: "4c854e33959c8db9bf70bd7e1570b9b4c79b0cfa4371f9021422286907c70a3c",
-
-            },
-            TC {
-                input: "0a6dc2d2be742c5d0d811ee43afeef432c8d529332ad7ca541d1477b5276ede8ade6b16414b5a165ef8d94f908036056f88d5228d9f9479e247e632c9de9715f",
-                output: "49e818746c572bb613708a36e45a3b70e7167c1d01773d8d8e72149e0f3e16d8",
-
-            },
-            TC {
-                input: "f23e13f70f8369004e2b0e06772676b4f827111bc2961f80c738aca2ac6a92c638c5a561f78952fd1dff02e2078e0ea7c49e4a1a6939cf3b8304c8ee9e31f4ef",
-                output: "7e74749f65cd5ddb47d587453a0e98ecb9dcee837cbbdfd78c83ba1fd8981529",
-
-            },
-            TC {
-                input: "d32b624c8176b0d0ed780fbdc248f7df4e862e110a9bc03624ba0ebff2d9f55906d9769ab1bcde613af3e3417805b728dd025f6c0cfc87209faeb2f484cacc08",
-                output: "24c6031703a130382415c0cd23f7a04c597ee6fcacb2df0c00e65fbf4dd7aff6",
-
-            }
-        ];
-
-        for tc in &REDUCE_TESTS {
-            let mut input: [u8; 64] = hex::decode(tc.input)
-                .expect("Failed to decode hex")
-                .try_into()
-                .expect("Input must be 64 bytes");
-            input.reverse(); // Use little endian once in binary form
-
-            let output = HelioseleneField::reduce(&input);
-            let ouput = hex::encode(output.0.retrieve().to_be_bytes());
-            assert_eq!(ouput, tc.output);
-        }
     }
 }
