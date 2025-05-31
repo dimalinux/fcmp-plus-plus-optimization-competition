@@ -3,9 +3,6 @@
 
 use crate::u256::ct_choice::CtChoice;
 
-pub(crate) const WORD_BITS: usize = u64::BITS as usize; // TODO: remove?
-pub(crate) const WORD_BYTES: usize = WORD_BITS / 8;
-
 /// Computes `lhs + rhs + carry`, returning the result along with the new carry
 /// (0, 1, or 2).
 #[inline(always)]

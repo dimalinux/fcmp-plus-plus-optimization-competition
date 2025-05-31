@@ -1,6 +1,6 @@
 //! Const-friendly decoding operations for [`Uint`]
 
-use crate::u256::{primitives::WORD_BYTES, Encoding, U256};
+use crate::u256::{Encoding, U256};
 
 impl Encoding for U256 {
     type Repr = [u8; 32];
@@ -35,15 +35,17 @@ impl U256 {
             "hex string is not the expected size"
         );
 
+        const U64_BYTES: usize = 8;
+
         let mut res = [0; Self::LIMBS];
-        let mut buf = [0u8; WORD_BYTES];
+        let mut buf = [0u8; U64_BYTES];
         let mut i = 0;
         let mut err = 0;
 
         while i < Self::LIMBS {
             let mut j = 0;
-            while j < WORD_BYTES {
-                let offset = (i * WORD_BYTES + j) * 2;
+            while j < U64_BYTES {
+                let offset = (i * U64_BYTES + j) * 2;
                 let (result, byte_err) = decode_hex_byte([bytes[offset], bytes[offset + 1]]);
                 err |= byte_err;
                 buf[j] = result;
