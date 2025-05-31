@@ -18,23 +18,19 @@ use crate::{
     Field25519, HelioseleneField,
 };
 
-pub(crate) type MontyFormType = MontyForm<Field25519Params>;
+type MontyFormType = MontyForm<Field25519Params>;
 
-pub(crate) const G_X: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
-    "0000000000000000000000000000000000000000000000000000000000000003",
-)));
+const G_X: Field25519 =
+    Field25519::from_be_hex("0000000000000000000000000000000000000000000000000000000000000003");
 
-pub(crate) const G_Y: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
-    "537b74d97ac0721cbd92668350205f0759003bddc586a5dcd243e639e3183ef4",
-)));
+const G_Y: Field25519 =
+    Field25519::from_be_hex("537b74d97ac0721cbd92668350205f0759003bddc586a5dcd243e639e3183ef4");
 
-const B: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
-    "22e8c739b0ea70b8be94a76b3ebb7b3b043f6f384113bf3522b49ee1edd73ad4",
-)));
+const B: Field25519 =
+    Field25519::from_be_hex("22e8c739b0ea70b8be94a76b3ebb7b3b043f6f384113bf3522b49ee1edd73ad4");
 
-const B3: Field25519 = Field25519(MontyForm::new(&U256::from_be_hex(
-    "68ba55ad12bf522a3bbdf641bc3271b10cbe4da8c33b3d9f681ddca5c985b07c",
-)));
+const B3: Field25519 =
+    Field25519::from_be_hex("68ba55ad12bf522a3bbdf641bc3271b10cbe4da8c33b3d9f681ddca5c985b07c");
 
 fn recover_y(x: Field25519) -> CtOption<Field25519> {
     // ((x.square() * x) - x - x - x + B).sqrt()
@@ -58,7 +54,7 @@ pub struct HeliosPoint {
     z: Field25519,
 }
 
-pub(crate) const G: HeliosPoint = HeliosPoint {
+const G: HeliosPoint = HeliosPoint {
     x: G_X,
     y: G_Y,
     z: Field25519::ONE,
@@ -294,7 +290,6 @@ impl Group for HeliosPoint {
         self.x.ct_is_zero().into()
     }
 
-    #[allow(non_snake_case)]
     #[inline]
     fn double(&self) -> Self {
         Self::const_double(self)

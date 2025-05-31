@@ -34,7 +34,7 @@ impl MontyParams for HelioseleneParams {
         U256::from_be_hex("0000000000000000000000000000000081010fa69135294f22925b1b0db070c2");
 }
 
-pub(crate) type MontyFormType = MontyForm<HelioseleneParams>;
+type MontyFormType = MontyForm<HelioseleneParams>;
 
 /// The field novel to Helios/Selene.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
@@ -221,8 +221,12 @@ impl HelioseleneField {
     }
 
     /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
-    pub(crate) fn reduce(bytes: &[u8; 64]) -> Self {
+    pub fn reduce(bytes: &[u8; 64]) -> Self {
         Self(MontyFormType::reduce(bytes))
+    }
+
+    pub(crate) const fn from_be_hex(hex: &str) -> Self {
+        Self(MontyFormType::new(&U256::from_be_hex(hex)))
     }
 }
 
@@ -247,8 +251,8 @@ impl Field for HelioseleneField {
     }
 
     fn invert(&self) -> CtOption<Self> {
-        let (field, choice) = self.0.invert();
-        CtOption::new(Self(field), choice.into())
+        let (res, c) = MontyFormType::invert(&self.0);
+        CtOption::new(Self(res), c.into())
     }
 
     fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
@@ -275,15 +279,13 @@ impl PrimeField for HelioseleneField {
     type Repr = [u8; 32];
 
     const CAPACITY: u32 = 254;
-    const DELTA: Self = Self(MontyForm::new(&U256::from_be_hex(
-        "0000000000000000000000000000000000000000000000000000000000000019",
-    )));
+    const DELTA: Self =
+        Self::from_be_hex("0000000000000000000000000000000000000000000000000000000000000019");
     const MODULUS: &'static str = MODULUS_STR;
     const MULTIPLICATIVE_GENERATOR: Self = Self(MontyForm::new(&U256::from_u64(5)));
     const NUM_BITS: u32 = 255;
-    const ROOT_OF_UNITY: Self = Self(MontyForm::new(&U256::from_be_hex(
-        "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79e",
-    )));
+    const ROOT_OF_UNITY: Self =
+        Self::from_be_hex("7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79e");
     const ROOT_OF_UNITY_INV: Self = Self(Self::ROOT_OF_UNITY.0.invert().0);
     const S: u32 = 1;
     const TWO_INV: Self = Self(MontyFormType::new(&U256::from_u64(2)).invert().0);

@@ -17,9 +17,6 @@ pub(crate) trait MontyParams: Copy + Debug + Default + Eq + Send + Sync + 'stati
     /// The constant modulus
     const MODULUS: U256;
 
-    /// 2^256 mod MODULUS, used to reduce 512-bit values
-    const TWO_TO_256_MOD_M: U256;
-
     /// Parameter used in Montgomery reduction
     const R: U256;
 
@@ -32,6 +29,9 @@ pub(crate) trait MontyParams: Copy + Debug + Default + Eq + Send + Sync + 'stati
     /// The lowest limbs of -(MODULUS^-1) mod R
     /// We only need the LSB because during reduction this value is multiplied modulo 2**WORD_BITS.
     const MOD_NEG_INV: u64;
+
+    /// 2^256 mod MODULUS, used to reduce 512-bit values
+    const TWO_TO_256_MOD_M: U256;
 }
 
 /// An integer in Montgomery form modulo `MOD`. The modulus is constant, so it

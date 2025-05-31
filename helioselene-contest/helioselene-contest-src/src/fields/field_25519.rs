@@ -31,7 +31,7 @@ impl MontyParams for Field25519Params {
     const TWO_TO_256_MOD_M: U256 = U256::from_u64(0x26);
 }
 
-pub(crate) type MontyFormType = MontyForm<Field25519Params>;
+type MontyFormType = MontyForm<Field25519Params>;
 
 /// A constant-time implementation of the Ed25519 field.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
@@ -40,9 +40,8 @@ pub struct Field25519(pub(crate) MontyFormType);
 /// Square root of -1.
 /// Formula from RFC-8032 (modp_sqrt_m1/sqrt8k5 z)
 /// 2 ** ((MODULUS - 1) // 4) % MODULUS
-const SQRT_M1: Field25519 = Field25519(MontyFormType::new(&U256::from_be_hex(
-    "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
-)));
+const SQRT_M1: Field25519 =
+    Field25519::from_be_hex("2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0");
 
 /// Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
 /// (MODULUS + 3) / 8
@@ -248,8 +247,8 @@ impl Field for Field25519 {
 
     #[inline]
     fn invert(&self) -> CtOption<Self> {
-        let res = MontyFormType::invert(&self.0);
-        CtOption::new(Self(res.0), res.1.into())
+        let (res, c) = MontyFormType::invert(&self.0);
+        CtOption::new(Self(res), c.into())
     }
 
     // RFC-8032 sqrt8k5
@@ -309,9 +308,7 @@ impl PrimeField for Field25519 {
     const NUM_BITS: u32 = 255;
     // This was calculated via the formula from the ff crate docs
     // Self::MULTIPLICATIVE_GENERATOR ** ((modulus - 1) >> Self::S)
-    const ROOT_OF_UNITY: Self = Self(MontyFormType::new(&U256::from_be_hex(
-        "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
-    )));
+    const ROOT_OF_UNITY: Self = SQRT_M1;
     // Self::ROOT_OF_UNITY.invert()
     const ROOT_OF_UNITY_INV: Self = Self(Self::ROOT_OF_UNITY.0.invert().0);
     // This was set per the specification in the ff crate docs
@@ -357,6 +354,10 @@ impl Field25519 {
     pub(crate) fn reduce(bytes: &[u8; 64]) -> Self {
         Self(MontyFormType::reduce(bytes))
     }
+
+    pub(crate) const fn from_be_hex(hex: &str) -> Self {
+        Self(MontyFormType::new(&U256::from_be_hex(hex)))
+    }
 }
 
 impl Sum<Self> for Field25519 {
@@ -391,10 +392,12 @@ impl<'a> Product<&'a Self> for Field25519 {
     }
 }
 
-#[test]
-fn test_sqrt_m1() {
-    // Test equivalence against the known constant value
-    const SQRT_M1_MAGIC: U256 =
-        U256::from_be_hex("2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0");
-    assert_eq!(SQRT_M1.0.retrieve(), SQRT_M1_MAGIC);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_field25519() {
+        ff_group_tests::prime_field::test_prime_field_bits::<_, Field25519>(&mut rand_core::OsRng);
+    }
 }

@@ -18,24 +18,24 @@ use crate::{
     Field25519, HelioseleneField,
 };
 
-pub(crate) type MontyFormType = MontyForm<HelioseleneParams>;
+type MontyFormType = MontyForm<HelioseleneParams>;
 
-pub(crate) const G_X: HelioseleneField = HelioseleneField(MontyForm::new(&U256::from_be_hex(
+const G_X: HelioseleneField = HelioseleneField::from_be_hex(
     "0000000000000000000000000000000000000000000000000000000000000001",
-)));
+);
 
-pub(crate) const G_Y: HelioseleneField = HelioseleneField(MontyForm::new(&U256::from_be_hex(
+const G_Y: HelioseleneField = HelioseleneField::from_be_hex(
     "7a19d927b85cca9257c93177455c825f938bb198c8f09b37741e0aa6a1d3fdd2",
-)));
+);
 
-pub(crate) const B: HelioseleneField = HelioseleneField(MontyForm::new(&U256::from_be_hex(
+const B: HelioseleneField = HelioseleneField::from_be_hex(
     "70127713695876c17f51bba595ffe279f3944bdf06ae900e68de0983cb5a4558",
-)));
+);
 
 /// B3 constant is the same as B + B + B
-pub(crate) const B3: HelioseleneField = HelioseleneField(MontyForm::new(&U256::from_be_hex(
+const B3: HelioseleneField = HelioseleneField::from_be_hex(
     "5037653a3c0964447df532f0c1ffa76e5bbdf343a540d97a5d2c77a66fbf40ca",
-)));
+);
 
 fn recover_y(x: HelioseleneField) -> CtOption<HelioseleneField> {
     // ((x.square() * x) - x - x - x + B).sqrt()
@@ -171,7 +171,6 @@ impl SelenePoint {
 impl Add for SelenePoint {
     type Output = Self;
 
-    #[allow(non_snake_case)]
     fn add(self, other: Self) -> Self {
         Self::const_add(self, &other)
     }
@@ -306,7 +305,6 @@ impl Group for SelenePoint {
         self.x.ct_is_zero().into()
     }
 
-    #[allow(non_snake_case)]
     fn double(&self) -> Self {
         Self::const_double(self)
     }
