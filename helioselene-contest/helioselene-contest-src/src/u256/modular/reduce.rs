@@ -10,6 +10,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         // Do modulus on 512 bits using 256-bit math
         // val_512 mod M = (((2^256 mod M) * hi_256) mod M + (lo_256 mod M)) mod M
 
+        // TODO: call from_le_bytes below
         let lo = Self::new(&U256::from_le_slice(&bytes[..32]));
         let hi = Self::new(&U256::from_le_slice(&bytes[32..64]));
         let hi = Self::mul(&Self::new(&MOD::TWO_TO_256_MOD_M), &hi);

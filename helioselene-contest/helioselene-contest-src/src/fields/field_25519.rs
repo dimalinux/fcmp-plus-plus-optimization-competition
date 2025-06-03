@@ -77,18 +77,6 @@ impl ConditionallySelectable for Field25519 {
     }
 }
 
-impl Field25519 {
-    #[inline]
-    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: CtChoice) -> Self {
-        Self(MontyFormType::ct_select(&a.0, &b.0, choice))
-    }
-
-    #[inline]
-    pub(crate) const fn ct_is_zero(&self) -> CtChoice {
-        self.0.ct_is_zero()
-    }
-}
-
 impl Add<Self> for Field25519 {
     type Output = Self;
 
@@ -229,6 +217,7 @@ impl Field for Field25519 {
     const ONE: Self = Self(MontyFormType::ONE);
     const ZERO: Self = Self(MontyFormType::ZERO);
 
+    // TODO: Move this into modular submodule
     fn random(mut rng: impl RngCore) -> Self {
         let mut bytes = [0; 64];
         rng.fill_bytes(&mut bytes);
@@ -253,12 +242,8 @@ impl Field for Field25519 {
 
     // RFC-8032 sqrt8k5
     fn sqrt(&self) -> CtOption<Self> {
-        let tv1 = self.0.pow_fixed::<FixedExpMod3_8>();
-        let tv2 = MontyFormType::mul(&tv1, &SQRT_M1.0);
-        let candidate = MontyFormType::ct_select(&tv2, &tv1, tv1.square().ct_eq(&self.0));
-        let candidate_squared = candidate.square();
-        let sq_eq_self = candidate_squared.ct_eq(&self.0);
-        CtOption::new(Self(candidate), sq_eq_self.into())
+        let (res, c) = MontyForm::<Field25519Params>::const_sqrt(&self.0);
+        CtOption::new(Self(res), c.into())
     }
 
     fn sqrt_ratio(u: &Self, v: &Self) -> (Choice, Self) {
@@ -362,7 +347,7 @@ impl Field25519 {
 
 impl Sum<Self> for Field25519 {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut res = MontyFormType::ZERO;
+        let mut res = MontyForm::ZERO;
         for item in iter {
             res = MontyFormType::add(&res, &item.0);
         }
@@ -378,7 +363,7 @@ impl<'a> Sum<&'a Self> for Field25519 {
 
 impl Product<Self> for Field25519 {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut res = MontyFormType::ONE;
+        let mut res = MontyForm::ONE;
         for item in iter {
             res = MontyFormType::mul(&res, &item.0);
         }
@@ -389,6 +374,18 @@ impl Product<Self> for Field25519 {
 impl<'a> Product<&'a Self> for Field25519 {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().product()
+    }
+}
+
+impl MontyForm<Field25519Params> {
+    // Follows the p mod 8 = 5 recipe from RFC-8032 sqrt8k5
+    pub(crate) const fn const_sqrt(&self) -> (Self, CtChoice) {
+        let tv1 = self.pow_fixed::<FixedExpMod3_8>();
+        let tv2 = Self::mul(&tv1, &SQRT_M1.0);
+        let candidate = Self::ct_select(&tv2, &tv1, tv1.square().ct_eq(self));
+        let candidate_squared = candidate.square();
+        let sq_eq_self = candidate_squared.ct_eq(self);
+        (candidate, sq_eq_self)
     }
 }
 

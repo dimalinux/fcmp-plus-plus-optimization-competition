@@ -10,13 +10,6 @@ impl Encoding for U256 {
         Self::from_le_slice(&bytes)
     }
 
-    #[inline]
-    fn to_le_bytes(&self) -> Self::Repr {
-        let mut result = [0u8; 32];
-        self.write_le_bytes(&mut result);
-        result
-    }
-
     #[cfg(test)]
     fn to_be_bytes(&self) -> Self::Repr {
         let mut result = [0u8; 32];
@@ -62,6 +55,7 @@ impl U256 {
 
     /// Create a new [`Uint`] from the provided little endian bytes.
     pub(crate) const fn from_le_slice(bytes: &[u8]) -> Self {
+        // TODO: look at assembly for this (would loops be faster?)
         debug_assert!(bytes.len() == 32, "bytes are not the expected size");
         Self {
             // cant use slices below, because try_into() is not const
@@ -96,15 +90,21 @@ impl U256 {
         out[24..32].copy_from_slice(&self.limbs[0].to_be_bytes());
     }
 
-    /// Serialize this [`Uint`] as little-endian, writing it into the provided
-    /// byte slice.
-    #[inline]
-    pub(crate) fn write_le_bytes(&self, out: &mut [u8]) {
-        debug_assert!(out.len() == 32);
-        out[0..8].copy_from_slice(&self.limbs[0].to_le_bytes());
-        out[8..16].copy_from_slice(&self.limbs[1].to_le_bytes());
-        out[16..24].copy_from_slice(&self.limbs[2].to_le_bytes());
-        out[24..32].copy_from_slice(&self.limbs[3].to_le_bytes());
+    pub(crate) const fn to_le_bytes(self) -> [u8; 32] {
+        let mut result = [0u8; 32];
+        let mut i = 0;
+
+        while i < 4 {
+            let bytes: [u8; 8] = self.limbs[i].to_le_bytes();
+            let mut j = 0;
+            while j < 8 {
+                result[i * 8 + j] = bytes[j];
+                j += 1;
+            }
+            i += 1;
+        }
+
+        result
     }
 
     pub(crate) const fn as_be_nibbles(&self) -> [u8; 64] {

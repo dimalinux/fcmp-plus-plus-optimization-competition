@@ -8,7 +8,7 @@ use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::DefaultIsZeroes;
 
-use crate::u256::{CtChoice, Encoding, FixedExponent, MontyForm, MontyParams, U256};
+use crate::u256::{CtChoice, FixedExponent, MontyForm, MontyParams, U256};
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
 
@@ -34,11 +34,11 @@ impl MontyParams for HelioseleneParams {
         U256::from_be_hex("0000000000000000000000000000000081010fa69135294f22925b1b0db070c2");
 }
 
-type MontyFormType = MontyForm<HelioseleneParams>;
+pub(crate) type MontyFormType = MontyForm<HelioseleneParams>;
 
 /// The field novel to Helios/Selene.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
-pub struct HelioseleneField(pub(crate) MontyFormType);
+pub struct HelioseleneField(pub(crate) MontyForm<HelioseleneParams>);
 
 impl DefaultIsZeroes for HelioseleneField {}
 
@@ -260,18 +260,8 @@ impl Field for HelioseleneField {
     }
 
     fn sqrt(&self) -> CtOption<Self> {
-        // MODULUS + 1 / 4
-        struct ModPlusOneDivFour;
-        impl FixedExponent for ModPlusOneDivFour {
-            const EXPONENT: U256 = MontyFormType::new(&U256::from_be_hex(
-                "1fffffffffffffffffffffffffffffffefdfde0b2dd95ad61badb49c9e49f1e8",
-            ))
-            .retrieve();
-        }
-
-        let res = self.0.pow_fixed::<ModPlusOneDivFour>();
-        let res_square = MontyFormType::square(&res);
-        CtOption::new(Self(res), res_square.ct_eq(&self.0).into())
+        let (res, c) = MontyForm::<HelioseleneParams>::const_sqrt(&self.0);
+        CtOption::new(Self(res), c.into())
     }
 }
 
@@ -291,7 +281,7 @@ impl PrimeField for HelioseleneField {
     const TWO_INV: Self = Self(MontyFormType::new(&U256::from_u64(2)).invert().0);
 
     fn from_repr(bytes: Self::Repr) -> CtOption<Self> {
-        let res = U256::from_le_slice(&bytes);
+        let res = U256::from_le_slice(&bytes); // TODO: call from_le_bytes
         CtOption::new(
             Self(MontyForm::new(&res)),
             U256::ct_lt(&res, &HelioseleneParams::MODULUS).into(),
@@ -352,6 +342,24 @@ impl Product<Self> for HelioseleneField {
 impl<'a> Product<&'a Self> for HelioseleneField {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().product()
+    }
+}
+
+// Implements
+// sqrt(x) = x^((p + 1) / 4)
+// because HelioseleneParams::MODULUS (p) satisfies p mod 4 = 3.
+impl MontyForm<HelioseleneParams> {
+    pub(crate) const fn const_sqrt(&self) -> (Self, CtChoice) {
+        struct ModPlusOneDivFour;
+        impl FixedExponent for ModPlusOneDivFour {
+            const EXPONENT: U256 = MontyFormType::new(&U256::from_be_hex(
+                "1fffffffffffffffffffffffffffffffefdfde0b2dd95ad61badb49c9e49f1e8",
+            ))
+            .retrieve();
+        }
+        let res = self.pow_fixed::<ModPlusOneDivFour>();
+        let res_square = Self::square(&res);
+        (res, res_square.ct_eq(self))
     }
 }
 

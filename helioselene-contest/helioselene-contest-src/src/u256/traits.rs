@@ -8,8 +8,8 @@ pub(crate) trait Encoding: Sized {
     /// Decode from little endian bytes.
     fn from_le_bytes(bytes: Self::Repr) -> Self;
 
-    /// Encode to little endian bytes.
-    fn to_le_bytes(&self) -> Self::Repr;
+    /*    /// Encode to little endian bytes.
+    fn to_le_bytes(&self) -> Self::Repr;*/
 
     /// Encode to bit endian bytes.
     #[cfg(test)]

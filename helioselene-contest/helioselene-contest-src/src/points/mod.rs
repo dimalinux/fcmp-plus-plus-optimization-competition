@@ -1,4 +1,5 @@
 mod helios;
+mod point;
 mod selene;
 
 pub use helios::HeliosPoint;
