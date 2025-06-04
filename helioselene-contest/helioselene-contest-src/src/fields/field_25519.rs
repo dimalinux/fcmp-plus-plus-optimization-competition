@@ -8,7 +8,7 @@ use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
 
-use crate::u256::{CtChoice, Encoding, FixedExponent, MontyForm, MontyParams, U256};
+use crate::u256::{CtChoice, FixedExponent, MontyForm, MontyParams, U256};
 
 const MODULUS_HEX: &str = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed";
 

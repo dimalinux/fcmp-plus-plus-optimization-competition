@@ -269,7 +269,7 @@ impl PrimeField for HelioseleneField {
     const TWO_INV: Self = Self(MontyFormType::new(&U256::from_u64(2)).invert().0);
 
     fn from_repr(bytes: Self::Repr) -> CtOption<Self> {
-        let res = U256::from_le_slice(&bytes); // TODO: call from_le_bytes
+        let res = U256::from_le_bytes(bytes);
         CtOption::new(
             Self(MontyForm::new(&res)),
             U256::ct_lt(&res, &HelioseleneParams::MODULUS).into(),
@@ -277,9 +277,7 @@ impl PrimeField for HelioseleneField {
     }
 
     fn to_repr(&self) -> Self::Repr {
-        let mut repr = [0; 32];
-        repr.copy_from_slice(&self.0.retrieve().to_le_bytes());
-        repr
+        self.0.retrieve().to_le_bytes()
     }
 
     fn is_odd(&self) -> Choice {

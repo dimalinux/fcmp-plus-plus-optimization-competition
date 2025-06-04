@@ -8,11 +8,9 @@ mod modular;
 mod neg;
 mod primitives;
 mod sub;
-mod traits;
 
 use ::core::fmt;
 pub(crate) use modular::{pow::FixedExponent, MontyForm, MontyParams};
-pub(crate) use traits::Encoding;
 use zeroize::DefaultIsZeroes;
 
 pub(crate) use crate::u256::ct_choice::CtChoice;

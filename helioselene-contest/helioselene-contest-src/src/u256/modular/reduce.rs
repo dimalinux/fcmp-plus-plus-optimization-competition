@@ -10,9 +10,8 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         // Do modulus on 512 bits using 256-bit math
         // val_512 mod M = (((2^256 mod M) * hi_256) mod M + (lo_256 mod M)) mod M
 
-        // TODO: call from_le_bytes below
-        let lo = Self::new(&U256::from_le_slice(&bytes[..32]));
-        let hi = Self::new(&U256::from_le_slice(&bytes[32..64]));
+        let lo = Self::new(&U256::from_le_bytes(bytes[..32].try_into().unwrap()));
+        let hi = Self::new(&U256::from_le_bytes(bytes[32..64].try_into().unwrap()));
         let hi = Self::mul(&Self::new(&MOD::TWO_TO_256_MOD_M), &hi);
         Self::add(&hi, &lo)
     }
@@ -22,7 +21,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 mod tests {
     use crate::{
         fields::{Field25519Params, HelioseleneParams},
-        u256::{Encoding, MontyForm},
+        u256::MontyForm,
     };
     struct TC {
         input: &'static str,
@@ -99,7 +98,7 @@ mod tests {
         for tc in &REDUCE_TESTS {
             type MontyFormType = MontyForm<HelioseleneParams>;
             let output = MontyFormType::reduce(&tc.input_bytes());
-            let ouput = hex::encode(output.retrieve().to_be_bytes());
+            let ouput = hex::encode(output.retrieve().to_le_bytes());
             assert_eq!(ouput, tc.output);
         }
     }
