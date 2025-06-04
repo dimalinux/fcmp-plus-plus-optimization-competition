@@ -56,18 +56,6 @@ impl ConditionallySelectable for HelioseleneField {
     }
 }
 
-impl HelioseleneField {
-    #[inline]
-    pub(crate) const fn ct_select(a: &Self, b: &Self, choice: CtChoice) -> Self {
-        Self(MontyFormType::ct_select(&a.0, &b.0, choice))
-    }
-
-    #[inline]
-    pub(crate) const fn ct_is_zero(&self) -> CtChoice {
-        self.0.ct_is_zero()
-    }
-}
-
 impl Add<Self> for HelioseleneField {
     type Output = Self;
 

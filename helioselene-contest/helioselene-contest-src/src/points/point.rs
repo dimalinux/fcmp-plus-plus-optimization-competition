@@ -7,9 +7,11 @@ use crate::u256::{CtChoice, MontyForm, MontyParams, U256};
 pub(super) trait PointParams<MOD: MontyParams>:
     Copy + Debug + Default + Eq + Send + Sync + 'static
 {
-    const A: MontyForm<MOD> = MontyForm::neg(&MontyForm::new(&U256::from_u64(3)));
     const B: MontyForm<MOD>;
-    const B3: MontyForm<MOD> = MontyForm::add(&MontyForm::add(&Self::B, &Self::B), &Self::B);
+    /// Generator point X coordinate
+    const G_X: MontyForm<MOD>;
+    /// Generator point Y coordinate
+    const G_Y: MontyForm<MOD>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Zeroize)]
@@ -21,6 +23,9 @@ pub(super) struct Point<MOD: MontyParams, P: PointParams<MOD>> {
 }
 
 impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
+    const A: MontyForm<MOD> = MontyForm::neg(&MontyForm::new(&U256::from_u64(3)));
+    const B3: MontyForm<MOD> = P::B.add(&P::B).add(&P::B);
+    pub(super) const G: Self = Self::new(P::G_X, P::G_Y, MontyForm::ONE);
     pub(super) const IDENTITY: Self = Self::new(MontyForm::ZERO, MontyForm::ONE, MontyForm::ZERO);
 
     pub(super) const fn new(x: MontyForm<MOD>, y: MontyForm<MOD>, z: MontyForm<MOD>) -> Self {
@@ -75,19 +80,19 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         let t5 = MontyForm::mul(&t5, &X3);
         let X3 = MontyForm::add(&t1, &t2);
         let t5 = MontyForm::sub(&t5, &X3);
-        let Z3 = MontyForm::mul(&P::A, &t4);
-        let X3 = MontyForm::mul(&P::B3, &t2);
+        let Z3 = MontyForm::mul(&Self::A, &t4);
+        let X3 = MontyForm::mul(&Self::B3, &t2);
         let Z3 = MontyForm::add(&X3, &Z3);
         let X3 = MontyForm::sub(&t1, &Z3);
         let Z3 = MontyForm::add(&t1, &Z3);
         let Y3 = MontyForm::mul(&X3, &Z3);
         let t1 = MontyForm::add(&t0, &t0);
         let t1 = MontyForm::add(&t1, &t0);
-        let t2 = MontyForm::mul(&P::A, &t2);
-        let t4 = MontyForm::mul(&P::B3, &t4);
+        let t2 = MontyForm::mul(&Self::A, &t2);
+        let t4 = MontyForm::mul(&Self::B3, &t4);
         let t1 = MontyForm::add(&t1, &t2);
         let t2 = MontyForm::sub(&t0, &t2);
-        let t2 = MontyForm::mul(&P::A, &t2);
+        let t2 = MontyForm::mul(&Self::A, &t2);
         let t4 = MontyForm::add(&t4, &t2);
         let t0 = MontyForm::mul(&t1, &t4);
         let Y3 = MontyForm::add(&Y3, &t0);

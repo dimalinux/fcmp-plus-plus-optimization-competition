@@ -19,17 +19,6 @@ use crate::{
     Field25519, HelioseleneField,
 };
 
-type MontyFormType = MontyForm<Field25519Params>;
-
-const G_X: Field25519 =
-    Field25519::from_be_hex("0000000000000000000000000000000000000000000000000000000000000003");
-
-const G_Y: Field25519 =
-    Field25519::from_be_hex("537b74d97ac0721cbd92668350205f0759003bddc586a5dcd243e639e3183ef4");
-
-const B: Field25519 =
-    Field25519::from_be_hex("22e8c739b0ea70b8be94a76b3ebb7b3b043f6f384113bf3522b49ee1edd73ad4");
-
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 struct HeliosPointParams;
 
@@ -37,23 +26,25 @@ impl PointParams<Field25519Params> for HeliosPointParams {
     const B: MontyForm<Field25519Params> = MontyForm::new(&U256::from_be_hex(
         "22e8c739b0ea70b8be94a76b3ebb7b3b043f6f384113bf3522b49ee1edd73ad4",
     ));
+    const G_X: MontyForm<Field25519Params> = MontyForm::new(&U256::from_u64(3));
+    const G_Y: MontyForm<Field25519Params> = MontyForm::new(&U256::from_be_hex(
+        "537b74d97ac0721cbd92668350205f0759003bddc586a5dcd243e639e3183ef4",
+    ));
 }
 
 #[derive(Clone, Copy, Debug, Zeroize)]
 pub struct HeliosPoint(Point<Field25519Params, HeliosPointParams>);
 
-const G: HeliosPoint = HeliosPoint(Point::new(G_X.0, G_Y.0, Field25519::ONE.0));
-
 fn recover_y(x: Field25519) -> CtOption<Field25519> {
     // ((x.square() * x) - x - x - x + B).sqrt()
     let x = &x.0;
 
-    let mut v = MontyFormType::square(x);
-    v = MontyFormType::mul(&v, x);
-    v = MontyFormType::sub(&v, x);
-    v = MontyFormType::sub(&v, x);
-    v = MontyFormType::sub(&v, x);
-    v = MontyFormType::add(&v, &B.0);
+    let mut v = MontyForm::square(x);
+    v = MontyForm::mul(&v, x);
+    v = MontyForm::sub(&v, x);
+    v = MontyForm::sub(&v, x);
+    v = MontyForm::sub(&v, x);
+    v = MontyForm::add(&v, &HeliosPointParams::B);
 
     let (res, c) = v.const_sqrt();
     CtOption::new(Field25519(res), c.into())
@@ -66,6 +57,14 @@ impl HeliosPoint {
 
     pub const fn to_bytes(&self) -> [u8; 32] {
         self.0.to_bytes()
+    }
+
+    const fn ct_select(a: &Self, b: &Self, c: CtChoice) -> Self {
+        Self(Point::ct_select(&a.0, &b.0, c))
+    }
+
+    const fn ct_eq(&self, other: &Self) -> CtChoice {
+        self.0.ct_eq(&other.0)
     }
 }
 
@@ -86,16 +85,6 @@ impl Eq for HeliosPoint {}
 impl ConditionallySelectable for HeliosPoint {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self::ct_select(a, b, CtChoice::from(choice))
-    }
-}
-
-impl HeliosPoint {
-    const fn ct_select(a: &Self, b: &Self, c: CtChoice) -> Self {
-        Self(Point::ct_select(&a.0, &b.0, c))
-    }
-
-    const fn ct_eq(&self, other: &Self) -> CtChoice {
-        self.0.ct_eq(&other.0)
     }
 }
 
@@ -183,7 +172,7 @@ impl Group for HeliosPoint {
     }
 
     fn generator() -> Self {
-        G
+        Self(Point::G)
     }
 
     fn is_identity(&self) -> Choice {
@@ -292,12 +281,11 @@ mod tests {
         ff_group_tests::group::test_prime_group_bits::<_, HeliosPoint>(&mut rand_core::OsRng);
     }
 
-    /*    #[test]
+    #[test]
     fn generator_helios() {
-        assert_eq!(G.0.x, G_X.0);
-        assert_eq!(G.0.y, G_Y.0);
-        assert_eq!(recover_y(G.0.x).unwrap(), -G.0.y);
-    }*/
+        const G: HeliosPoint = HeliosPoint(Point::G);
+        assert_eq!(recover_y(Field25519(G.0.x)).unwrap().0, G.0.y.neg());
+    }
 
     #[test]
     fn zero_x_is_invalid() {
