@@ -35,7 +35,7 @@ impl PointParams<Field25519Params> for HeliosPointParams {
 #[derive(Clone, Copy, Debug, Zeroize)]
 pub struct HeliosPoint(Point<Field25519Params, HeliosPointParams>);
 
-fn recover_y(x: Field25519) -> CtOption<Field25519> {
+const fn recover_y(x: Field25519) -> (Field25519, CtChoice) {
     // ((x.square() * x) - x - x - x + B).sqrt()
     let x = &x.0;
 
@@ -47,7 +47,7 @@ fn recover_y(x: Field25519) -> CtOption<Field25519> {
     v = MontyForm::add(&v, &HeliosPointParams::B);
 
     let (res, c) = v.const_sqrt();
-    CtOption::new(Field25519(res), c.into())
+    (Field25519(res), c)
 }
 
 impl HeliosPoint {
@@ -239,7 +239,8 @@ impl GroupEncoding for HeliosPoint {
         mut_ref[31] &= !(1 << 7);
         Field25519::from_repr(bytes).and_then(|x| {
             let is_identity = x.is_zero();
-            let y = if let Some(mut y) = Option::<Field25519>::from(recover_y(x)) {
+            let (mut y, c) = recover_y(x);
+            let y = if c.is_true_vartime() {
                 y.conditional_negate(y.is_odd().ct_eq(&!sign));
                 CtOption::new(y, 1.into())
             } else {
@@ -265,7 +266,7 @@ impl GroupEncoding for HeliosPoint {
     }
 
     fn to_bytes(&self) -> Self::Repr {
-        Self::to_bytes(self)
+        self.0.to_bytes()
     }
 }
 
@@ -284,12 +285,15 @@ mod tests {
     #[test]
     fn generator_helios() {
         const G: HeliosPoint = HeliosPoint(Point::G);
-        assert_eq!(recover_y(Field25519(G.0.x)).unwrap().0, G.0.y.neg());
+        let (res, c) = recover_y(Field25519(G.0.x));
+        assert!(c.is_true_vartime());
+        assert_eq!(res.0, G.0.y.neg());
     }
 
     #[test]
     fn zero_x_is_invalid() {
-        assert!(Option::<Field25519>::from(recover_y(Field25519::ZERO)).is_none());
+        let (_, c) = recover_y(Field25519::ZERO);
+        assert!(!c.is_true_vartime());
     }
 
     #[test]

@@ -98,7 +98,7 @@ mod tests {
         for tc in &REDUCE_TESTS {
             type MontyFormType = MontyForm<HelioseleneParams>;
             let output = MontyFormType::reduce(&tc.input_bytes());
-            let ouput = hex::encode(output.retrieve().to_le_bytes());
+            let ouput = hex::encode(output.retrieve().to_be_bytes());
             assert_eq!(ouput, tc.output);
         }
     }

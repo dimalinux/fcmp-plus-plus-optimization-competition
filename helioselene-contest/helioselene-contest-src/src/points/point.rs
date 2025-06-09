@@ -14,7 +14,7 @@ pub(super) trait PointParams<MOD: MontyParams>:
     const G_Y: MontyForm<MOD>;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Zeroize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Zeroize)]
 pub(super) struct Point<MOD: MontyParams, P: PointParams<MOD>> {
     pub(super) x: MontyForm<MOD>,
     pub(super) y: MontyForm<MOD>,
@@ -161,9 +161,7 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
 
         bytes
     }
-}
 
-impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
     pub(super) const fn const_mul<SMOD: MontyParams>(self, scalar: MontyForm<SMOD>) -> Self {
         let mut table = [Self::IDENTITY; 16];
         table[1] = self;

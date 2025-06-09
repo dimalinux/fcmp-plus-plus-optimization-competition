@@ -302,15 +302,12 @@ impl PrimeField for Field25519 {
     const TWO_INV: Self = Self(MontyFormType::new(&U256::from_u64(2)).invert().0);
 
     fn from_repr(bytes: [u8; 32]) -> CtOption<Self> {
-        let res = U256::from_le_bytes(bytes);
-        CtOption::new(
-            Self(MontyFormType::new(&res)),
-            U256::ct_lt(&res, &Field25519Params::MODULUS).into(),
-        )
+        let (res, c) = MontyFormType::from_le_bytes(bytes);
+        CtOption::new(Self(res), c.into())
     }
 
     fn to_repr(&self) -> [u8; 32] {
-        self.0.retrieve().to_le_bytes()
+        self.0.to_le_bytes()
     }
 
     fn is_odd(&self) -> Choice {

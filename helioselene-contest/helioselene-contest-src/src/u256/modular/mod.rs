@@ -73,6 +73,16 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         }
     }
 
+    pub(crate) const fn from_le_bytes(bytes: [u8; 32]) -> (Self, CtChoice) {
+        let integer = U256::from_le_bytes(bytes);
+        let less_than_modulus = U256::ct_lt(&integer, &MOD::MODULUS);
+        (Self::new(&integer), less_than_modulus)
+    }
+
+    pub(crate) const fn to_le_bytes(self) -> [u8; 32] {
+        self.retrieve().to_le_bytes()
+    }
+
     /// Convert the number back from the optimized representation.
     pub(crate) const fn retrieve(&self) -> U256 {
         Self::montgomery_reduction(&(self.montgomery_form, U256::ZERO))

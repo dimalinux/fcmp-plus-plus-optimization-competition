@@ -9,7 +9,7 @@ use group::{
     Group, GroupEncoding,
 };
 use rand_core::RngCore;
-use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
 
 use crate::{
@@ -33,20 +33,19 @@ impl PointParams<HelioseleneParams> for SelenePointParams {
 }
 
 /// Point.
-#[derive(Clone, Copy, Debug, Zeroize)]
+#[derive(Clone, Copy, Debug, Default, Zeroize)]
 pub struct SelenePoint(Point<HelioseleneParams, SelenePointParams>);
 
-fn recover_y(x: HelioseleneField) -> CtOption<HelioseleneField> {
+const fn recover_y(x: MontyForm<HelioseleneParams>) -> (MontyForm<HelioseleneParams>, CtChoice) {
     // ((x.square() * x) - x - x - x + B).sqrt()
-    let x = &x.0;
-    let mut v = MontyForm::square(x);
-    v = MontyForm::mul(&v, x);
-    v = MontyForm::sub(&v, x);
-    v = MontyForm::sub(&v, x);
-    v = MontyForm::sub(&v, x);
+    let mut v = MontyForm::square(&x);
+    v = MontyForm::mul(&v, &x);
+    v = MontyForm::sub(&v, &x);
+    v = MontyForm::sub(&v, &x);
+    v = MontyForm::sub(&v, &x);
     v = MontyForm::add(&v, &SelenePointParams::B);
 
-    HelioseleneField(v).sqrt()
+    v.const_sqrt()
 }
 
 impl SelenePoint {
@@ -64,6 +63,31 @@ impl SelenePoint {
 
     const fn ct_eq(&self, other: &Self) -> CtChoice {
         self.0.ct_eq(&other.0)
+    }
+
+    const fn const_from_bytes(bytes: &[u8; 32]) -> (Self, CtChoice) {
+        let sign_bit = (bytes[31] >> 7) as u64;
+        let mut bytes = *bytes;
+        bytes[31] &= !(1 << 7);
+
+        let (x, less_than_modulus) = MontyForm::from_le_bytes(bytes);
+        let (mut y, sq_rt_exists) = recover_y(x);
+        let even_odd_bit = y.retrieve().least_significant_bit();
+        let needs_negation = CtChoice::from_lsb(sign_bit ^ even_odd_bit);
+        y = y.ct_neg(needs_negation);
+
+        let is_identity = x.ct_is_zero();
+        y = MontyForm::ct_select(&y, &MontyForm::ONE, is_identity);
+
+        let pt = Self(Point::new(x, y, MontyForm::ONE));
+        let sign_bit = CtChoice::from_lsb(sign_bit);
+        let not_negative_zero = is_identity.and(sign_bit).not();
+
+        let is_valid = less_than_modulus
+            .and(sq_rt_exists.or(is_identity))
+            .and(not_negative_zero);
+
+        (pt, is_valid)
     }
 }
 
@@ -159,9 +183,9 @@ impl Group for SelenePoint {
             let mut bytes = HelioseleneField::random(&mut rng).to_repr();
             let mut_ref: &mut [u8] = bytes.as_mut();
             mut_ref[31] |= u8::try_from(rng.next_u32() % 2).unwrap() << 7;
-            let opt = Self::from_bytes(&bytes);
-            if opt.is_some().into() {
-                return opt.unwrap();
+            let (pt, c) = Self::const_from_bytes(&bytes);
+            if c.is_true_vartime() {
+                return pt;
             }
         }
     }
@@ -232,35 +256,12 @@ impl GroupEncoding for SelenePoint {
     type Repr = <HelioseleneField as PrimeField>::Repr;
 
     fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-        let sign = Choice::from(bytes[31] >> 7);
-        let mut bytes = *bytes;
-        let mut_ref: &mut [u8] = bytes.as_mut();
-        mut_ref[31] &= !(1 << 7);
-        HelioseleneField::from_repr(bytes).and_then(|x| {
-            let is_identity = x.is_zero();
-            let y = if let Some(mut y) = Option::<HelioseleneField>::from(recover_y(x)) {
-                y.conditional_negate(y.is_odd().ct_eq(&!sign));
-                CtOption::new(y, 1.into())
-            } else {
-                CtOption::new(HelioseleneField::ZERO, 0.into())
-            };
-            let y = CtOption::conditional_select(
-                &y,
-                &CtOption::new(HelioseleneField::ONE, 1.into()),
-                is_identity,
-            );
-            let point = y.map(|y| Self::new(x, y, HelioseleneField::ONE));
-            let not_negative_zero = !(is_identity & sign);
-            CtOption::conditional_select(
-                &CtOption::new(Self::identity(), 0.into()),
-                &point,
-                not_negative_zero,
-            )
-        })
+        let (pt, is_valid) = Self::const_from_bytes(bytes);
+        CtOption::new(pt, is_valid.into())
     }
 
     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-        Self::from_bytes(bytes)
+        GroupEncoding::from_bytes(bytes)
     }
 
     fn to_bytes(&self) -> Self::Repr {
@@ -283,12 +284,15 @@ mod tests {
     #[test]
     fn generator_selene() {
         const G: SelenePoint = SelenePoint(Point::G);
-        assert_eq!(recover_y(HelioseleneField(G.0.x)).unwrap().0, G.0.y);
+        let (res, c) = recover_y(G.0.x);
+        assert!(c.is_true_vartime());
+        assert_eq!(res, G.0.y);
     }
 
     #[test]
     fn zero_x_is_invalid() {
-        assert!(Option::<HelioseleneField>::from(recover_y(HelioseleneField::ZERO)).is_none());
+        let (_, c) = recover_y(HelioseleneField::ZERO.0);
+        assert!(!c.is_true_vartime());
     }
 
     #[test]
@@ -298,5 +302,52 @@ mod tests {
         let result = point.mul(scalar); // 2 * G
         let expected = point.add(&point); // G + G
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn selene_from_bytes() {
+        struct TC {
+            is_valid: bool,
+            input: &'static str, // big endian hex
+        }
+
+        let tests: &[TC] = &[
+            TC {
+                is_valid: false, // larger than modulus
+                input: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+            },
+            TC {
+                is_valid: false, // negative zero
+                input: "8000000000000000000000000000000000000000000000000000000000000000",
+            },
+            TC {
+                is_valid: false, // fails sqrt when recovering y
+                input: "9e272cc20ef77ba18afd1b85c5fdd47d78322979704face1cd7bd24eafe103d1",
+            },
+            TC {
+                is_valid: true,
+                input: "6cc9fe90bc7a09a47f50535df1463e5b0643adfcce68c68b00d35781c02d9e1f",
+            },
+            TC {
+                is_valid: true, // generator
+                input: "0000000000000000000000000000000000000000000000000000000000000001",
+            },
+            TC {
+                is_valid: true, // identity point
+                input: "0000000000000000000000000000000000000000000000000000000000000000",
+            },
+        ];
+
+        for tc in tests {
+            let bytes: [u8; 32] = U256::from_be_hex(tc.input).to_le_bytes();
+            let point = SelenePoint::from_bytes(&bytes);
+            assert_eq!(bool::from(point.is_some()), tc.is_valid, "{}", tc.input);
+            if tc.is_valid {
+                // verify that we serialize back to the original input
+                let mut point_bytes = point.unwrap().to_bytes();
+                point_bytes.reverse(); // back to big-endian
+                assert_eq!(hex::encode(point_bytes), tc.input);
+            }
+        }
     }
 }

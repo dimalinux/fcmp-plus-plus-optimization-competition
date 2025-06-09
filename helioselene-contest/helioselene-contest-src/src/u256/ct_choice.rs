@@ -28,16 +28,19 @@ impl CtChoice {
         Self(value.wrapping_neg())
     }
 
+    #[must_use]
     #[inline]
     pub(crate) const fn or(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
+    #[must_use]
     #[inline]
     pub(crate) const fn and(self, other: Self) -> Self {
         Self(self.0 & other.0)
     }
 
+    #[must_use]
     #[inline]
     pub(crate) const fn not(self) -> Self {
         Self(!self.0)
@@ -50,6 +53,7 @@ impl CtChoice {
     }
 
     /// Returns the truthy value if `x == y`, and the falsy value otherwise.
+    #[must_use]
     #[inline]
     pub(crate) const fn from_u64_eq(x: u64, y: u64) -> Self {
         let diff = x ^ y;
