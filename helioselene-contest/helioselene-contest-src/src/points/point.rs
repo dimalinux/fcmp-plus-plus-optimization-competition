@@ -1,5 +1,6 @@
 use core::{fmt::Debug, marker::PhantomData};
 
+use rand_core::RngCore;
 use zeroize::Zeroize;
 
 use crate::u256::{CtChoice, MontyForm, MontyParams, U256};
@@ -56,7 +57,7 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
     }
 
     #[allow(non_snake_case)]
-    pub(super) const fn const_add(self, other: &Self) -> Self {
+    pub(super) const fn add(self, other: &Self) -> Self {
         let X1 = &self.x;
         let Y1 = &self.y;
         let Z1 = &self.z;
@@ -106,12 +107,12 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         Self::new(X3, Y3, Z3)
     }
 
-    pub(super) const fn const_sub(self, other: &Self) -> Self {
-        self.const_add(&other.const_neg())
+    pub(super) const fn sub(self, other: &Self) -> Self {
+        self.add(&other.neg())
     }
 
     #[allow(non_snake_case)]
-    pub(super) const fn const_double(&self) -> Self {
+    pub(super) const fn double(&self) -> Self {
         let X1 = self.x;
         let Y1 = self.y;
         let Z1 = self.z;
@@ -136,7 +137,7 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         Self::ct_select(&Self::new(X3, Y3, Z3), &Self::IDENTITY, is_identity)
     }
 
-    pub(super) const fn const_neg(&self) -> Self {
+    pub(super) const fn neg(&self) -> Self {
         Self::new(self.x, self.y.neg(), self.z)
     }
 
@@ -162,12 +163,12 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         bytes
     }
 
-    pub(super) const fn const_mul<SMOD: MontyParams>(self, scalar: MontyForm<SMOD>) -> Self {
+    pub(super) const fn mul<SMOD: MontyParams>(self, scalar: MontyForm<SMOD>) -> Self {
         let mut table = [Self::IDENTITY; 16];
         table[1] = self;
         let mut i = 2;
         while i < 16 {
-            table[i] = Self::const_add(self, &table[i - 1]);
+            table[i] = Self::add(self, &table[i - 1]);
             i += 1;
         }
 
@@ -179,10 +180,10 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
             let mut bits = nibbles[i];
 
             if i > 0 {
-                res = res.const_double();
-                res = res.const_double();
-                res = res.const_double();
-                res = res.const_double();
+                res = res.double();
+                res = res.double();
+                res = res.double();
+                res = res.double();
             }
 
             i += 1;
@@ -194,12 +195,60 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
                 term = Self::ct_select(&term, &table[j], c);
                 j += 1;
             }
-            res = Self::const_add(res, &term);
+            res = Self::add(res, &term);
             bits = 0;
         }
         // TODO: How to handle this in a const function?
         //nibbles.zeroize();
         //other.zeroize();
         res
+    }
+
+    pub(super) const fn recover_y(x: MontyForm<MOD>) -> (MontyForm<MOD>, CtChoice) {
+        // ((x.square() * x) - x - x - x + B).sqrt()
+        let mut v = MontyForm::square(&x);
+        v = MontyForm::mul(&v, &x);
+        v = MontyForm::sub(&v, &x);
+        v = MontyForm::sub(&v, &x);
+        v = MontyForm::sub(&v, &x);
+        v = MontyForm::add(&v, &P::B);
+
+        v.sqrt()
+    }
+
+    pub(super) const fn from_bytes(bytes: &[u8; 32]) -> (Self, CtChoice) {
+        let sign_bit = (bytes[31] >> 7) as u64;
+        let mut bytes = *bytes;
+        bytes[31] &= !(1 << 7);
+
+        let (x, less_than_modulus) = MontyForm::from_le_bytes(bytes);
+        let (mut y, sq_rt_exists) = Self::recover_y(x);
+        let even_odd_bit = y.retrieve().least_significant_bit();
+        let needs_negation = CtChoice::from_lsb(sign_bit ^ even_odd_bit);
+        y = y.ct_neg(needs_negation);
+
+        let is_identity = x.ct_is_zero();
+        y = MontyForm::ct_select(&y, &MontyForm::ONE, is_identity);
+
+        let pt = Self::new(x, y, MontyForm::ONE);
+        let sign_bit = CtChoice::from_lsb(sign_bit);
+        let not_negative_zero = is_identity.and(sign_bit).not();
+
+        let is_valid = less_than_modulus
+            .and(sq_rt_exists.or(is_identity))
+            .and(not_negative_zero);
+
+        (pt, is_valid)
+    }
+
+    pub(super) fn random(mut rng: impl RngCore) -> Self {
+        loop {
+            let mut bytes = MontyForm::<MOD>::random(&mut rng).to_le_bytes();
+            bytes[31] |= ((rng.next_u32() & 0x1) << 7) as u8;
+            let (pt, c) = Point::from_bytes(&bytes);
+            if c.is_true_vartime() {
+                return pt;
+            }
+        }
     }
 }

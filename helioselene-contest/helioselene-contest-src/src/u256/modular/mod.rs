@@ -4,8 +4,9 @@ mod invert;
 mod mul;
 mod neg;
 pub(crate) mod pow;
-mod reduce;
+mod random;
 mod reduction;
+mod sqrt;
 mod sub;
 
 use core::{fmt::Debug, marker::PhantomData};
@@ -25,6 +26,21 @@ pub(crate) trait MontyParams: Copy + Debug + Default + Eq + Send + Sync + 'stati
 
     /// R^3, used to perform a multiplicative inverse
     const R3: U256;
+
+    /// MOD_3_8 is (MODULUS + 3) // 8, used for calculating square roots.
+    /// Only used when MODULUS (p) satisfies p mod 8 = 5, in which case
+    /// its value *must* be overridden.
+    const MOD_3_8: U256 = U256::ZERO; // Must not be zero if p mod 8 = 5
+
+    /// SQRT_M1 is 2^((MODULUS - 1) // 4) % MODULUS.
+    /// Only used when MODULUS (p) satisfies p mod 8 = 5, in which case
+    /// its value *must* be overridden.
+    const SQRT_M1: MontyForm<Self> = MontyForm::ZERO;
+
+    /// MOD_PLUS_1_DIV_4 is (MODULUS+1) // 4. Used for sqrt.
+    /// Only used when MODULUS (p) satisfies p mod 4 = 3, in which case
+    /// its value *must* be overridden.
+    const MOD_PLUS_1_DIV_4: U256 = U256::ZERO;
 
     /// The lowest limbs of -(MODULUS^-1) mod R
     /// We only need the LSB because during reduction this value is multiplied modulo 2**WORD_BITS.

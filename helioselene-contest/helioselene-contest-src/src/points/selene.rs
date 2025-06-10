@@ -3,11 +3,7 @@ use core::{
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use group::{
-    ff::{Field, PrimeField},
-    prime::PrimeGroup,
-    Group, GroupEncoding,
-};
+use group::{ff::PrimeField, prime::PrimeGroup, Group, GroupEncoding};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
@@ -36,18 +32,6 @@ impl PointParams<HelioseleneParams> for SelenePointParams {
 #[derive(Clone, Copy, Debug, Default, Zeroize)]
 pub struct SelenePoint(Point<HelioseleneParams, SelenePointParams>);
 
-const fn recover_y(x: MontyForm<HelioseleneParams>) -> (MontyForm<HelioseleneParams>, CtChoice) {
-    // ((x.square() * x) - x - x - x + B).sqrt()
-    let mut v = MontyForm::square(&x);
-    v = MontyForm::mul(&v, &x);
-    v = MontyForm::sub(&v, &x);
-    v = MontyForm::sub(&v, &x);
-    v = MontyForm::sub(&v, &x);
-    v = MontyForm::add(&v, &SelenePointParams::B);
-
-    v.const_sqrt()
-}
-
 impl SelenePoint {
     pub const fn new(x: HelioseleneField, y: HelioseleneField, z: HelioseleneField) -> Self {
         Self(Point::new(x.0, y.0, z.0))
@@ -63,31 +47,6 @@ impl SelenePoint {
 
     const fn ct_eq(&self, other: &Self) -> CtChoice {
         self.0.ct_eq(&other.0)
-    }
-
-    const fn const_from_bytes(bytes: &[u8; 32]) -> (Self, CtChoice) {
-        let sign_bit = (bytes[31] >> 7) as u64;
-        let mut bytes = *bytes;
-        bytes[31] &= !(1 << 7);
-
-        let (x, less_than_modulus) = MontyForm::from_le_bytes(bytes);
-        let (mut y, sq_rt_exists) = recover_y(x);
-        let even_odd_bit = y.retrieve().least_significant_bit();
-        let needs_negation = CtChoice::from_lsb(sign_bit ^ even_odd_bit);
-        y = y.ct_neg(needs_negation);
-
-        let is_identity = x.ct_is_zero();
-        y = MontyForm::ct_select(&y, &MontyForm::ONE, is_identity);
-
-        let pt = Self(Point::new(x, y, MontyForm::ONE));
-        let sign_bit = CtChoice::from_lsb(sign_bit);
-        let not_negative_zero = is_identity.and(sign_bit).not();
-
-        let is_valid = less_than_modulus
-            .and(sq_rt_exists.or(is_identity))
-            .and(not_negative_zero);
-
-        (pt, is_valid)
     }
 }
 
@@ -115,13 +74,13 @@ impl Add for SelenePoint {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        Self(self.0.const_add(&other.0))
+        Self(self.0.add(&other.0))
     }
 }
 
 impl AddAssign for SelenePoint {
     fn add_assign(&mut self, other: Self) {
-        self.0 = self.0.const_add(&other.0);
+        self.0 = self.0.add(&other.0);
     }
 }
 
@@ -129,13 +88,13 @@ impl Add<&Self> for SelenePoint {
     type Output = Self;
 
     fn add(self, other: &Self) -> Self {
-        Self(self.0.const_add(&other.0))
+        Self(self.0.add(&other.0))
     }
 }
 
 impl AddAssign<&Self> for SelenePoint {
     fn add_assign(&mut self, other: &Self) {
-        self.0 = self.0.const_add(&other.0);
+        self.0 = self.0.add(&other.0);
     }
 }
 
@@ -143,7 +102,7 @@ impl Neg for SelenePoint {
     type Output = Self;
 
     fn neg(self) -> Self {
-        Self(self.0.const_neg())
+        Self(self.0.neg())
     }
 }
 
@@ -151,13 +110,13 @@ impl Sub for SelenePoint {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        Self(self.0.const_add(&other.0.const_neg()))
+        Self(self.0.add(&other.0.neg()))
     }
 }
 
 impl SubAssign for SelenePoint {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = self.0.const_sub(&other.0);
+        self.0 = self.0.sub(&other.0);
     }
 }
 
@@ -165,13 +124,13 @@ impl Sub<&Self> for SelenePoint {
     type Output = Self;
 
     fn sub(self, other: &Self) -> Self {
-        Self(self.0.const_sub(&other.0))
+        Self(self.0.sub(&other.0))
     }
 }
 
 impl SubAssign<&Self> for SelenePoint {
     fn sub_assign(&mut self, other: &Self) {
-        self.0 = self.0.const_sub(&other.0);
+        self.0 = self.0.sub(&other.0);
     }
 }
 
@@ -179,15 +138,7 @@ impl Group for SelenePoint {
     type Scalar = Field25519;
 
     fn random(mut rng: impl RngCore) -> Self {
-        loop {
-            let mut bytes = HelioseleneField::random(&mut rng).to_repr();
-            let mut_ref: &mut [u8] = bytes.as_mut();
-            mut_ref[31] |= u8::try_from(rng.next_u32() % 2).unwrap() << 7;
-            let (pt, c) = Self::const_from_bytes(&bytes);
-            if c.is_true_vartime() {
-                return pt;
-            }
-        }
+        Self(Point::random(&mut rng))
     }
 
     fn identity() -> Self {
@@ -204,7 +155,7 @@ impl Group for SelenePoint {
 
     #[inline]
     fn double(&self) -> Self {
-        Self(self.0.const_double())
+        Self(self.0.double())
     }
 }
 
@@ -212,7 +163,7 @@ impl Sum<Self> for SelenePoint {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = Point::IDENTITY;
         for i in iter {
-            res = res.const_add(&i.0);
+            res = res.add(&i.0);
         }
         Self(res)
     }
@@ -228,13 +179,13 @@ impl Mul<Field25519> for SelenePoint {
     type Output = Self;
 
     fn mul(self, other: Field25519) -> Self {
-        Self(self.0.const_mul(other.0))
+        Self(self.0.mul(other.0))
     }
 }
 
 impl MulAssign<Field25519> for SelenePoint {
     fn mul_assign(&mut self, other: Field25519) {
-        *self = Self(self.0.const_mul(other.0));
+        *self = Self(self.0.mul(other.0));
     }
 }
 
@@ -242,13 +193,13 @@ impl Mul<&Field25519> for SelenePoint {
     type Output = Self;
 
     fn mul(self, other: &Field25519) -> Self {
-        Self(self.0.const_mul(other.0))
+        Self(self.0.mul(other.0))
     }
 }
 
 impl MulAssign<&Field25519> for SelenePoint {
     fn mul_assign(&mut self, other: &Field25519) {
-        self.0 = self.0.const_mul(other.0);
+        self.0 = self.0.mul(other.0);
     }
 }
 
@@ -256,8 +207,8 @@ impl GroupEncoding for SelenePoint {
     type Repr = <HelioseleneField as PrimeField>::Repr;
 
     fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-        let (pt, is_valid) = Self::const_from_bytes(bytes);
-        CtOption::new(pt, is_valid.into())
+        let (pt, is_valid) = Point::from_bytes(bytes);
+        CtOption::new(Self(pt), is_valid.into())
     }
 
     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
@@ -265,7 +216,7 @@ impl GroupEncoding for SelenePoint {
     }
 
     fn to_bytes(&self) -> Self::Repr {
-        Self::to_bytes(self)
+        self.0.to_bytes()
     }
 }
 
@@ -273,6 +224,8 @@ impl PrimeGroup for SelenePoint {}
 
 #[cfg(test)]
 mod tests {
+    use ff::Field;
+
     use super::*;
     use crate::Field25519;
 
@@ -284,19 +237,20 @@ mod tests {
     #[test]
     fn generator_selene() {
         const G: SelenePoint = SelenePoint(Point::G);
-        let (res, c) = recover_y(G.0.x);
+        let (res, c) = Point::<HelioseleneParams, SelenePointParams>::recover_y(G.0.x);
         assert!(c.is_true_vartime());
         assert_eq!(res, G.0.y);
     }
 
     #[test]
     fn zero_x_is_invalid() {
-        let (_, c) = recover_y(HelioseleneField::ZERO.0);
+        let (_, c) =
+            Point::<HelioseleneParams, SelenePointParams>::recover_y(HelioseleneField::ZERO.0);
         assert!(!c.is_true_vartime());
     }
 
     #[test]
-    fn test_const_mul() {
+    fn test_mul() {
         let point = SelenePoint::generator();
         let scalar = Field25519::from(2_u64);
         let result = point.mul(scalar); // 2 * G

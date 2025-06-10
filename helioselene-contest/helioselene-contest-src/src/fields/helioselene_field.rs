@@ -8,7 +8,7 @@ use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::DefaultIsZeroes;
 
-use crate::u256::{CtChoice, FixedExponent, MontyForm, MontyParams, U256};
+use crate::u256::{MontyForm, MontyParams, U256};
 
 const MODULUS_STR: &str = "7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79f";
 
@@ -20,6 +20,9 @@ impl MontyParams for HelioseleneParams {
     /// MOD_NEG_INV is the modular multiplicative inverse of the least
     /// significant 64-bits of `MODULUS` modulo 2^64, negated.
     const MOD_NEG_INV: u64 = 0x8a5f094bd6f46ba1_u64;
+    /// MOD_PLUS_1_DIV_4 is (MODULUS+1) // 4. Used for sqrt.
+    const MOD_PLUS_1_DIV_4: U256 =
+        U256::from_be_hex("1fffffffffffffffffffffffffffffffefdfde0b2dd95ad61badb49c9e49f1e8");
     /// R is U256::MAX % MODULUS + 1
     const R: U256 =
         U256::from_be_hex("0000000000000000000000000000000081010fa69135294f22925b1b0db070c2");
@@ -213,7 +216,7 @@ impl HelioseleneField {
         Self(MontyFormType::reduce(bytes))
     }
 
-    pub(crate) const fn from_be_hex(hex: &str) -> Self {
+    pub const fn from_be_hex(hex: &str) -> Self {
         Self(MontyFormType::new(&U256::from_be_hex(hex)))
     }
 }
@@ -223,9 +226,7 @@ impl Field for HelioseleneField {
     const ZERO: Self = Self(MontyForm::ZERO);
 
     fn random(mut rng: impl RngCore) -> Self {
-        let mut bytes = [0; 64];
-        rng.fill_bytes(&mut bytes);
-        Self::reduce(&bytes)
+        Self(MontyFormType::random(&mut rng))
     }
 
     #[inline]
@@ -248,7 +249,7 @@ impl Field for HelioseleneField {
     }
 
     fn sqrt(&self) -> CtOption<Self> {
-        let (res, c) = MontyForm::<HelioseleneParams>::const_sqrt(&self.0);
+        let (res, c) = MontyFormType::sqrt(&self.0);
         CtOption::new(Self(res), c.into())
     }
 }
@@ -325,24 +326,6 @@ impl Product<Self> for HelioseleneField {
 impl<'a> Product<&'a Self> for HelioseleneField {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().product()
-    }
-}
-
-// Implements
-// sqrt(x) = x^((p + 1) / 4)
-// because HelioseleneParams::MODULUS (p) satisfies p mod 4 = 3.
-impl MontyForm<HelioseleneParams> {
-    pub(crate) const fn const_sqrt(&self) -> (Self, CtChoice) {
-        struct ModPlusOneDivFour;
-        impl FixedExponent for ModPlusOneDivFour {
-            const EXPONENT: U256 = MontyFormType::new(&U256::from_be_hex(
-                "1fffffffffffffffffffffffffffffffefdfde0b2dd95ad61badb49c9e49f1e8",
-            ))
-            .retrieve();
-        }
-        let res = self.pow_fixed::<ModPlusOneDivFour>();
-        let res_square = Self::square(&res);
-        (res, res_square.ct_eq(self))
     }
 }
 

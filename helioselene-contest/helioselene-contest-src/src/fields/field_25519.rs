@@ -18,6 +18,9 @@ pub(crate) struct Field25519Params;
 impl MontyParams for Field25519Params {
     /// MODULUS is 2^255 - 19 (an odd value)
     const MODULUS: U256 = U256::from_be_hex(MODULUS_HEX);
+    /// MOD_3_8 is (MODULUS + 3) // 8, used for calculating square roots
+    const MOD_3_8: U256 =
+        U256::from_be_hex("0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe");
     /// MOD_NEG_INV is the modular multiplicative inverse of the least
     /// significant 64-bits of `MODULUS` modulo 2^64, negated.
     const MOD_NEG_INV: u64 = 0x86bca1af286bca1b_u64;
@@ -27,6 +30,10 @@ impl MontyParams for Field25519Params {
     const R2: U256 = U256::from_u64(0x5a4);
     /// R3 is the montgomery form of R2^2
     const R3: U256 = U256::from_u64(0xd658);
+    /// SQRT_M1 is 2^((MODULUS - 1) // 4) % MODULUS.
+    const SQRT_M1: MontyForm<Self> = MontyForm::new(&U256::from_be_hex(
+        "2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0",
+    ));
     /// TWO_TO_256_MOD_M is 2^256 mod MODULUS
     const TWO_TO_256_MOD_M: U256 = U256::from_u64(0x26);
 }
@@ -37,21 +44,9 @@ type MontyFormType = MontyForm<Field25519Params>;
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
 pub struct Field25519(pub(crate) MontyFormType);
 
-/// Square root of -1.
 /// Formula from RFC-8032 (modp_sqrt_m1/sqrt8k5 z)
-/// 2 ** ((MODULUS - 1) // 4) % MODULUS
-const SQRT_M1: Field25519 =
-    Field25519::from_be_hex("2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0");
-
-/// Constant useful in calculating square roots (RFC-8032 sqrt8k5's exponent used to calculate y)
-/// (MODULUS + 3) / 8
-struct FixedExpMod3_8;
-impl FixedExponent for FixedExpMod3_8 {
-    const EXPONENT: U256 = MontyFormType::new(&U256::from_be_hex(
-        "0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
-    ))
-    .retrieve();
-}
+/// 2^((MODULUS - 1) // 4) % MODULUS
+const SQRT_M1: Field25519 = Field25519(Field25519Params::SQRT_M1);
 
 /// Constant useful in sqrt_ratio_i (sqrt(u / v))
 /// MOD_3_8 - 1
@@ -217,11 +212,8 @@ impl Field for Field25519 {
     const ONE: Self = Self(MontyFormType::ONE);
     const ZERO: Self = Self(MontyFormType::ZERO);
 
-    // TODO: Move this into modular submodule
     fn random(mut rng: impl RngCore) -> Self {
-        let mut bytes = [0; 64];
-        rng.fill_bytes(&mut bytes);
-        Self::reduce(&bytes)
+        Self(MontyFormType::random(&mut rng))
     }
 
     #[inline]
@@ -240,9 +232,8 @@ impl Field for Field25519 {
         CtOption::new(Self(res), c.into())
     }
 
-    // RFC-8032 sqrt8k5
     fn sqrt(&self) -> CtOption<Self> {
-        let (res, c) = MontyForm::<Field25519Params>::const_sqrt(&self.0);
+        let (res, c) = MontyFormType::sqrt(&self.0);
         CtOption::new(Self(res), c.into())
     }
 
@@ -332,12 +323,7 @@ impl PrimeFieldBits for Field25519 {
 }
 
 impl Field25519 {
-    /// Reduce 512 bits, presumably to get a non-biased Field25519 element.
-    pub(crate) fn reduce(bytes: &[u8; 64]) -> Self {
-        Self(MontyFormType::reduce(bytes))
-    }
-
-    pub(crate) const fn from_be_hex(hex: &str) -> Self {
+    pub const fn from_be_hex(hex: &str) -> Self {
         Self(MontyFormType::new(&U256::from_be_hex(hex)))
     }
 }
@@ -371,18 +357,6 @@ impl Product<Self> for Field25519 {
 impl<'a> Product<&'a Self> for Field25519 {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().product()
-    }
-}
-
-impl MontyForm<Field25519Params> {
-    // Follows the p mod 8 = 5 recipe from RFC-8032 sqrt8k5
-    pub(crate) const fn const_sqrt(&self) -> (Self, CtChoice) {
-        let tv1 = self.pow_fixed::<FixedExpMod3_8>();
-        let tv2 = Self::mul(&tv1, &SQRT_M1.0);
-        let candidate = Self::ct_select(&tv2, &tv1, tv1.square().ct_eq(self));
-        let candidate_squared = candidate.square();
-        let sq_eq_self = candidate_squared.ct_eq(self);
-        (candidate, sq_eq_self)
     }
 }
 

@@ -51,6 +51,11 @@ impl U256 {
     }
 
     #[inline]
+    pub(super) const fn least_significant_byte(&self) -> u8 {
+        (self.limbs[0] & 0xff) as u8
+    }
+
+    #[inline]
     pub(crate) const fn is_odd(&self) -> CtChoice {
         CtChoice::from_lsb(self.limbs[0] & 1)
     }

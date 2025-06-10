@@ -3,13 +3,9 @@ use core::{
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use group::{
-    ff::{Field, PrimeField},
-    prime::PrimeGroup,
-    Group, GroupEncoding,
-};
+use group::{ff::PrimeField, prime::PrimeGroup, Group, GroupEncoding};
 use rand_core::RngCore;
-use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
 
 use crate::{
@@ -34,21 +30,6 @@ impl PointParams<Field25519Params> for HeliosPointParams {
 
 #[derive(Clone, Copy, Debug, Zeroize)]
 pub struct HeliosPoint(Point<Field25519Params, HeliosPointParams>);
-
-const fn recover_y(x: Field25519) -> (Field25519, CtChoice) {
-    // ((x.square() * x) - x - x - x + B).sqrt()
-    let x = &x.0;
-
-    let mut v = MontyForm::square(x);
-    v = MontyForm::mul(&v, x);
-    v = MontyForm::sub(&v, x);
-    v = MontyForm::sub(&v, x);
-    v = MontyForm::sub(&v, x);
-    v = MontyForm::add(&v, &HeliosPointParams::B);
-
-    let (res, c) = v.const_sqrt();
-    (Field25519(res), c)
-}
 
 impl HeliosPoint {
     pub const fn new(x: Field25519, y: Field25519, z: Field25519) -> Self {
@@ -92,13 +73,13 @@ impl Add for HeliosPoint {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        Self(self.0.const_add(&other.0))
+        Self(self.0.add(&other.0))
     }
 }
 
 impl AddAssign for HeliosPoint {
     fn add_assign(&mut self, other: Self) {
-        self.0 = self.0.const_add(&other.0);
+        self.0 = self.0.add(&other.0);
     }
 }
 
@@ -106,13 +87,13 @@ impl Add<&Self> for HeliosPoint {
     type Output = Self;
 
     fn add(self, other: &Self) -> Self {
-        Self(self.0.const_add(&other.0))
+        Self(self.0.add(&other.0))
     }
 }
 
 impl AddAssign<&Self> for HeliosPoint {
     fn add_assign(&mut self, other: &Self) {
-        self.0 = self.0.const_add(&other.0);
+        self.0 = self.0.add(&other.0);
     }
 }
 
@@ -120,7 +101,7 @@ impl Neg for HeliosPoint {
     type Output = Self;
 
     fn neg(self) -> Self {
-        Self(self.0.const_neg())
+        Self(self.0.neg())
     }
 }
 
@@ -128,13 +109,13 @@ impl Sub for HeliosPoint {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        Self(self.0.const_add(&other.0.const_neg()))
+        Self(self.0.add(&other.0.neg()))
     }
 }
 
 impl SubAssign for HeliosPoint {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = self.0.const_sub(&other.0);
+        self.0 = self.0.sub(&other.0);
     }
 }
 
@@ -142,13 +123,13 @@ impl Sub<&Self> for HeliosPoint {
     type Output = Self;
 
     fn sub(self, other: &Self) -> Self {
-        Self(self.0.const_sub(&other.0))
+        Self(self.0.sub(&other.0))
     }
 }
 
 impl SubAssign<&Self> for HeliosPoint {
     fn sub_assign(&mut self, other: &Self) {
-        self.0 = self.0.const_sub(&other.0);
+        self.0 = self.0.sub(&other.0);
     }
 }
 
@@ -156,15 +137,7 @@ impl Group for HeliosPoint {
     type Scalar = HelioseleneField;
 
     fn random(mut rng: impl RngCore) -> Self {
-        loop {
-            let mut bytes = Field25519::random(&mut rng).to_repr();
-            let mut_ref: &mut [u8] = bytes.as_mut();
-            mut_ref[31] |= u8::try_from(rng.next_u32() % 2).unwrap() << 7;
-            let opt = Self::from_bytes(&bytes);
-            if opt.is_some().into() {
-                return opt.unwrap();
-            }
-        }
+        Self(Point::random(&mut rng))
     }
 
     fn identity() -> Self {
@@ -179,9 +152,8 @@ impl Group for HeliosPoint {
         self.0.is_identity().into()
     }
 
-    #[inline]
     fn double(&self) -> Self {
-        Self(self.0.const_double())
+        Self(self.0.double())
     }
 }
 
@@ -189,7 +161,7 @@ impl Sum<Self> for HeliosPoint {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = Point::IDENTITY;
         for i in iter {
-            res = res.const_add(&i.0);
+            res = res.add(&i.0);
         }
         Self(res)
     }
@@ -205,13 +177,13 @@ impl Mul<HelioseleneField> for HeliosPoint {
     type Output = Self;
 
     fn mul(self, other: HelioseleneField) -> Self {
-        Self(self.0.const_mul(other.0))
+        Self(self.0.mul(other.0))
     }
 }
 
 impl MulAssign<HelioseleneField> for HeliosPoint {
     fn mul_assign(&mut self, other: HelioseleneField) {
-        *self = Self(self.0.const_mul(other.0));
+        *self = Self(self.0.mul(other.0));
     }
 }
 
@@ -219,13 +191,13 @@ impl Mul<&HelioseleneField> for HeliosPoint {
     type Output = Self;
 
     fn mul(self, other: &HelioseleneField) -> Self {
-        Self(self.0.const_mul(other.0))
+        Self(self.0.mul(other.0))
     }
 }
 
 impl MulAssign<&HelioseleneField> for HeliosPoint {
     fn mul_assign(&mut self, other: &HelioseleneField) {
-        self.0 = self.0.const_mul(other.0);
+        self.0 = self.0.mul(other.0);
     }
 }
 
@@ -233,32 +205,8 @@ impl GroupEncoding for HeliosPoint {
     type Repr = <Field25519 as PrimeField>::Repr;
 
     fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-        let sign = Choice::from(bytes[31] >> 7);
-        let mut bytes = *bytes;
-        let mut_ref: &mut [u8] = bytes.as_mut();
-        mut_ref[31] &= !(1 << 7);
-        Field25519::from_repr(bytes).and_then(|x| {
-            let is_identity = x.is_zero();
-            let (mut y, c) = recover_y(x);
-            let y = if c.is_true_vartime() {
-                y.conditional_negate(y.is_odd().ct_eq(&!sign));
-                CtOption::new(y, 1.into())
-            } else {
-                CtOption::new(Field25519::ZERO, 0.into())
-            };
-            let y = CtOption::conditional_select(
-                &y,
-                &CtOption::new(Field25519::ONE, 1.into()),
-                is_identity,
-            );
-            let point = y.map(|y| Self::new(x, y, Field25519::ONE));
-            let not_negative_zero = !(is_identity & sign);
-            CtOption::conditional_select(
-                &CtOption::new(Self::identity(), 0.into()),
-                &point,
-                not_negative_zero,
-            )
-        })
+        let (pt, is_valid) = Point::from_bytes(bytes);
+        CtOption::new(Self(pt), is_valid.into())
     }
 
     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
@@ -274,6 +222,8 @@ impl PrimeGroup for HeliosPoint {}
 
 #[cfg(test)]
 mod tests {
+    use ff::Field;
+
     use super::*;
     use crate::HelioseleneField;
 
@@ -285,19 +235,19 @@ mod tests {
     #[test]
     fn generator_helios() {
         const G: HeliosPoint = HeliosPoint(Point::G);
-        let (res, c) = recover_y(Field25519(G.0.x));
+        let (res, c) = Point::<Field25519Params, HeliosPointParams>::recover_y(G.0.x);
         assert!(c.is_true_vartime());
-        assert_eq!(res.0, G.0.y.neg());
+        assert_eq!(res, G.0.y.neg());
     }
 
     #[test]
     fn zero_x_is_invalid() {
-        let (_, c) = recover_y(Field25519::ZERO);
+        let (_, c) = Point::<Field25519Params, HeliosPointParams>::recover_y(Field25519::ZERO.0);
         assert!(!c.is_true_vartime());
     }
 
     #[test]
-    fn test_const_mul() {
+    fn test_mul() {
         let point = HeliosPoint::generator();
         let scalar = HelioseleneField::from(2_u64);
         let result = point.mul(scalar); // 2 * G

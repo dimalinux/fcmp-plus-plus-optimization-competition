@@ -1,5 +1,7 @@
 //! Modular reduce implementation.
 
+use rand_core::RngCore;
+
 use crate::u256::{MontyForm, MontyParams, U256};
 
 impl<MOD: MontyParams> MontyForm<MOD> {
@@ -14,6 +16,12 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         let hi = Self::new(&U256::from_le_bytes(bytes[32..64].try_into().unwrap()));
         let hi = Self::mul(&Self::new(&MOD::TWO_TO_256_MOD_M), &hi);
         Self::add(&hi, &lo)
+    }
+
+    pub(crate) fn random(mut rng: impl RngCore) -> Self {
+        let mut bytes = [0; 64];
+        rng.fill_bytes(&mut bytes);
+        Self::reduce(&bytes)
     }
 }
 
