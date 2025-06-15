@@ -41,14 +41,25 @@ lint:
 .PHONY: coverage
 coverage:
 	rm -rf target/coverage
-	mkdir -p target/coverage
-	CARGO_INCREMENTAL=0 RUSTFLAGS=-Cinstrument-coverage LLVM_PROFILE_FILE=cargo-runZ-%p-%m.profraw cargo run --release --example profile_ours
-	grcov . --binary-path ./target/release/deps/ -s . -t cobertura,html \
+	mkdir -p target/coverage/{wasm,bench}
+	# Run release tests with coverage. While not executed using wasm,
+	# it shows what code is executed by the wasm cycles tests.
+	CARGO_INCREMENTAL=0 RUSTFLAGS="-Cinstrument-coverage" \
+		LLVM_PROFILE_FILE="wasm-%p-%m.profraw" $(CARGO_NEW) test --release
+	grcov . --binary-path ./target/release/deps/ -s . -t html \
 		--branch --llvm --ignore-not-existing \
-		--ignore '../*' --ignore '/*' -o target/coverage
-	rm -f cargo-run*\.profraw
-	@printf "\nCoverage is in:\nfile://$(PWD)/target/coverage/html/index.html\n"
-
+		--ignore '../*' --ignore '/*' -o target/coverage/wasm
+	rm -f *.profraw
+	# run the profile_ours example that does the same thing as the benchmark
+	# code without executing the reference implementation.
+	CARGO_INCREMENTAL=0 RUSTFLAGS="-Cinstrument-coverage" \
+		LLVM_PROFILE_FILE="bench-%p-%m.profraw" $(CARGO_NEW) run --example profile_ours
+	grcov . --binary-path ./target/release/deps/ -s . -t html \
+		--branch --llvm --ignore-not-existing \
+		--ignore '../*' --ignore '/*' -o target/coverage/bench
+	rm -f *.profraw
+	@printf "\nWASM (test) Coverage: file://$(PWD)/target/coverage/wasm/index.html\n"
+	@printf "Bench (example) Coverage: file://$(PWD)/target/coverage/bench/index.html\n"
 
 # Warning: This reconfigures the kernel to allow profiling for all users and
 # programs on the system.
@@ -66,10 +77,11 @@ flamegraph:
 .PHONY: install-deps
 install-deps:
 	rustup install 1.69.0
-	rustup install 1.84.1
+	rustup install
 	rustup +1.84.1 target add wasm32v1-none
 	rustup install nightly # for formatting
-	command -v grcov >/dev/null 2>&1 || cargo install grcov
+	rustup default 1.84.1
+	cargo install grcov
 	rustup component add llvm-tools-preview
 	cargo install cargo-binutils
 	cargo install cargo-show-asm --features disasm
