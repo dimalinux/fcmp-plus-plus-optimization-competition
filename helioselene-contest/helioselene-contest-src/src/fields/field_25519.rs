@@ -75,6 +75,7 @@ impl ConditionallySelectable for Field25519 {
 impl Add<Self> for Field25519 {
     type Output = Self;
 
+    #[inline]
     fn add(self, other: Self) -> Self::Output {
         Self(MontyFormType::add(&self.0, &other.0))
     }
@@ -103,6 +104,7 @@ impl<'a> AddAssign<&'a Self> for Field25519 {
 impl Sub<Self> for Field25519 {
     type Output = Self;
 
+    #[inline]
     fn sub(self, other: Self) -> Self::Output {
         Self(MontyFormType::sub(&self.0, &other.0))
     }
@@ -138,7 +140,6 @@ impl Mul<Self> for Field25519 {
 }
 
 impl MulAssign<Self> for Field25519 {
-    #[inline]
     fn mul_assign(&mut self, other: Self) {
         self.0 = MontyFormType::mul(&self.0, &other.0);
     }
@@ -154,7 +155,6 @@ impl<'a> Mul<&'a Self> for Field25519 {
 }
 
 impl<'a> MulAssign<&'a Self> for Field25519 {
-    #[inline]
     fn mul_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::mul(&self.0, &other.0);
     }
@@ -202,7 +202,6 @@ impl Neg for Field25519 {
 impl Neg for &Field25519 {
     type Output = Field25519;
 
-    #[inline]
     fn neg(self) -> Self::Output {
         Field25519(MontyForm::neg(&self.0))
     }
@@ -226,12 +225,12 @@ impl Field for Field25519 {
         Self(MontyFormType::add(&self.0, &self.0))
     }
 
-    #[inline]
     fn invert(&self) -> CtOption<Self> {
         let (res, c) = MontyFormType::invert(&self.0);
         CtOption::new(Self(res), c.into())
     }
 
+    #[inline]
     fn sqrt(&self) -> CtOption<Self> {
         let (res, c) = MontyFormType::sqrt(&self.0);
         CtOption::new(Self(res), c.into())

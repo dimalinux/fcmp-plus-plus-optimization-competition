@@ -46,14 +46,12 @@ pub struct HelioseleneField(pub(crate) MontyForm<HelioseleneParams>);
 impl DefaultIsZeroes for HelioseleneField {}
 
 impl ConstantTimeEq for HelioseleneField {
-    #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0).into()
     }
 }
 
 impl ConditionallySelectable for HelioseleneField {
-    #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self(MontyForm::ct_select(&a.0, &b.0, choice.into()))
     }
@@ -69,7 +67,6 @@ impl Add<Self> for HelioseleneField {
 }
 
 impl AddAssign<Self> for HelioseleneField {
-    #[inline]
     fn add_assign(&mut self, other: Self) {
         self.0 = MontyFormType::add(&self.0, &other.0);
     }
@@ -78,14 +75,12 @@ impl AddAssign<Self> for HelioseleneField {
 impl<'a> Add<&'a Self> for HelioseleneField {
     type Output = Self;
 
-    #[inline]
     fn add(self, other: &'a Self) -> Self::Output {
         Self(MontyFormType::add(&self.0, &other.0))
     }
 }
 
 impl<'a> AddAssign<&'a Self> for HelioseleneField {
-    #[inline]
     fn add_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::add(&self.0, &other.0);
     }
@@ -101,7 +96,6 @@ impl Sub<Self> for HelioseleneField {
 }
 
 impl SubAssign<Self> for HelioseleneField {
-    #[inline]
     fn sub_assign(&mut self, other: Self) {
         self.0 = MontyFormType::sub(&self.0, &other.0);
     }
@@ -110,14 +104,12 @@ impl SubAssign<Self> for HelioseleneField {
 impl<'a> Sub<&'a Self> for HelioseleneField {
     type Output = Self;
 
-    #[inline]
     fn sub(self, other: &'a Self) -> Self::Output {
         Self(MontyFormType::sub(&self.0, &other.0))
     }
 }
 
 impl<'a> SubAssign<&'a Self> for HelioseleneField {
-    #[inline]
     fn sub_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::sub(&self.0, &other.0);
     }
@@ -133,7 +125,6 @@ impl Mul<Self> for HelioseleneField {
 }
 
 impl MulAssign<Self> for HelioseleneField {
-    #[inline]
     fn mul_assign(&mut self, other: Self) {
         self.0 = MontyFormType::mul(&self.0, &other.0);
     }
@@ -149,7 +140,6 @@ impl<'a> Mul<&'a Self> for HelioseleneField {
 }
 
 impl<'a> MulAssign<&'a Self> for HelioseleneField {
-    #[inline]
     fn mul_assign(&mut self, other: &'a Self) {
         self.0 = MontyFormType::mul(&self.0, &other.0);
     }
@@ -196,8 +186,7 @@ impl Neg for HelioseleneField {
 
 impl Neg for &HelioseleneField {
     type Output = HelioseleneField;
-
-    #[inline]
+    
     fn neg(self) -> Self::Output {
         (*self).neg()
     }
@@ -205,6 +194,7 @@ impl Neg for &HelioseleneField {
 
 impl HelioseleneField {
     /// Perform exponentiation.
+    // NOTE: Invoked by cycles tests, but not benchmarked on Intel.
     #[must_use]
     #[inline]
     pub const fn pow(&self, exponent: Self) -> Self {
@@ -248,6 +238,7 @@ impl Field for HelioseleneField {
         sqrt_ratio_generic(num, div)
     }
 
+    #[inline]
     fn sqrt(&self) -> CtOption<Self> {
         let (res, c) = MontyFormType::sqrt(&self.0);
         CtOption::new(Self(res), c.into())
