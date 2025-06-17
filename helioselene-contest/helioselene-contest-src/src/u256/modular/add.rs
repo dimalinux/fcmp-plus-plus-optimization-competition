@@ -27,6 +27,20 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 
     #[inline]
     pub(crate) const fn double(&self) -> Self {
-        Self::add(self, self)
+        let (v, carry) = self.montgomery_form.shl_1();
+
+        // Attempt to subtract the modulus, to ensure the result is in the field.
+        let (v, borrow) = v.borrowing_sub(&MOD::MODULUS, 0);
+        let (_, mask) = borrowing_sub(carry, 0, borrow);
+
+        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
+        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
+        // modulus.
+        let res = v.wrapping_add(&MOD::MODULUS.bitand_limb(mask));
+
+        Self {
+            montgomery_form: res,
+            phantom: core::marker::PhantomData,
+        }
     }
 }

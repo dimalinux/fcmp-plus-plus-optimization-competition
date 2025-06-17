@@ -1,7 +1,6 @@
 use crate::u256::{ct_choice::CtChoice, U256};
 
 impl U256 {
-    #[inline(always)]
     pub(crate) const fn bitand_limb(&self, rhs: u64) -> Self {
         Self {
             limbs: [
@@ -24,6 +23,21 @@ impl U256 {
                 self.limbs[3] >> 1,
             ]),
             CtChoice::from_lsb(self.limbs[0] & 1),
+        )
+    }
+
+    /// Computes `self << 1` in constant-time, returning the result and the carry-out
+    /// which is always zero or one.
+    pub(crate) const fn shl_1(&self) -> (Self, u64) {
+        let carry_out = self.limbs[3] >> 63;
+        (
+            Self::new([
+                self.limbs[0] << 1,
+                (self.limbs[1] << 1) | (self.limbs[0] >> 63),
+                (self.limbs[2] << 1) | (self.limbs[1] >> 63),
+                (self.limbs[3] << 1) | (self.limbs[2] >> 63),
+            ]),
+            carry_out,
         )
     }
 }

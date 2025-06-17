@@ -41,25 +41,25 @@ lint:
 .PHONY: coverage
 coverage:
 	rm -rf target/coverage
-	mkdir -p target/coverage/{wasm,bench}
+	#mkdir -p target/coverage/{wasm/prof,bench/prof}
 	# Run release tests with coverage. While not executed using wasm,
 	# it shows what code is executed by the wasm cycles tests.
 	CARGO_INCREMENTAL=0 RUSTFLAGS="-Cinstrument-coverage" \
-		LLVM_PROFILE_FILE="wasm-%p-%m.profraw" $(CARGO_NEW) test --release
-	grcov . --binary-path ./target/release/deps/ -s . -t html \
+		LLVM_PROFILE_FILE="target/coverage/wasm/prof/%p-%m.profraw" \
+		$(CARGO_NEW) test --release
+	grcov target/coverage/wasm/prof --binary-path ./target/release/deps/ -s . -t html \
 		--branch --llvm --ignore-not-existing \
 		--ignore '../*' --ignore '/*' -o target/coverage/wasm
-	rm -f *.profraw
 	# run the profile_ours example that does the same thing as the benchmark
 	# code without executing the reference implementation.
 	CARGO_INCREMENTAL=0 RUSTFLAGS="-Cinstrument-coverage" \
-		LLVM_PROFILE_FILE="bench-%p-%m.profraw" $(CARGO_NEW) run --example profile_ours
-	grcov . --binary-path ./target/release/deps/ -s . -t html \
+		LLVM_PROFILE_FILE="target/coverage/bench/prof/%p-%m.profraw" \
+		$(CARGO_NEW) run --release --example profile_ours
+	grcov target/coverage/bench/prof --binary-path ./target/release/deps/ -s . -t html \
 		--branch --llvm --ignore-not-existing \
 		--ignore '../*' --ignore '/*' -o target/coverage/bench
-	rm -f *.profraw
-	@printf "\nWASM (test) Coverage: file://$(PWD)/target/coverage/wasm/index.html\n"
-	@printf "Bench (example) Coverage: file://$(PWD)/target/coverage/bench/index.html\n"
+	@printf "\nWASM (test) Coverage: file://$(PWD)/target/coverage/wasm/html/index.html\n"
+	@printf "Bench (example) Coverage: file://$(PWD)/target/coverage/bench/html/index.html\n"
 
 # Warning: This reconfigures the kernel to allow profiling for all users and
 # programs on the system.

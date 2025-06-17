@@ -186,7 +186,7 @@ impl Neg for HelioseleneField {
 
 impl Neg for &HelioseleneField {
     type Output = HelioseleneField;
-    
+
     fn neg(self) -> Self::Output {
         (*self).neg()
     }
