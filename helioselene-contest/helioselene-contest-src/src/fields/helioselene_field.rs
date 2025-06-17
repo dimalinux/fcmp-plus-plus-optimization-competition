@@ -17,6 +17,8 @@ pub(crate) struct HelioseleneParams;
 
 impl MontyParams for HelioseleneParams {
     const MODULUS: U256 = U256::from_be_hex(MODULUS_STR);
+    /// MODULUS_BITS is the number of bits in the modulus (ours has one leading zero bit)
+    const MODULUS_BITS: usize = 255;
     /// MOD_NEG_INV is the modular multiplicative inverse of the least
     /// significant 64-bits of `MODULUS` modulo 2^64, negated.
     const MOD_NEG_INV: u64 = 0x8a5f094bd6f46ba1_u64;

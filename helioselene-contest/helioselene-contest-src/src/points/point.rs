@@ -241,11 +241,12 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         (pt, is_valid)
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub(super) fn random(mut rng: impl RngCore) -> Self {
         loop {
             let mut bytes = MontyForm::<MOD>::random(&mut rng).to_le_bytes();
             bytes[31] |= ((rng.next_u32() & 0x1) << 7) as u8;
-            let (pt, c) = Point::from_bytes(&bytes);
+            let (pt, c) = Self::from_bytes(&bytes);
             if c.is_true_vartime() {
                 return pt;
             }

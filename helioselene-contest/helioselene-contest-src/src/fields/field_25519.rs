@@ -18,6 +18,8 @@ pub(crate) struct Field25519Params;
 impl MontyParams for Field25519Params {
     /// MODULUS is 2^255 - 19 (an odd value)
     const MODULUS: U256 = U256::from_be_hex(MODULUS_HEX);
+    /// MODULUS_BITS is the number of bits in the modulus (ours has one leading zero bit)
+    const MODULUS_BITS: usize = 255;
     /// MOD_3_8 is (MODULUS + 3) // 8, used for calculating square roots
     const MOD_3_8: U256 =
         U256::from_be_hex("0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe");

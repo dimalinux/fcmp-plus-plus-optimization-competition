@@ -18,6 +18,9 @@ pub(crate) trait MontyParams: Copy + Debug + Default + Eq + Send + Sync + 'stati
     /// The constant modulus
     const MODULUS: U256;
 
+    /// 256 minus the number of leading zero bits in the modulus.
+    const MODULUS_BITS: usize;
+
     /// Parameter used in Montgomery reduction
     const R: U256;
 

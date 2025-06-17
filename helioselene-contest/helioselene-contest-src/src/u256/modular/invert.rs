@@ -4,10 +4,10 @@ use core::marker::PhantomData;
 
 use crate::u256::{ct_choice::CtChoice, MontyForm, MontyParams, U256};
 
-// TODO: Newer versions of crypto-bigint have a different invert implementation,
-//       Test to see if it is faster.
-
 impl<MOD: MontyParams> MontyForm<MOD> {
+    /// The full 256 bits of the current value (to preserve constant
+    /// time in the loop below) plus the bits of the modulus.
+    const INV_ITERATIONS: usize = MOD::MODULUS_BITS + U256::BITS;
     const M1HP: U256 = MOD::MODULUS.shr_1().0.wrapping_add(&U256::ONE);
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
@@ -21,11 +21,8 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         let mut v = U256::ZERO;
         let mut b = MOD::MODULUS;
 
-        // `BIT_SIZE` can be anything >= `self.bits()` + `modulus.bits()`, setting to the minimum.
-        const BIT_SIZE: usize = U256::BITS * 2;
-
         let mut i = 0;
-        while i < BIT_SIZE {
+        while i < Self::INV_ITERATIONS {
             debug_assert!(b.ct_is_odd().is_true_vartime());
 
             let self_odd = a.ct_is_odd();
