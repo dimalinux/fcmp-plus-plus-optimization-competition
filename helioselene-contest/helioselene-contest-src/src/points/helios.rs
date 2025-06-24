@@ -177,13 +177,13 @@ impl Mul<HelioseleneField> for HeliosPoint {
     type Output = Self;
 
     fn mul(self, other: HelioseleneField) -> Self {
-        Self(self.0.mul(other.0))
+        Self(self.0.mul(&other.0))
     }
 }
 
 impl MulAssign<HelioseleneField> for HeliosPoint {
     fn mul_assign(&mut self, other: HelioseleneField) {
-        *self = Self(self.0.mul(other.0));
+        *self = Self(self.0.mul(&other.0));
     }
 }
 
@@ -191,13 +191,13 @@ impl Mul<&HelioseleneField> for HeliosPoint {
     type Output = Self;
 
     fn mul(self, other: &HelioseleneField) -> Self {
-        Self(self.0.mul(other.0))
+        Self(self.0.mul(&other.0))
     }
 }
 
 impl MulAssign<&HelioseleneField> for HeliosPoint {
     fn mul_assign(&mut self, other: &HelioseleneField) {
-        self.0 = self.0.mul(other.0);
+        self.0 = self.0.mul(&other.0);
     }
 }
 

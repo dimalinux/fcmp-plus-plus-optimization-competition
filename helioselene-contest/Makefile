@@ -63,15 +63,10 @@ coverage:
 
 # Warning: This reconfigures the kernel to allow profiling for all users and
 # programs on the system.
-.PHONY: profile
-profile:
-	sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
-	sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict'
-	RUSTFLAGS="-Cforce-frame-pointers=yes" cargo build --release --examples
-	perf record --freq=997 --call-graph dwarf target/release/examples/profile_ours
-
 .PHONY: flamegraph
 flamegraph:
+	sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
+	sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict'
 	cargo flamegraph --release --example profile_ours
 
 .PHONY: install-deps

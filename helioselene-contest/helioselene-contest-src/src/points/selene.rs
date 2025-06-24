@@ -179,13 +179,13 @@ impl Mul<Field25519> for SelenePoint {
     type Output = Self;
 
     fn mul(self, other: Field25519) -> Self {
-        Self(self.0.mul(other.0))
+        Self(self.0.mul(&other.0))
     }
 }
 
 impl MulAssign<Field25519> for SelenePoint {
     fn mul_assign(&mut self, other: Field25519) {
-        *self = Self(self.0.mul(other.0));
+        *self = Self(self.0.mul(&other.0));
     }
 }
 
@@ -193,13 +193,13 @@ impl Mul<&Field25519> for SelenePoint {
     type Output = Self;
 
     fn mul(self, other: &Field25519) -> Self {
-        Self(self.0.mul(other.0))
+        Self(self.0.mul(&other.0))
     }
 }
 
 impl MulAssign<&Field25519> for SelenePoint {
     fn mul_assign(&mut self, other: &Field25519) {
-        self.0 = self.0.mul(other.0);
+        self.0 = self.0.mul(&other.0);
     }
 }
 

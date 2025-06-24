@@ -163,7 +163,7 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         bytes
     }
 
-    pub(super) const fn mul<SMOD: MontyParams>(self, scalar: MontyForm<SMOD>) -> Self {
+    pub(super) const fn mul<SMOD: MontyParams>(self, scalar: &MontyForm<SMOD>) -> Self {
         let mut table = [Self::IDENTITY; 16];
         table[1] = self;
         let mut i = 2;
@@ -173,11 +173,11 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         }
 
         let mut res = Self::IDENTITY;
-        let nibbles = scalar.retrieve().as_be_nibbles();
+        let scalar = scalar.retrieve();
+        let mut bits: u8;
         let mut i = 0;
-        #[allow(unused_assignments)]
         while i < 64 {
-            let mut bits = nibbles[i];
+            bits = scalar.nibble_be(i);
 
             if i > 0 {
                 res = res.double();
@@ -196,11 +196,12 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
                 j += 1;
             }
             res = Self::add(res, &term);
-            bits = 0;
         }
-        // TODO: How to handle this in a const function?
-        //nibbles.zeroize();
-        //other.zeroize();
+        // TODO: Zeroize crate isn't const fn friendly.
+        // Do we need to zeroize scalar and bits? The caller if the
+        // scalar on the operator overloading supposedly uses a copy
+        // (even though the compiler generated code unlikely copies).
+        // Force inline the operator overloading?
         res
     }
 

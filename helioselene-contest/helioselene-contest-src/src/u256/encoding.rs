@@ -4,9 +4,15 @@ use crate::u256::U256;
 
 impl U256 {
     #[cfg(test)]
-    pub(crate) fn to_be_bytes(self) -> [u8; 32] {
+    pub(crate) const fn to_be_bytes(self) -> [u8; 32] {
         let mut bytes = self.to_le_bytes();
-        bytes.reverse();
+        let mut i = 0;
+        while i < 16 {
+            let tmp = bytes[i];
+            bytes[i] = bytes[31 - i];
+            bytes[31 - i] = tmp;
+            i += 1;
+        }
         bytes
     }
 
@@ -120,6 +126,16 @@ impl U256 {
 
         nibbles
     }
+
+    /// Returns the big-endian nibble at `index` (0 = most significant nibble).
+    pub(crate) const fn nibble_be(&self, nibble_index: usize) -> u8 {
+        debug_assert!(nibble_index < 64, "nibble index out of bounds");
+        let bit_offset = 252 - (nibble_index << 2); // 63*4 - index*4
+        let limb_index = bit_offset >> 6; // Divide by 64 (2^6)
+        let limb = self.limbs[limb_index];
+        let shift = (bit_offset & 63) as u32; // Modulo 64
+        ((limb >> shift) & 0xF) as u8
+    }
 }
 
 /// Decode a single nibble of upper or lower hex
@@ -173,5 +189,8 @@ mod tests {
         let input = U256::from_be_hex(INPUT_BE_HEX);
         let output = input.as_be_nibbles();
         assert_eq!(EXPECTED_BE_NIBBLES, hex::encode(output));
+        for i in 0..64 {
+            assert_eq!(input.nibble_be(i), output[i]);
+        }
     }
 }

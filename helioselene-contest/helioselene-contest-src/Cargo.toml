@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Implementation of Helios and Selene, a curve cycle towering Ed25519"
 license = "MIT"
 repository = "https://github.com/kayabaNerve/fcmp-plus-plus/tree/develop/crypto/helioselene"
-authors = ["Luke Parker <lukeparker5132@gmail.com>"]
+authors = ["Dmitry Holodov <dimalinux@protonmail.com>", "Luke Parker <lukeparker5132@gmail.com>"]
 keywords = ["helios", "selene", "ed25519", "ff", "group"]
 edition = "2021"
 
