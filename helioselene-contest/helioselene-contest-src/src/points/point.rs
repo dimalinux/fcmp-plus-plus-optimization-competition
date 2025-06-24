@@ -24,7 +24,7 @@ pub(super) struct Point<MOD: MontyParams, P: PointParams<MOD>> {
 }
 
 impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
-    const A: MontyForm<MOD> = MontyForm::neg(&MontyForm::new(&U256::from_u64(3)));
+    const A: MontyForm<MOD> = MontyForm::new(&U256::from_u64(3)).neg();
     const B3: MontyForm<MOD> = P::B.add(&P::B).add(&P::B);
     pub(super) const G: Self = Self::new(P::G_X, P::G_Y, MontyForm::ONE);
     pub(super) const IDENTITY: Self = Self::new(MontyForm::ZERO, MontyForm::ONE, MontyForm::ZERO);
@@ -47,10 +47,10 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
     }
 
     pub(super) const fn ct_eq(&self, other: &Self) -> CtChoice {
-        let x1 = MontyForm::mul(&self.x, &other.z);
-        let x2 = MontyForm::mul(&other.x, &self.z);
-        let y1 = MontyForm::mul(&self.y, &other.z);
-        let y2 = MontyForm::mul(&other.y, &self.z);
+        let x1 = self.x.mul(&other.z);
+        let x2 = other.x.mul(&self.z);
+        let y1 = self.y.mul(&other.z);
+        let y2 = other.y.mul(&self.z);
         let both_x_zero = self.x.ct_is_zero().and(other.x.ct_is_zero());
         let x_and_y_eq = x1.ct_eq(&x2).and(y1.ct_eq(&y2));
         both_x_zero.or(x_and_y_eq)
@@ -65,44 +65,44 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         let Y2 = &other.y;
         let Z2 = &other.z;
 
-        let t0 = MontyForm::mul(X1, X2);
-        let t1 = MontyForm::mul(Y1, Y2);
-        let t2 = MontyForm::mul(Z1, Z2);
-        let t3 = MontyForm::mul(&MontyForm::add(X1, Y1), &MontyForm::add(X2, Y2));
-        let t4 = MontyForm::add(&t0, &t1);
-        let t3 = MontyForm::sub(&t3, &t4);
-        let t4 = MontyForm::add(X1, Z1);
-        let t5 = MontyForm::add(X2, Z2);
-        let t4 = MontyForm::mul(&t4, &t5);
-        let t5 = MontyForm::add(&t0, &t2);
-        let t4 = MontyForm::sub(&t4, &t5);
-        let t5 = MontyForm::add(Y1, Z1);
-        let X3 = MontyForm::add(Y2, Z2);
-        let t5 = MontyForm::mul(&t5, &X3);
-        let X3 = MontyForm::add(&t1, &t2);
-        let t5 = MontyForm::sub(&t5, &X3);
-        let Z3 = MontyForm::mul(&Self::A, &t4);
-        let X3 = MontyForm::mul(&Self::B3, &t2);
-        let Z3 = MontyForm::add(&X3, &Z3);
-        let X3 = MontyForm::sub(&t1, &Z3);
-        let Z3 = MontyForm::add(&t1, &Z3);
-        let Y3 = MontyForm::mul(&X3, &Z3);
-        let t1 = MontyForm::add(&t0, &t0);
-        let t1 = MontyForm::add(&t1, &t0);
-        let t2 = MontyForm::mul(&Self::A, &t2);
-        let t4 = MontyForm::mul(&Self::B3, &t4);
-        let t1 = MontyForm::add(&t1, &t2);
-        let t2 = MontyForm::sub(&t0, &t2);
-        let t2 = MontyForm::mul(&Self::A, &t2);
-        let t4 = MontyForm::add(&t4, &t2);
-        let t0 = MontyForm::mul(&t1, &t4);
-        let Y3 = MontyForm::add(&Y3, &t0);
-        let t0 = MontyForm::mul(&t5, &t4);
-        let X3 = MontyForm::mul(&t3, &X3);
-        let X3 = MontyForm::sub(&X3, &t0);
-        let t0 = MontyForm::mul(&t3, &t1);
-        let Z3 = MontyForm::mul(&t5, &Z3);
-        let Z3 = MontyForm::add(&Z3, &t0);
+        let t0 = X1.mul(X2);
+        let t1 = Y1.mul(Y2);
+        let t2 = Z1.mul(Z2);
+        let t3 = X1.add(Y1).mul(&X2.add(Y2));
+        let t4 = t0.add(&t1);
+        let t3 = t3.sub(&t4);
+        let t4 = X1.add(Z1);
+        let t5 = X2.add(Z2);
+        let t4 = t4.mul(&t5);
+        let t5 = t0.add(&t2);
+        let t4 = t4.sub(&t5);
+        let t5 = Y1.add(Z1);
+        let X3 = Y2.add(Z2);
+        let t5 = t5.mul(&X3);
+        let X3 = t1.add(&t2);
+        let t5 = t5.sub(&X3);
+        let Z3 = Self::A.mul(&t4);
+        let X3 = Self::B3.mul(&t2);
+        let Z3 = X3.add(&Z3);
+        let X3 = t1.sub(&Z3);
+        let Z3 = t1.add(&Z3);
+        let Y3 = X3.mul(&Z3);
+        let t1 = t0.add(&t0);
+        let t1 = t1.add(&t0);
+        let t2 = Self::A.mul(&t2);
+        let t4 = Self::B3.mul(&t4);
+        let t1 = t1.add(&t2);
+        let t2 = t0.sub(&t2);
+        let t2 = Self::A.mul(&t2);
+        let t4 = t4.add(&t2);
+        let t0 = t1.mul(&t4);
+        let Y3 = Y3.add(&t0);
+        let t0 = t5.mul(&t4);
+        let X3 = t3.mul(&X3);
+        let X3 = X3.sub(&t0);
+        let t0 = t3.mul(&t1);
+        let Z3 = t5.mul(&Z3);
+        let Z3 = Z3.add(&t0);
 
         Self::new(X3, Y3, Z3)
     }
@@ -116,20 +116,17 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         let X1 = self.x;
         let Y1 = self.y;
         let Z1 = self.z;
-        let w = MontyForm::mul(&MontyForm::sub(&X1, &Z1), &MontyForm::add(&X1, &Z1));
-        let w = MontyForm::add(&MontyForm::add(&w, &w), &w);
-        let s = MontyForm::double(&MontyForm::mul(&Y1, &Z1));
-        let ss = MontyForm::square(&s);
-        let sss = MontyForm::mul(&s, &ss);
-        let R = MontyForm::mul(&Y1, &s);
+        let w = X1.sub(&Z1).mul(&X1.add(&Z1));
+        let w = w.add(&w).add(&w);
+        let s = Y1.mul(&Z1).double();
+        let ss = s.square();
+        let sss = s.mul(&ss);
+        let R = Y1.mul(&s);
         let RR = R.square();
-        let B_ = MontyForm::mul(&X1, &R).double();
-        let h = MontyForm::sub(&w.square(), &B_.double());
-        let X3 = MontyForm::mul(&h, &s);
-        let Y3 = MontyForm::sub(
-            &MontyForm::mul(&w, &(MontyForm::sub(&B_, &h))),
-            &RR.double(),
-        );
+        let B_ = X1.mul(&R).double();
+        let h = w.square().sub(&B_.double());
+        let X3 = h.mul(&s);
+        let Y3 = w.mul(&B_.sub(&h)).sub(&RR.double());
         let Z3 = sss;
 
         let is_identity = self.x.ct_is_zero();
@@ -152,8 +149,8 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
             return [0; 32];
         }
 
-        let x = MontyForm::mul(&self.x, &z);
-        let y = MontyForm::mul(&self.y, &z);
+        let x = self.x.mul(&z);
+        let y = self.y.mul(&z);
         let mut bytes = x.retrieve().to_le_bytes();
         let y_lsb = y.retrieve().least_significant_bit();
         let x_is_zero = x.ct_is_zero();
@@ -168,7 +165,7 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
         table[1] = self;
         let mut i = 2;
         while i < 16 {
-            table[i] = Self::add(self, &table[i - 1]);
+            table[i] = self.add(&table[i - 1]);
             i += 1;
         }
 
@@ -195,7 +192,7 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
                 term = Self::ct_select(&term, &table[j], c);
                 j += 1;
             }
-            res = Self::add(res, &term);
+            res = res.add(&term);
         }
         // TODO: Zeroize crate isn't const fn friendly.
         // Do we need to zeroize scalar and bits? The caller if the
@@ -207,12 +204,12 @@ impl<MOD: MontyParams, P: PointParams<MOD>> Point<MOD, P> {
 
     pub(super) const fn recover_y(x: MontyForm<MOD>) -> (MontyForm<MOD>, CtChoice) {
         // ((x.square() * x) - x - x - x + B).sqrt()
-        let mut v = MontyForm::square(&x);
-        v = MontyForm::mul(&v, &x);
-        v = MontyForm::sub(&v, &x);
-        v = MontyForm::sub(&v, &x);
-        v = MontyForm::sub(&v, &x);
-        v = MontyForm::add(&v, &P::B);
+        let mut v = x.square();
+        v = v.mul(&x);
+        v = v.sub(&x);
+        v = v.sub(&x);
+        v = v.sub(&x);
+        v = v.add(&P::B);
 
         v.sqrt()
     }

@@ -79,13 +79,13 @@ impl Add<Self> for Field25519 {
 
     #[inline]
     fn add(self, other: Self) -> Self::Output {
-        Self(MontyFormType::add(&self.0, &other.0))
+        Self(self.0.add(&other.0))
     }
 }
 
 impl AddAssign<Self> for Field25519 {
     fn add_assign(&mut self, other: Self) {
-        self.0 = MontyFormType::add(&self.0, &other.0);
+        self.0 = self.0.add(&other.0);
     }
 }
 
@@ -93,13 +93,13 @@ impl<'a> Add<&'a Self> for Field25519 {
     type Output = Self;
 
     fn add(self, other: &'a Self) -> Self::Output {
-        Self(MontyFormType::add(&self.0, &other.0))
+        Self(self.0.add(&other.0))
     }
 }
 
 impl<'a> AddAssign<&'a Self> for Field25519 {
     fn add_assign(&mut self, other: &'a Self) {
-        self.0 = MontyFormType::add(&self.0, &other.0);
+        self.0 = self.0.add(&other.0);
     }
 }
 
@@ -108,13 +108,13 @@ impl Sub<Self> for Field25519 {
 
     #[inline]
     fn sub(self, other: Self) -> Self::Output {
-        Self(MontyFormType::sub(&self.0, &other.0))
+        Self(self.0.sub(&other.0))
     }
 }
 
 impl SubAssign<Self> for Field25519 {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = MontyFormType::sub(&self.0, &other.0);
+        self.0 = self.0.sub(&other.0);
     }
 }
 
@@ -122,13 +122,13 @@ impl<'a> Sub<&'a Self> for Field25519 {
     type Output = Self;
 
     fn sub(self, other: &'a Self) -> Self::Output {
-        Self(MontyFormType::sub(&self.0, &other.0))
+        Self(self.0.sub(&other.0))
     }
 }
 
 impl<'a> SubAssign<&'a Self> for Field25519 {
     fn sub_assign(&mut self, other: &'a Self) {
-        self.0 = MontyFormType::sub(&self.0, &other.0);
+        self.0 = self.0.sub(&other.0);
     }
 }
 
@@ -137,13 +137,13 @@ impl Mul<Self> for Field25519 {
 
     #[inline]
     fn mul(self, other: Self) -> Self::Output {
-        Self(MontyFormType::mul(&self.0, &other.0))
+        Self(self.0.mul(&other.0))
     }
 }
 
 impl MulAssign<Self> for Field25519 {
     fn mul_assign(&mut self, other: Self) {
-        self.0 = MontyFormType::mul(&self.0, &other.0);
+        self.0 = self.0.mul(&other.0);
     }
 }
 
@@ -152,13 +152,13 @@ impl<'a> Mul<&'a Self> for Field25519 {
 
     #[inline]
     fn mul(self, other: &'a Self) -> Self::Output {
-        Self(MontyFormType::mul(&self.0, &other.0))
+        Self(self.0.mul(&other.0))
     }
 }
 
 impl<'a> MulAssign<&'a Self> for Field25519 {
     fn mul_assign(&mut self, other: &'a Self) {
-        self.0 = MontyFormType::mul(&self.0, &other.0);
+        self.0 = self.0.mul(&other.0);
     }
 }
 
@@ -219,22 +219,22 @@ impl Field for Field25519 {
 
     #[inline]
     fn square(&self) -> Self {
-        Self(MontyFormType::square(&self.0))
+        Self(self.0.square())
     }
 
     #[inline]
     fn double(&self) -> Self {
-        Self(MontyFormType::add(&self.0, &self.0))
+        Self(self.0.add(&self.0))
     }
 
     fn invert(&self) -> CtOption<Self> {
-        let (res, c) = MontyFormType::invert(&self.0);
+        let (res, c) = self.0.invert();
         CtOption::new(Self(res), c.into())
     }
 
     #[inline]
     fn sqrt(&self) -> CtOption<Self> {
-        let (res, c) = MontyFormType::sqrt(&self.0);
+        let (res, c) = self.0.sqrt();
         CtOption::new(Self(res), c.into())
     }
 
@@ -245,23 +245,19 @@ impl Field for Field25519 {
         let u = &u.0;
         let v = &v.0;
 
-        let v3 = MontyFormType::mul(&v.square(), v);
-        let v7 = MontyFormType::mul(&v3.square(), v);
-        let u_times_v3 = MontyFormType::mul(u, &v3);
-        let u_times_v7 = MontyFormType::mul(u, &v7);
-        let mut r = MontyFormType::mul(&u_times_v3, &u_times_v7.pow_fixed::<FixedExpMod5_8>());
+        let v3 = v.square().mul(v);
+        let v7 = v3.square().mul(v);
+        let u_times_v3 = u.mul(&v3);
+        let u_times_v7 = u.mul(&v7);
+        let mut r = u_times_v3.mul(&u_times_v7.pow_fixed::<FixedExpMod5_8>());
 
-        let check = MontyFormType::mul(v, &r.square());
+        let check = v.mul(&r.square());
         let correct_sign = check.ct_eq(u);
-        let u_neg = MontyFormType::neg(u);
+        let u_neg = u.neg();
         let flipped_sign = check.ct_eq(&u_neg);
-        let flipped_sign_i = check.ct_eq(&MontyFormType::mul(&u_neg, &i));
+        let flipped_sign_i = check.ct_eq(&u_neg.mul(&i));
 
-        r = MontyFormType::ct_select(
-            &r,
-            &MontyFormType::mul(&r, &i),
-            flipped_sign.or(flipped_sign_i),
-        );
+        r = MontyFormType::ct_select(&r, &r.mul(&i), flipped_sign.or(flipped_sign_i));
 
         let r_is_negative = r.retrieve().ct_is_odd();
         r = MontyFormType::ct_select(&r, &r.neg(), r_is_negative);
@@ -333,7 +329,7 @@ impl Sum<Self> for Field25519 {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = MontyForm::ZERO;
         for item in iter {
-            res = MontyFormType::add(&res, &item.0);
+            res = res.add(&item.0);
         }
         Self(res)
     }
@@ -349,7 +345,7 @@ impl Product<Self> for Field25519 {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = MontyForm::ONE;
         for item in iter {
-            res = MontyFormType::mul(&res, &item.0);
+            res = res.mul(&item.0);
         }
         Self(res)
     }

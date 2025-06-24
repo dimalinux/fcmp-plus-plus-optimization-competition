@@ -14,8 +14,8 @@ impl<MOD: MontyParams> MontyForm<MOD> {
 
         let lo = Self::new(&U256::from_le_bytes(bytes[..32].try_into().unwrap()));
         let hi = Self::new(&U256::from_le_bytes(bytes[32..64].try_into().unwrap()));
-        let hi = Self::mul(&Self::new(&MOD::TWO_TO_256_MOD_M), &hi);
-        Self::add(&hi, &lo)
+        let hi = Self::new(&MOD::TWO_TO_256_MOD_M).mul(&hi);
+        hi.add(&lo)
     }
 
     pub(crate) fn random(mut rng: impl RngCore) -> Self {

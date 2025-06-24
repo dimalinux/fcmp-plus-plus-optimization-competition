@@ -64,13 +64,13 @@ impl Add<Self> for HelioseleneField {
 
     #[inline]
     fn add(self, other: Self) -> Self::Output {
-        Self(MontyFormType::add(&self.0, &other.0))
+        Self(self.0.add(&other.0))
     }
 }
 
 impl AddAssign<Self> for HelioseleneField {
     fn add_assign(&mut self, other: Self) {
-        self.0 = MontyFormType::add(&self.0, &other.0);
+        self.0 = self.0.add(&other.0);
     }
 }
 
@@ -78,13 +78,13 @@ impl<'a> Add<&'a Self> for HelioseleneField {
     type Output = Self;
 
     fn add(self, other: &'a Self) -> Self::Output {
-        Self(MontyFormType::add(&self.0, &other.0))
+        Self(self.0.add(&other.0))
     }
 }
 
 impl<'a> AddAssign<&'a Self> for HelioseleneField {
     fn add_assign(&mut self, other: &'a Self) {
-        self.0 = MontyFormType::add(&self.0, &other.0);
+        self.0 = self.0.add(&other.0);
     }
 }
 
@@ -93,13 +93,13 @@ impl Sub<Self> for HelioseleneField {
 
     #[inline]
     fn sub(self, other: Self) -> Self::Output {
-        Self(MontyFormType::sub(&self.0, &other.0))
+        Self(self.0.sub(&other.0))
     }
 }
 
 impl SubAssign<Self> for HelioseleneField {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = MontyFormType::sub(&self.0, &other.0);
+        self.0 = self.0.sub(&other.0);
     }
 }
 
@@ -107,13 +107,13 @@ impl<'a> Sub<&'a Self> for HelioseleneField {
     type Output = Self;
 
     fn sub(self, other: &'a Self) -> Self::Output {
-        Self(MontyFormType::sub(&self.0, &other.0))
+        Self(self.0.sub(&other.0))
     }
 }
 
 impl<'a> SubAssign<&'a Self> for HelioseleneField {
     fn sub_assign(&mut self, other: &'a Self) {
-        self.0 = MontyFormType::sub(&self.0, &other.0);
+        self.0 = self.0.sub(&other.0);
     }
 }
 
@@ -122,13 +122,13 @@ impl Mul<Self> for HelioseleneField {
 
     #[inline]
     fn mul(self, other: Self) -> Self::Output {
-        Self(MontyFormType::mul(&self.0, &other.0))
+        Self(self.0.mul(&other.0))
     }
 }
 
 impl MulAssign<Self> for HelioseleneField {
     fn mul_assign(&mut self, other: Self) {
-        self.0 = MontyFormType::mul(&self.0, &other.0);
+        self.0 = self.0.mul(&other.0);
     }
 }
 
@@ -137,13 +137,13 @@ impl<'a> Mul<&'a Self> for HelioseleneField {
 
     #[inline]
     fn mul(self, other: &'a Self) -> Self::Output {
-        Self(MontyFormType::mul(&self.0, &other.0))
+        Self(self.0.mul(&other.0))
     }
 }
 
 impl<'a> MulAssign<&'a Self> for HelioseleneField {
     fn mul_assign(&mut self, other: &'a Self) {
-        self.0 = MontyFormType::mul(&self.0, &other.0);
+        self.0 = self.0.mul(&other.0);
     }
 }
 
@@ -200,7 +200,7 @@ impl HelioseleneField {
     #[must_use]
     #[inline]
     pub const fn pow(&self, exponent: Self) -> Self {
-        Self(MontyFormType::pow(self.0, exponent.0))
+        Self(self.0.pow(exponent.0))
     }
 
     /// Reduce 512 bits, presumably to get a non-biased Helioselene field element.
@@ -223,16 +223,16 @@ impl Field for HelioseleneField {
 
     #[inline]
     fn square(&self) -> Self {
-        Self(MontyFormType::square(&self.0))
+        Self(self.0.square())
     }
 
     #[inline]
     fn double(&self) -> Self {
-        Self(MontyFormType::add(&self.0, &self.0))
+        Self(self.0.double())
     }
 
     fn invert(&self) -> CtOption<Self> {
-        let (res, c) = MontyFormType::invert(&self.0);
+        let (res, c) = self.0.invert();
         CtOption::new(Self(res), c.into())
     }
 
@@ -242,7 +242,7 @@ impl Field for HelioseleneField {
 
     #[inline]
     fn sqrt(&self) -> CtOption<Self> {
-        let (res, c) = MontyFormType::sqrt(&self.0);
+        let (res, c) = self.0.sqrt();
         CtOption::new(Self(res), c.into())
     }
 }
@@ -294,7 +294,7 @@ impl Sum<Self> for HelioseleneField {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = MontyFormType::ZERO;
         for item in iter {
-            res = MontyFormType::add(&res, &item.0);
+            res = res.add(&item.0);
         }
         Self(res)
     }
@@ -310,7 +310,7 @@ impl Product<Self> for HelioseleneField {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         let mut res = MontyFormType::ONE;
         for item in iter {
-            res = MontyFormType::mul(&res, &item.0);
+            res = res.mul(&item.0);
         }
         Self(res)
     }

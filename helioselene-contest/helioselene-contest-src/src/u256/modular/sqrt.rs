@@ -9,7 +9,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
     pub(crate) const fn sqrt(&self) -> (Self, CtChoice) {
         if Self::P_MOD_4_IS_3 {
             debug_assert!(MOD::MOD_PLUS_1_DIV_4.ct_is_nonzero().is_true_vartime());
-            return Self::sqrt_p_mod_4_is_3(self);
+            return self.sqrt_p_mod_4_is_3();
         }
 
         if Self::P_MOD_8_IS_5 {
@@ -18,7 +18,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
                 .montgomery_form
                 .ct_is_nonzero()
                 .is_true_vartime());
-            return Self::sqrt_p_mod_8_is_5(self);
+            return self.sqrt_p_mod_8_is_5();
         }
 
         unimplemented!();
@@ -32,7 +32,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
             const EXPONENT: U256 = MOD::MOD_PLUS_1_DIV_4;
         }
         let res = self.pow_fixed::<ModPlusOneDivFour<MOD>>();
-        let res_square = Self::square(&res);
+        let res_square = res.square();
         (res, res_square.ct_eq(self))
     }
 
@@ -45,7 +45,7 @@ impl<MOD: MontyParams> MontyForm<MOD> {
         }
 
         let tv1 = self.pow_fixed::<FixedExpMod3_8<MOD>>();
-        let tv2 = Self::mul(&tv1, &MOD::SQRT_M1);
+        let tv2 = tv1.mul(&MOD::SQRT_M1);
         let candidate = Self::ct_select(&tv2, &tv1, tv1.square().ct_eq(self));
         let candidate_squared = candidate.square();
         let sq_eq_self = candidate_squared.ct_eq(self);

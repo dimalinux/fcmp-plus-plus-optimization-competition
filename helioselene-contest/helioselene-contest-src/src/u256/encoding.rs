@@ -128,6 +128,7 @@ impl U256 {
     }
 
     /// Returns the big-endian nibble at `index` (0 = most significant nibble).
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn nibble_be(&self, nibble_index: usize) -> u8 {
         debug_assert!(nibble_index < 64, "nibble index out of bounds");
         let bit_offset = 252 - (nibble_index << 2); // 63*4 - index*4
@@ -189,8 +190,8 @@ mod tests {
         let input = U256::from_be_hex(INPUT_BE_HEX);
         let output = input.as_be_nibbles();
         assert_eq!(EXPECTED_BE_NIBBLES, hex::encode(output));
-        for i in 0..64 {
-            assert_eq!(input.nibble_be(i), output[i]);
+        for (i, &n) in output.iter().enumerate() {
+            assert_eq!(input.nibble_be(i), n);
         }
     }
 }
