@@ -1,5 +1,6 @@
 #![no_std]
 #![allow(non_snake_case)]
+#![allow(unknown_lints)] // older compiler warns about `static_mut_refs`
 #![allow(static_mut_refs)]
 
 use helioselene::{
